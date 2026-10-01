@@ -245,7 +245,7 @@ cv.addEventListener('pointermove',e=>{const p=toStage(e);cur.tx=p.x;cur.ty=p.y;l
 cv.addEventListener('pointerdown',e=>{const p=toStage(e);cur.tx=cur.x=p.x;cur.ty=cur.y=p.y;lastMouse=performance.now();mouseDown=true;onPress('mouse')});
 window.addEventListener('pointerup',()=>{if(mouseDown){mouseDown=false;onRelease('mouse')}});
 function onPress(src){inputSrc=src;if(screen!=='game')return;
-  const b=pipBar();if(inR(b,cur.x,cur.y)){if(cur.x>b.x+b.w-30){pipMin=!pipMin;syncPipBtn()}else pipDrag={dx:cur.x-PIP.x,dy:cur.y-PIP.y,src};return}
+  const b=pipBar();if(inR(b,cur.x,cur.y)){if(cur.x>b.x+b.w-30){if(pipOnStart())pipStartMin=!pipStartMin;else pipMin=!pipMin;syncPipBtn()}else pipDrag={dx:cur.x-PIP.x,dy:cur.y-PIP.y,src};return}
   if(blocked()||performance.now()<armT)return;for(const z of zonesNow){if(inZone(z,cur.x,cur.y)){fire(z);return}}}
 function onRelease(src){if(pipDrag&&pipDrag.src===src)pipDrag=null;if(drag&&drag.by===src){const s=S[si];
   if(s.kind==='drag'){drag=null;if(s.apply)s.apply(0)}else if(s.kind==='depth'){drag=null}}}
@@ -255,24 +255,24 @@ function holding(){if(handMode&&camOn&&performance.now()-lastMouse>900)return pi
 const PIP={x:16,y:H-160,w:256,h:144};
 let pipMin=false,pipDrag=null;const pipPos={x:16,y:H-160};
 const PIP_CORNERS=[{x:16,y:H-160},{x:618,y:H-160},{x:618,y:150},{x:16,y:150}];let pipCorner=0;
-const pipPosStart={x:1004,y:H-200};
+const pipPosStart={x:1090,y:30};let pipStartMin=true;
 function pipOnStart(){return S&&S[si]&&S[si].grp==='start'}
 function pipActivePos(){return pipOnStart()?pipPosStart:pipPos}
-function pipIsMin(){return pipMin}
+function pipIsMin(){return pipOnStart()?pipStartMin:pipMin}
 function layoutPip(){const mn=pipIsMin();PIP.w=mn?176:256;PIP.h=mn?36:144;
-  const p=pipActivePos();PIP.x=Math.max(4,Math.min(W-PIP.w-4,p.x));PIP.y=Math.max(134,Math.min(H-PIP.h-4,p.y+(mn?108:0)))}
+  const p=pipActivePos();PIP.x=Math.max(4,Math.min(W-PIP.w-4,p.x));PIP.y=Math.max(pipOnStart()?30:134,Math.min(H-PIP.h-4,p.y+(mn&&!pipOnStart()?108:0)))}
 function pipBar(){return{x:PIP.x,y:PIP.y-26,w:PIP.w,h:24}}
 function inR(r,x,y){return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h}
 const CF={x:560,y:150,w:300,h:170};
 const ITEMS=[['mask','마스크'],['sanit','손소독제'],['gloves','멸균 장갑'],['syringe','흡인형 주사기'],['cart','리도카인 카트리지'],['n27','27G long'],
  ['n30','30G short'],['explorer','탐침'],['gauze','거즈'],['f17','#17'],['f23','#23 Cowhorn'],['f151','#151'],
  ['f222','#222'],['f150','#150'],['f53','#53R'],['f18','#18R'],['f210','#210'],
- ['saline','생리식염수 시린지'],['egloves','진료용 장갑'],['ept','전기치수검사기'],['paste','치약(전도 매질)'],['cotton','코튼롤'],['air','3-way 시린지'],['lipclip','립클립'],['ice','냉검사 스프레이'],['w8a','클램프 W8A'],['w2a','클램프 W2A'],['c212','클램프 #212'],['floss','치실'],['punch','러버댐 펀치'],['cforceps','클램프 포셉'],['sheet','러버댐 시트'],['frame','영 프레임'],['brush','프로피 브러시'],['pumice','퍼미스'],['fpaste','불소 페이스트'],['etch','37% 인산 에칭젤'],['sealant','실란트'],['curing','광중합기'],['artpaper','교합지'],['ejector','석션 팁'],['mirror','미러'],['pincette','핀셋'],['probe','치주 탐침'],['fgel','APF 불소 겔'],['ftray','불소 트레이'],['sickleA','전치부 sickle'],['sickleP','구치부 sickle'],['univ','Universal curette'],['g12','Gracey 1/2'],['g56','Gracey 5/6'],['g78','Gracey 7/8'],['g1112','Gracey 11/12'],['g1314','Gracey 13/14'],['nh','지침기'],['hemo','모스키토 겸자'],['adson','Adson 조직겸자'],['s4','4-0 silk'],['s2','2-0 silk'],['s6','6-0 nylon'],['sc','봉합 가위']];
+ ['saline','생리식염수 시린지'],['egloves','진료용 장갑'],['ept','전기치수검사기'],['paste','치약(전도 매질)'],['cotton','코튼롤'],['air','3-way 시린지'],['lipclip','립클립'],['ice','냉검사 스프레이'],['w8a','클램프 W8A'],['w2a','클램프 W2A'],['c212','클램프 #212'],['floss','치실'],['punch','러버댐 펀치'],['cforceps','클램프 포셉'],['sheet','러버댐 시트'],['frame','영 프레임'],['brush','프로피 브러시'],['pumice','퍼미스'],['fpaste','불소 페이스트'],['etch','37% 인산 에칭젤'],['sealant','실란트'],['curing','광중합기'],['artpaper','교합지'],['ejector','석션 팁'],['mirror','미러'],['bbY','Bite block(노랑)'],['bbB','Bite block(파랑)'],['bbR','Bite block(빨강)'],['armY','Indicator arm'],['ringY','Aiming ring'],['sensor','디지털 센서'],['sheath','센서 커버'],['obrush','교정용 칫솔'],['hbrush','일반 칫솔'],['ibrush','치간칫솔'],['caliper','캘리퍼'],['pincette','핀셋'],['probe','치주 탐침'],['fgel','APF 불소 겔'],['ftray','불소 트레이'],['sickleA','전치부 sickle'],['sickleP','구치부 sickle'],['univ','Universal curette'],['g12','Gracey 1/2'],['g56','Gracey 5/6'],['g78','Gracey 7/8'],['g1112','Gracey 11/12'],['g1314','Gracey 13/14'],['nh','지침기'],['hemo','모스키토 겸자'],['adson','Adson 조직겸자'],['s4','4-0 silk'],['s2','2-0 silk'],['s6','6-0 nylon'],['sc','봉합 가위']];
 const NAME=Object.fromEntries(ITEMS);
 const SUTTRAY=['nh','hemo','adson','s4','s2','s6','sc','gauze','explorer','mirror'];
 const TRAY={start:[],prep:['mask','sanit','gloves','gauze','explorer'],ane:['syringe','cart','n27','n30','explorer','mirror','gauze'],
   ext:['explorer','mirror','gauze','f17','f23','f151','f222','f150','f53','f18','f210'],sutprep:SUTTRAY,sut8:SUTTRAY,
-  lacpre:['saline','gauze','explorer','nh'],prepc:['mask','sanit','egloves','gloves','gauze','explorer'],ept:['ept','paste','cotton','air','lipclip','ice','explorer','mirror','gauze'],dam:['floss','punch','cforceps','sheet','frame','pincette','explorer','mirror'],seal:['brush','pumice','fpaste','air','cotton','etch','sealant','curing','explorer','mirror','artpaper'],dam14:['floss','punch','cforceps','sheet','frame','pincette','explorer','mirror'],fluor:['brush','pumice','fpaste','air','ftray','fgel','ejector','cotton','mirror','gauze'],sc:['mirror','explorer','probe','air'],rp:['mirror','explorer','probe','air'],lac:['saline'].concat(SUTTRAY),post:['gauze','explorer','sc'],end:[]};
+  lacpre:['saline','gauze','explorer','nh'],prepc:['mask','sanit','egloves','gloves','gauze','explorer'],ept:['ept','paste','cotton','air','lipclip','ice','explorer','mirror','gauze'],dam:['floss','punch','cforceps','sheet','frame','pincette','explorer','mirror'],seal:['brush','pumice','fpaste','air','cotton','etch','sealant','curing','explorer','mirror','artpaper'],dam14:['floss','punch','cforceps','sheet','frame','pincette','explorer','mirror'],fluor:['brush','pumice','fpaste','air','ftray','fgel','ejector','cotton','mirror','gauze'],sc:['mirror','explorer','probe','air'],rp:['mirror','explorer','probe','air'],xcp:['bbY','bbB','bbR','armY','ringY','sheath','mirror','gauze'],perch:['probe','explorer','mirror','air'],tmj:['gauze','mirror','explorer'],tbi:['obrush','hbrush','ibrush','mirror'],ref:[],moyer:['caliper','explorer'],ha:[],lac:['saline'].concat(SUTTRAY),post:['gauze','explorer','sc'],end:[]};
 function curTray(){const s=S[si];let t=TRAY[s.grp]||[];
   if(EXAM()&&s.skip){const g=S[idx(skipTo(s))].grp;if(g!==s.grp)t=t.concat((TRAY[g]||[]).filter(x=>!t.includes(x)))}
   return t.slice(0,18)}
@@ -289,7 +289,14 @@ const CASES={ext:{task:{q:'#46 발거를 위해 하치조신경 전달마취(IAN
   fluor:{task:{q:'치면세마 후 트레이를 이용한 불소 도포를 시행하시오.',c:['환자는 아동이다.','1.23% APF 겔을 사용한다.']},name:'불소 트레이 도포',tag:'소아치과',desc:'치면세마부터 트레이·겔 양·4분 도포',grps:['prepc','fluor'],phases:['준비','불소 도포']},
   sc:{task:{q:'표시된 부위의 치은연상 치석을 제거하시오.',c:['치식은 제시하지 않는다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'치은연상 스케일링',tag:'치주',desc:'치식 숨김. 부위 보고 sickle·각도·레스트',grps:['prepc','sc'],phases:['준비','SC']},
   rp:{task:{q:'표시된 치주낭의 치근면을 치근활택술(RP)로 처치하시오.',c:['치식은 제시하지 않는다.','마취가 필요한 술식인 경우 마취는 이미 되어 있다고 가정한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'치근활택술(RP)',tag:'치주',desc:'치식 숨김. 부위 보고 Gracey·삽입 각도',grps:['prepc','rp'],phases:['준비','RP']}};
-const CASE_KEYS=['ext','ext8','s8','lac','ept','dam','dam14','seal','fluor','sc','rp'];
+CASES.xcp={task:{q:'#46 치근단 방사선 사진 촬영을 위해 XCP를 조립하고 위치시키시오.',c:['디지털 센서를 사용한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'XCP 조립 (#46 치근단)',tag:'영상치의학',desc:'구성품 색, 조립, 센서 방향, 평행 촬영',grps:['prepc','xcp'],phases:['준비','XCP']};
+CASES.perch={task:{q:'#46의 치주낭 깊이(6점)를 측정하고 동요도를 기록하시오.',c:['Williams 치주 탐침을 사용한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'치주 probing + 동요도',tag:'치주',desc:'#46 6점 측정과 Miller 동요도 기록',grps:['prepc','perch'],phases:['준비','치주 검사']};
+CASES.tmj={task:{q:'양측 턱관절 전방 탈구 환자를 도수 정복하시오.',c:['Manikin으로 시행한다.']},name:'턱관절 탈구 정복술',tag:'구강외과',desc:'엄지 보호, 손 위치, 아래→뒤→위, 술후 관리',grps:['prepc','tmj'],phases:['준비','탈구 정복']};
+CASES.tbi={task:{q:'고정식 교정장치 환자에게 변형 차터스법으로 칫솔질을 교육하시오.',c:['모형으로 시연한다.']},name:'교정 환자 TBI (변형 차터스법)',tag:'교정',desc:'교정용 칫솔, 모 각도, 진동·쓸기, 치간칫솔',grps:['prepc','tbi'],phases:['준비','TBI']};
+CASES.ref={task:{q:'약물성 치은비대 환자의 주치의에게 보낼 협진 의뢰서를 작성하시오.',c:['환자 정보는 화면에 제시된 것을 따른다.']},name:'약물성 치은비대 협진 의뢰서',tag:'치주',desc:'수신처, 원인 약물, 소견, 요청, 계획',grps:['ref'],phases:['의뢰서']};
+CASES.moyer={task:{q:'혼합치열기 환자의 하악 우측 공간을 Moyers 분석으로 평가하시오.',c:['75% 확률 값을 사용한다.']},name:'Moyers 혼합치열 분석',tag:'교정',desc:'하악 4전치 측정, 표 읽기, 공간 평가',grps:['moyer'],phases:['Moyers 분석']};
+CASES.ha={task:{q:'긴장성 두통이 의심되는 환자의 저작근과 경부 근육을 촉진하시오.',c:['우측만 시행한다.']},name:'긴장성 두통 근육 촉진',tag:'구강내과',desc:'촉진 압력, 측두근·교근·경부 근육 위치',grps:['prepc','ha'],phases:['준비','근육 촉진']};
+const CASE_KEYS=['ext','ext8','s8','lac','tmj','ept','dam','dam14','seal','fluor','sc','rp','perch','ref','xcp','tbi','moyer','ha'];
 function gloveType(){return CASES[caseId].grps.includes('prepc')?'exam':'sterile'}
 function afterGloving(){if(returnTo!==null){si=returnTo;returnTo=null;held=savedHeld;savedHeld=null;enterStep();return true}return false}
 function CH(key,label,ok,fb,row,why,accept,onOk){return{key,label,rect:{x:110,y:250+row*84,w:670,h:66},act:()=>{
@@ -376,14 +383,18 @@ const FORCEPS_WRONG={
   f53:['#53R은 상악 우측 대구치용입니다.',5,'포셉 선택: #53R'],
   f18:['#18R은 상악 우측 대구치용입니다.',5,'포셉 선택: #18R'],
   f210:['#210은 상악 제3대구치용입니다.',5,'포셉 선택: #210']};
+const PROBE_SITES=[['원심협측(DB)',4],['협측(B)',3],['근심협측(MB)',5],['원심설측(DL)',6],['설측(L)',3],['근심설측(ML)',4]];
+const HA_PTS={tA:{x:392,y:248,n:'측두근 전부'},tM:{x:462,y:222,n:'측두근 중부'},tP:{x:530,y:250,n:'측두근 후부'},
+  mO:{x:418,y:352,n:'교근 기시부'},mB:{x:428,y:404,n:'교근 체부'},scm:{x:520,y:480,n:'흉쇄유돌근'},trap:{x:640,y:520,n:'승모근 상부'}};
+const MY_X=[340,400,460,520],MY_W=[5.4,5.9,5.9,5.4];
 const S=[
  {id:'title',phase:'시작',grp:'start',view:'title',g:'시작',text:'',zones:()=>[{key:'back',dwell:900,label:'← 처음으로',rect:{x:24,y:24,w:140,h:46},act:()=>{showScreen('home');return{stay:1}}},
    {key:'go',big:1,dwell:1100,label:'▶  시작하기',rect:{x:495,y:465,w:290,h:72},act:()=>{jumpTo('case');return{stay:1}}}]},
- {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[BACK_ZONE(()=>jumpTo('title'))].concat(CASE_KEYS.map((c,i)=>({key:'case'+i,dwell:1300,rect:{x:25+(i%4)*212,y:170+Math.floor(i/4)*172,w:200,h:160},act:()=>{setCase(c);return{ok:1}}})))},
+ {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[BACK_ZONE(()=>jumpTo('title'))].concat(CASE_KEYS.map((c,i)=>({key:'case'+i,dwell:1300,rect:CASE_RECT(i),act:()=>{setCase(c);return{ok:1}}})))},
  {grp:'start',id:'mode',phase:'모드',view:'mode',g:'모드 선택',text:'모드를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[
    BACK_ZONE(()=>{resetAll();jumpTo('case')}),
-   {key:'m1',dwell:1300,rect:{x:110,y:190,w:310,h:340},act:()=>{mode='practice';runStart=performance.now();return{ok:1}}},
-   {key:'m2',dwell:1300,rect:{x:470,y:190,w:310,h:340},act:()=>{mode='exam';runStart=performance.now();return{ok:1}}}]},
+   {key:'m1',dwell:1300,rect:{x:120,y:110,w:500,h:520},act:()=>{mode='practice';runStart=performance.now();return{ok:1}}},
+   {key:'m2',dwell:1300,rect:{x:660,y:110,w:500,h:520},act:()=>{mode='exam';runStart=performance.now();return{ok:1}}}]},
  {grp:'prep',id:'mask',phase:'준비',view:'room',g:'술자 준비',text:'술자 준비부터 시작합니다. 트레이에서 마스크를 집으세요.',
    skip:{to:'sanit',why:'마스크 미착용',fb:'마스크는 비말·에어로졸 차단의 기본입니다.'},zones:()=>pickZ(['mask'])},
  {grp:'prep',g:'술자 준비',text:'마스크를 쓰세요. 집은 마스크를 왼쪽 아래 내 화면(얼굴)으로 가져가세요.',zones:()=>[{key:'pip',rect:PIP,act:()=>{st.masked=1;held=null;st.gone.add('mask');return OK('착용 완료. 코 철사를 눌러 밀착시키는 것까지가 착용이에요.')}}]},
@@ -421,8 +432,7 @@ const S=[
  {grp:'ane',kind:'drag',g:'마취 주사기 조립',text:'작동 확인: 엄지 링을 살짝 밀어 바늘 끝으로 소량 분출시키세요.',handle:()=>({x:ringX(),y:380,r:34}),axis:'x',dir:1,amount:22,
    apply:p=>st.ringOff=-75+p*0.55,onDone:()=>{st.drop=1},okfb:'흐름 확인 완료. 조립 끝.'},
 
- {grp:'ane',phase:'IANB',view:'room',kind:'drag',g:'환자 자세',text:'체어 조정: 풋 페달을 밟아(아래로) 등받이를 세우세요. 크게 벌렸을 때 하악 교합평면이 바닥과 평행해야 합니다.',
-   handle:()=>({x:600,y:612,r:36}),axis:'y',dir:1,amount:70,apply:p=>st.chair=p/70,okfb:'교합평면이 바닥과 평행. 환자에게 크게 벌리게 합니다.'},
+ CHAIR('ane','IANB','lower'),
  {grp:'ane',view:'mouth',g:'IANB 시행',text:'왼손 엄지로 자입 높이의 기준이 되는 랜드마크를 촉지하고, 조직을 외측으로 당기세요.',zones:()=>[
    C('notch',Z.notch,26,()=>{st.thumb=1;return OK('관상돌기 절흔. 이 높이가 자입 높이이고, 조직을 당기면 자입점이 드러납니다.')}),
    C('mental',Z.mental,26,()=>BAD('이공 부위예요. 이신경 블록의 랜드마크입니다.',5,'IANB 랜드마크: 이공 촉지',()=>{st.thumb=1})),
@@ -454,6 +464,7 @@ const S=[
  {grp:'ane',g:'마취 확인',text:'#46 협측 부착치은을 탐침으로 찔러 보세요.',skip:{to:'forceps',why:'마취 확인 생략',fb:'객관적 확인 없이 시작하면 술중 통증으로 이어지기 쉬워요.'},
    zones:()=>[C('test',Z.test,24,()=>OK('환자: "하나도 안 아파요. 입술이랑 혀가 두꺼워진 느낌이에요." 마취 확인 완료.'))]},
 
+ CHAIR('ext','발치','lower',()=>caseId==='ext8'),
  {grp:'ext',phase:'발치',view:'mouth',cond:()=>held!=='explorer',g:'#46 발치',text:'치은 박리에 쓸 기구를 집으세요.',zones:()=>pickZ(['explorer'])},
  {g:'#46 발치',text:'탐침 끝으로 #46 협측 치경부의 치은 부착을 분리하세요.',skip:{to:'forceps',why:'치은 박리 생략',fb:'치은 부착이 남은 채 탈구하면 치은이 찢어집니다.'},
    zones:()=>[C('sb',Z.buc,22,()=>{st.sep=1;return OK()})]},
@@ -464,8 +475,10 @@ const S=[
    return OK(st.forceps==='f23'?'Cowhorn: beak가 분지부로 파고들어 들어 올리는 효과가 있어요.':st.forceps==='f17'?'#17: beak가 근·원심 치근 분지부에 들어갑니다.':'')})]},
  {grp:'ext',view:'tooth',kind:'drag',g:'#46 발치',text:'포셉을 치근 방향으로 최대한 깊이 seat하세요(아래로).',handle:()=>({x:440,y:470,r:34}),axis:'y',dir:1,amount:60,apply:p=>st.seated=p/60,okfb:'치근 쪽 깊이 seat. 치관 파절 위험이 줄었습니다.'},
  {grp:'ext',kind:'shake',g:'#46 발치',text:''},
+ CHAIR('lacpre','세척','upper'),
  {id:'lacIrr',phase:'세척',grp:'lacpre',view:'lac',g:'상처 세척',text:'봉합 전 상처를 세척합니다. 세척에 쓸 것을 집으세요.',zones:()=>pickZ(['saline'])},
  {g:'상처 세척',text:'열상 부위를 세척해 혈병과 이물을 제거하세요.',zones:()=>[C('irr',{x:440,y:420},46,()=>{st.irrigated=1;held=null;return OK('세척 완료. 이물이 남으면 감염과 창상 치유 지연의 원인이 됩니다.')})]},
+ CHAIR('sutprep','봉합','lower',()=>caseId==='s8'),
  {phase:'봉합',grp:'sutprep',view:SUTVIEW,g:'봉합 준비',text:'봉합을 시작합니다. 바늘을 잡을 기구를 집으세요.',
    zones:()=>pickZ(['nh'],{hemo:['모스키토 지혈겸자는 바늘을 단단히 고정하지 못하고 jaw도 상합니다. 봉합 바늘은 지침기로 잡습니다.',5,'봉합: 지혈겸자로 바늘 파지']},id=>{st.driver=id;held=null})},
  {g:'봉합 준비',text:'봉합사를 고르세요. 구강 점막 봉합입니다.',
@@ -524,6 +537,7 @@ const S=[
    toast('장갑 착용. 이제 얼굴·마스크·라이트는 만지지 마세요.',1);if(afterGloving())return{stay:1};return OK()}}]},
 
  /* ===== EPT ===== */
+ CHAIR('ept','EPT','lower'),
  {grp:'ept',phase:'EPT',view:'ept',g:'환자 설명',text:'검사 전에 환자에게 어떻게 설명할까요?',zones:()=>[
    CH('ea','따뜻하거나 찌릿한 느낌이 들면 바로 손을 들어주세요',1,'처음 느낌이 오는 순간이 역치예요. 신호를 미리 약속해야 정확하고 환자도 안심해요.',0),
    CH('eb','조금 아파도 끝까지 참아주세요',0,'참게 하면 역치를 지나 과자극이 되고 결과도 부정확해집니다.',1,'EPT 설명: 참으라고 함'),
@@ -562,6 +576,7 @@ const S=[
    CH('ic','수치가 높을수록 치수 상태가 나쁘다',0,'EPT 수치의 크기는 치수 건강 정도와 비례하지 않아요. 반응 유무와 대조치 비교가 핵심입니다.',2,'EPT 판독: 수치 크기로 상태 판단')]},
 
  /* ===== 러버댐 ===== */
+ CHAIR('dam','러버댐','lower'),
  {grp:'dam',phase:'러버댐',view:'clamps',g:'클램프 선택',text:'#46(하악 대구치)에 맞는 클램프를 고르세요.',zones:()=>CLAMP_ZONES('molar')},
  {view:'dam',g:'클램프 준비',text:'클램프에 안전줄을 묶을 것을 집으세요.',skip:{to:'dPunch',why:'클램프 치실 결찰 생략',fb:'클램프가 튀거나 부러질 때 삼킴·흡인을 막는 안전줄이에요. 반드시 묶습니다.'},
    zones:()=>pickZ(['floss'],{},()=>{st.ligated=1;held=null})},
@@ -593,6 +608,7 @@ const S=[
    CH('db','확인 없이 바로 술식을 시작한다',0,'누출이 있거나 코를 막으면 술식 중 오염·환자 불편이 생깁니다. 장착 후 반드시 점검해요.',1,'러버댐: 최종 점검 생략')]},
 
  /* ===== 실란트 ===== */
+ CHAIR('seal','실란트','lower'),
  {grp:'seal',phase:'실란트',view:'seal',g:'치면 세마',text:'#36 교합면을 세마합니다. 회전 기구를 집으세요.',zones:()=>pickZ(['brush'])},
  {g:'치면 세마',text:'세마제를 고르세요.',zones:()=>pickZ(['pumice'],{fpaste:['불소·오일이 든 페이스트는 법랑질에 남아 산부식과 접착을 방해할 수 있어요. 무불소 퍼미스를 씁니다.',5,'실란트: 불소 함유 페이스트 사용']},id=>{st.pasteId=id;held='brush'})},
  {kind:'circle',g:'치면 세마',text:'교합면 위에서 원을 그리며 3바퀴 세마하세요. 열구 속 치태를 제거합니다.',center:()=>({x:440,y:400}),turns:3,onDone:()=>{st.clean=1;held=null},okfb:'세마 완료.'},
@@ -633,6 +649,7 @@ const S=[
  {g:'점검',text:'#36에 대고 물어보게 하세요.',zones:()=>[C('ap',{x:440,y:400},40,()=>{held=null;st.cotB=0;st.cotL=0;return OK('높은 곳 없음. 높으면 버로 조정합니다. 실란트 완성!')})]},
 
  /* ===== #14–24 러버댐 ===== */
+ CHAIR('dam14','러버댐','upper'),
  {grp:'dam14',phase:'러버댐',view:'clamps',g:'클램프 선택',text:'#14–#24 격리입니다. 양 끝(#14, #24) 고정용 클램프를 고르세요.',zones:()=>CLAMP_ZONES('premolar')},
  {view:'dam14',g:'클램프 준비',text:'클램프에 안전줄을 묶을 것을 집으세요.',skip:{to:'d14Punch',why:'클램프 치실 결찰 생략',fb:'클램프가 튀거나 부러질 때 삼킴·흡인을 막는 안전줄이에요.'},
    zones:()=>pickZ(['floss'],{},()=>{st.ligated=1;held=null})},
@@ -670,6 +687,7 @@ const S=[
    CH('d14b','확인 없이 바로 술식을 시작한다',0,'누출이나 코 막힘이 있으면 오염·환자 불편이 생깁니다.',1,'#14–24 러버댐: 최종 점검 생략')]},
 
  /* ===== 소아치과 불소 트레이 ===== */
+ CHAIR('fluor','불소 도포','sit'),
  {grp:'fluor',phase:'불소 도포',view:'fluor',g:'치면 세마',text:'먼저 치면세마입니다. 회전 기구를 집으세요.',zones:()=>pickZ(['brush'])},
  {g:'치면 세마',text:'세마제를 고르세요.',zones:()=>pickZ(['pumice','fpaste'],{},id=>{st.pasteId=id;held='brush'})},
  {kind:'circle',g:'치면 세마',text:'상악 치열 위에서 원을 그리며 2바퀴 세마하세요.',center:()=>({x:440,y:255}),turns:2,okfb:'상악 세마 완료.'},
@@ -747,6 +765,129 @@ const S=[
    CH('pa2','며칠간 시릴 수 있고, 부드러운 칫솔로 계속 관리',1,'치근면 노출로 일시적 지각과민이 흔해요. 잇몸이 줄며 치아가 길어 보일 수 있다는 것도 함께 설명합니다.',0),
    CH('pb2','아무 증상도 없을 테니 신경 쓰지 않아도 된다',0,'지각과민·치은 퇴축을 미리 설명하지 않으면 환자가 놀라고 불신이 생겨요.',1,'RP: 술후 설명 누락')]},
 
+ /* ===== 영상치의학: XCP ===== */
+ CHAIR('xcp','XCP','lower'),
+ {view:'xcp',g:'구성품 선택',text:'#46 치근단 사진용 bite block을 고르세요.',zones:()=>pickZ(['bbY'],{bbB:['파란색은 전치부용이에요. 구치부 치근단은 노란색입니다.',5,'XCP: 전치부용 선택'],bbR:['빨간색은 교익(bitewing)용이에요.',5,'XCP: 교익용 선택']},id=>{st.xbb=id})},
+ {g:'구성품 선택',text:'같은 색 indicator arm을 집으세요.',zones:()=>pickZ(['armY'])},
+ {g:'조립',text:'arm의 두 갈래를 bite block 구멍에 끝까지 끼우세요.',zones:()=>[C('xa',{x:330,y:430},34,()=>{st.xarm=1;held=null;return OK('두 갈래가 모두 끝까지 들어가야 링 정렬이 틀어지지 않아요.')})]},
+ {g:'조립',text:'aiming ring을 집으세요.',zones:()=>pickZ(['ringY'])},
+ {g:'조립',text:'arm 끝에 ring을 끼우세요.',zones:()=>[C('xr',{x:640,y:300},40,()=>{st.xring=1;held=null;return OK()})]},
+ {id:'xSheath',g:'센서 준비',text:'감염 방지를 위해 센서에 먼저 씌울 것을 집으세요.',skip:{to:'xSensor',why:'센서 커버 생략',fb:'디지털 센서는 소독이 어려워 일회용 커버를 씌웁니다.'},zones:()=>pickZ(['sheath'])},
+ {g:'센서 준비',text:'센서에 커버를 씌우세요.',zones:()=>[C('xs',{x:760,y:560},34,()=>{st.xsheath=1;held=null;return OK()})]},
+ {id:'xSensor',g:'센서 장착',text:'작업대 위 센서를 집으세요.',zones:()=>[C('xsp',{x:760,y:560},34,()=>{held='sensor';return OK()})]},
+ {g:'센서 장착',text:'구치부 촬영에서 센서 방향은?',zones:()=>[
+   CH('xo1','가로 방향(긴 축이 수평)',1,'구치부는 가로, 전치부는 세로로 넣어요.',0,null,null,()=>{st.xori='h'}),
+   CH('xo2','세로 방향(긴 축이 수직)',0,'세로는 전치부 방향이에요. 구치부는 가로로 넣어야 대구치 전체가 담겨요.',1,'XCP: 센서 방향 오류',()=>{st.xori='v'})]},
+ {g:'센서 장착',text:'bite block 뒤쪽 슬롯에 센서를 끝까지 끼우세요.',zones:()=>[C('xi',{x:250,y:330},34,()=>{st.xsensor=1;held=null;return OK()})]},
+ {g:'조립 확인',text:'조립이 맞는지 어떻게 확인할까요?',zones:()=>[
+   CH('xc1','ring 구멍으로 봤을 때 센서가 ring 중앙에 보인다',1,'정렬이 맞아야 콘이 센서 중앙을 향해 cone cut이 안 생겨요.',0),
+   CH('xc2','arm이 끼워져 있기만 하면 된다',0,'링–센서 정렬을 확인하지 않으면 cone cut·왜곡이 생깁니다.',1,'XCP: 정렬 확인 생략')]},
+ {view:'mouth',g:'구내 위치',text:'조립한 XCP를 #46 쪽 어디에 위치시킬까요?',enter:()=>{held='bbY'},zones:()=>[
+   C('xp1',{x:306,y:446},22,()=>{held=null;st.xplaced=1;return OK('혀 쪽, 치아에서 약간 떨어지게 두어 장축과 평행을 맞춥니다.')}),
+   C('xp2',{x:228,y:486},22,()=>BAD('센서는 협측이 아니라 혀 쪽(설측)에 둡니다.',5,'XCP: 센서를 협측에 위치',()=>{held=null}))]},
+ {g:'평행 촬영',text:'센서와 치아의 관계는?',zones:()=>[
+   CH('xq1','센서를 치아 장축과 평행, 치아에서 조금 떨어지게',1,'평행법의 핵심. 거리는 긴 콘(장조사통)으로 보상해 확대를 줄여요.',0),
+   CH('xq2','치아에 바짝 붙이고 기울여도 된다',0,'기울면 상이 단축·연장되어 길이가 왜곡됩니다.',1,'XCP: 평행 원칙 위반')]},
+ {g:'마무리',text:'마지막 단계는?',zones:()=>[
+   CH('xf1','bite block을 천천히 물게 하고 콘을 ring에 맞춰 정렬',1,'콘이 ring과 일직선이면 준비 완료!',0),
+   CH('xf2','환자가 물기 전에 바로 촬영',0,'물지 않으면 센서가 움직여 상이 흐려지거나 위치가 틀어져요.',1,'XCP: 교합 전 촬영')]},
+
+ /* ===== 치주 probing + 동요도 ===== */
+ CHAIR('perch','치주 검사','lower'),
+ {view:'probeR',g:'준비',text:'치주낭을 측정할 기구를 집으세요.',zones:()=>pickZ(['probe'],{explorer:['탐침(explorer)은 끝이 뾰족해 치주낭 깊이를 잴 수 없어요. 눈금 있는 치주 탐침을 씁니다.',5,'Probing: explorer 사용']})},
+ {g:'술기',text:'올바른 probing 방법은?',zones:()=>[
+   CH('pr1','장축에 평행, 약 20–25g의 가벼운 힘, walking stroke',1,'가볍게 넣고 치주낭 바닥을 따라 걷듯 움직여 가장 깊은 곳을 찾아요.',0),
+   CH('pr2','세게 눌러 바닥까지 확실히 찌른다',0,'과한 힘은 상피부착을 뚫어 깊이가 과대 측정되고 통증을 줍니다.',1,'Probing: 과도한 힘'),
+   CH('pr3','인접면은 치아 가운데에서 수직으로만 잰다',0,'인접면은 접촉점 바로 아래로 10–15° 기울여야 col 부위를 잴 수 있어요.',2,'Probing: 인접면 각도 오류')]},
+ ...PROBE_STEPS(),
+ {view:'mob',g:'동요도',text:'동요도는 어떻게 검사할까요?',zones:()=>[
+   CH('mb1','두 기구의 손잡이 끝으로 협설측으로 번갈아 민다',1,'단단한 손잡이로 밀어야 정확해요.',0),
+   CH('mb2','손가락으로 잡고 흔든다',0,'손가락은 연조직이 눌려 움직임을 과대평가해요.',1,'동요도: 손가락 사용')]},
+ {kind:'hold',g:'동요도',text:'#46 협측에 손잡이 끝을 대고 밀어보세요.',at:()=>({x:360,y:400,r:40}),dur:1400,label:'협설측으로 밀기',onDone:()=>{st.mobShown=1}},
+ {g:'동요도',text:'움직임: 수평 약 1.5mm, 수직(함몰) 없음. Miller 분류로 기록하세요.',zones:()=>[0,1,2,3].map((n,i)=>CH('mg'+n,n+'도'+['','  (수평 1mm 미만)','  (수평 1mm 이상)','  (수직 동요)'][n],n===2,
+   n===2?'수평 1mm 이상, 수직 없음 → 2도. 차트에 기록 완료!':'수평 1mm 이상이면서 수직 동요가 없으면 2도예요.',i,'동요도 기록 오류('+n+'도)'))},
+
+ /* ===== 턱관절 탈구 정복 ===== */
+ CHAIR('tmj','탈구 정복','sit'),
+ {view:'tmj',g:'준비',text:'술자 엄지를 보호하려면 무엇을 감을까요?',zones:()=>pickZ(['gauze'])},
+ {g:'준비',text:'양 엄지에 감으세요(내 화면 = 손).',zones:()=>[{key:'pip',rect:PIP,act:()=>{st.thumbG=1;held=null;return OK('정복 순간 입이 세게 닫히며 엄지를 물 수 있어 거즈로 보호합니다.')}}]},
+ {g:'손 위치',text:'손을 어디에 둘까요?',zones:()=>[
+   CH('tp1','엄지는 하악 대구치 교합면, 나머지 손가락은 하악 하연',1,'후방 치아에 힘을 주어야 과두를 아래로 내릴 수 있어요.',0),
+   CH('tp2','엄지를 하악 전치 절단연에',0,'전치에 누르면 과두를 내리는 지렛대가 생기지 않아요.',1,'탈구 정복: 엄지 위치 오류')]},
+ {g:'힘의 방향',text:'어떤 순서로 힘을 줄까요?',zones:()=>[
+   CH('td1','아래 → 뒤 → 위',1,'관절융기 아래로 내린 뒤 뒤로 밀어 관절와로 돌려보냅니다.',0),
+   CH('td2','바로 뒤로 민다',0,'아래로 먼저 내리지 않으면 과두가 관절융기에 걸려 들어가지 않아요.',1,'탈구 정복: 힘의 방향 오류'),
+   CH('td3','위로 밀어 올린다',0,'위로 밀면 과두가 관절융기 앞에 더 끼어 통증만 커져요.',2,'탈구 정복: 힘의 방향 오류')]},
+ {kind:'drag',g:'정복',text:'하악을 아래로 누르세요(손을 아래로).',handle:()=>({x:430,y:460,r:34}),axis:'y',dir:1,amount:60,apply:p=>{st.tmjD=p/60},okfb:'과두가 관절융기 아래로 내려왔어요.'},
+ {kind:'drag',g:'정복',text:'누른 채로 뒤로 미세요(손을 오른쪽으로).',handle:()=>({x:430,y:520,r:34}),axis:'x',dir:1,amount:70,apply:p=>{st.tmjB=p/70}},
+ {kind:'drag',g:'정복',text:'위로 올려 관절와에 넣으세요(손을 위로).',handle:()=>({x:500,y:520,r:34}),axis:'y',dir:-1,amount:60,apply:p=>{st.tmjU=p/60},okfb:'"딸깍" 정복 완료! 엄지를 재빨리 협측으로 빼요.'},
+ {g:'술후 관리',text:'정복 후 안내는?',zones:()=>[
+   CH('ta1','2–3주 크게 벌리지 않기, 하품 시 턱 받치기, 부드러운 음식',1,'인대·관절낭이 회복될 때까지 재탈구를 막아요. 필요하면 붕대로 개구를 제한합니다.',0),
+   CH('ta2','바로 정상 식사하고 크게 벌리는 운동',0,'회복 전 크게 벌리면 재탈구가 쉽게 생겨요.',1,'탈구 정복: 술후 관리 오류')]},
+
+ /* ===== 교정 TBI: 변형 차터스법 ===== */
+ CHAIR('tbi','TBI','sit'),
+ {view:'ortho',g:'칫솔 선택',text:'브라켓 환자에게 맞는 칫솔을 고르세요.',zones:()=>pickZ(['obrush'],{hbrush:['일반 칫솔은 브라켓 주변 홈에 모가 잘 안 들어가요. 가운데가 V자로 파인 교정용 칫솔을 권합니다.',3,'TBI: 일반 칫솔 선택']})},
+ {g:'칫솔 각도',text:'변형 차터스법에서 칫솔모 방향은?',zones:()=>[
+   CH('bc1','모 끝을 교합면 쪽으로 45° 향하게',1,'차터스법은 모 끝이 교합면을 향해요(바스법은 치은 쪽). 모의 옆면을 치간과 브라켓 주위에 밀착시킵니다.',0),
+   CH('bc2','모 끝을 치은 쪽으로 45° 향하게',0,'그건 바스법이에요. 차터스법은 교합면 쪽을 향합니다.',1,'TBI: 바스법과 혼동'),
+   CH('bc3','치면에 수직으로 세게 문지른다',0,'수직·횡마법은 치경부 마모와 치은 퇴축을 일으켜요.',2,'TBI: 횡마법')]},
+ {kind:'circle',g:'진동',text:'브라켓 주위·치간부에 모를 밀착시키고 작은 원을 그리며 진동하세요(3바퀴).',center:()=>({x:440,y:380}),turns:3,okfb:'치간과 브라켓 주변 치태가 떨어졌어요.'},
+ {kind:'drag',g:'쓸기',text:'진동 후 교합면 쪽으로 쓸어내리세요(아래로).',handle:()=>({x:440,y:330,r:30}),axis:'y',dir:1,amount:70,onDone:()=>{st.tbiClean=1;held=null},okfb:'브라켓 위아래를 나눠 같은 방법으로 닦아요.'},
+ {g:'보조 기구',text:'와이어 아래와 치간을 닦을 기구를 집으세요.',zones:()=>pickZ(['ibrush'])},
+ {kind:'hold',g:'보조 기구',text:'와이어 아래 브라켓 사이로 넣어 닦으세요.',at:()=>({x:500,y:380,r:26}),dur:1000,label:'치간칫솔',onDone:()=>{held=null}},
+ {g:'환자 교육',text:'환자에게 꼭 함께 안내할 것은?',zones:()=>[
+   CH('be1','식후 3분 이내·하루 3번 이상, 불소치약, 정기적 치석 관리',1,'브라켓 주변은 탈회(백색 반점)가 잘 생겨 불소와 꼼꼼한 관리가 중요해요.',0),
+   CH('be2','교정 중엔 하루 한 번만 닦아도 충분',0,'교정 중엔 치태가 더 쉽게 쌓여 백색 반점·치은염이 생겨요.',1,'TBI: 빈도 안내 오류')]},
+
+ /* ===== 약물성 치은비대 협진 의뢰서 ===== */
+ {grp:'ref',phase:'의뢰서',view:'letter',g:'수신',text:'환자: 58세 남, 고혈압·당뇨. 복용약: Amlodipine, Metformin, Atorvastatin. 전반적 섬유성 치은비대. 의뢰서 수신처는?',zones:()=>[
+   CH('rf1','내과(고혈압·당뇨 주치의)',1,'원인 약을 처방한 주치의에게 의뢰합니다.',0,null,null,()=>{st.rf.to='내과(고혈압·당뇨 주치의) 선생님께'}),
+   CH('rf2','정형외과',0,'관련 약물 처방과가 아니에요.',1,'의뢰서: 수신처 오류',()=>{st.rf.to='정형외과 선생님께'}),
+   CH('rf3','피부과',0,'관련 약물 처방과가 아니에요.',2,'의뢰서: 수신처 오류',()=>{st.rf.to='피부과 선생님께'})]},
+ {g:'원인 약물',text:'치은비대를 일으킬 수 있는 약은?',zones:()=>[
+   CH('rd1','Amlodipine (칼슘채널차단제)',1,'칼슘채널차단제·phenytoin·cyclosporine이 대표적인 원인 약물이에요.',0,null,null,()=>{st.rf.drug='Amlodipine(칼슘채널차단제)'}),
+   CH('rd2','Metformin',0,'Metformin은 치은비대와 관련이 없어요.',1,'의뢰서: 원인 약물 오류',()=>{st.rf.drug='Metformin'}),
+   CH('rd3','Atorvastatin',0,'Atorvastatin은 치은비대와 관련이 없어요.',2,'의뢰서: 원인 약물 오류',()=>{st.rf.drug='Atorvastatin'})]},
+ {g:'치과 소견',text:'치과 소견으로 쓸 내용은?',zones:()=>[
+   CH('ro1','전반적 섬유성 치은비대, 치태 침착, 가성 치주낭',1,'관찰한 임상 소견을 구체적으로 적어요.',0,null,null,()=>{st.rf.find='전반적 섬유성 치은비대, 치태 침착 및 가성 치주낭'}),
+   CH('ro2','잇몸이 좀 부었음',0,'의뢰서는 구체적인 임상 용어로 씁니다.',1,'의뢰서: 소견 불충분',()=>{st.rf.find='잇몸이 부었음'})]},
+ {g:'요청 사항',text:'주치의에게 무엇을 요청할까요?',zones:()=>[
+   CH('rq1','가능하다면 대체 약제로 변경 검토와 회신 부탁',1,'약 변경은 주치의가 판단해요. 치과는 가능 여부를 문의하고 회신을 요청합니다.',0,null,null,()=>{st.rf.req='가능하시다면 대체 약제로의 변경을 검토해 주시고 회신 부탁드립니다'}),
+   CH('rq2','즉시 해당 약을 중단해 달라',0,'치과의사가 전신 질환 약 중단을 지시하지 않아요. 변경 가능 여부를 문의합니다.',1,'의뢰서: 약 중단 지시',()=>{st.rf.req='즉시 약 중단 바랍니다'})]},
+ {g:'치과 계획',text:'함께 알릴 치과 치료 계획은?',zones:()=>[
+   CH('rp1','치석제거·구강위생교육 후 재평가, 필요 시 치은절제술',1,'비수술 치료 후 재평가하고, 남으면 수술을 고려해요.',0,null,null,()=>{st.rf.plan='스케일링 및 구강위생교육 후 재평가, 필요 시 치은절제술 예정'}),
+   CH('rp2','바로 전악 치은절제술',0,'원인 제거(약물 조정·치태 관리) 없이 수술하면 쉽게 재발해요.',1,'의뢰서: 치료 계획 오류',()=>{st.rf.plan='전악 치은절제술 예정'})]},
+ {g:'완성',text:'완성된 의뢰서를 확인하고 서명하세요.',zones:()=>[{key:'sign',label:'✍ 서명하고 제출',rect:{x:560,y:600,w:220,h:46},act:()=>OK('의뢰서 제출 완료!')}]},
+
+ /* ===== 교정: Moyers 분석 ===== */
+ {grp:'moyer',phase:'Moyers 분석',view:'moyers',g:'측정 치아',text:'혼합치열기 공간분석(Moyers). 무엇을 측정해 예측할까요?',zones:()=>[
+   CH('my1','하악 영구 4전치의 근원심 폭경 합',1,'하악 절치는 일찍 맹출하고 크기 변이가 적어 예측 기준이 됩니다.',0),
+   CH('my2','상악 영구 4전치의 폭경 합',0,'상악 측절치는 크기 변이가 커서 기준으로 쓰지 않아요.',1,'Moyers: 측정 치아 오류')]},
+ {g:'측정',text:'캘리퍼를 집으세요.',zones:()=>pickZ(['caliper'])},
+ ...[0,1,2,3].map(i=>({kind:'hold',g:'측정',text:'하악 절치 '+(i+1)+'/4의 최대 근원심 폭을 재세요.',at:()=>({x:MY_X[i],y:200,r:24}),dur:800,label:'측정',onDone:()=>{st.mw[i]=1;if(i===3)held=null}})),
+ {g:'합계',text:'4전치 폭경 합은?',zones:()=>[CH('ms1','22.6mm',1,'5.4 + 5.9 + 5.9 + 5.4 = 22.6mm',0),CH('ms2','21.6mm',0,'다시 더해보세요: 5.4 + 5.9 + 5.9 + 5.4',1,'Moyers: 합계 계산 오류'),CH('ms3','23.6mm',0,'다시 더해보세요: 5.4 + 5.9 + 5.9 + 5.4',2,'Moyers: 합계 계산 오류')]},
+ {g:'표 읽기',text:'표(75% 확률)에서 하악 편측 견치·소구치 예측값은? (합 22.6 → 가장 가까운 22.5 행)',zones:()=>[
+   CH('mt1','21.9mm',1,'22.5 행의 하악 값 21.9mm. 보통 75% 확률 값을 씁니다.',0),
+   CH('mt2','22.6mm',0,'그건 상악 값이에요. 하악 칸을 보세요.',1,'Moyers: 상악·하악 칸 혼동'),
+   CH('mt3','22.8mm',0,'행을 다시 확인하세요.',2,'Moyers: 표 행 오류')]},
+ {g:'공간 평가',text:'하악 우측 가용 공간(견치 근심~제1대구치 근심)은 20.9mm. 결과는?',zones:()=>[
+   CH('mr1','편측 1.0mm 부족',1,'20.9 − 21.9 = −1.0mm. 편측 1mm 정도는 경미한 부족이에요.',0),
+   CH('mr2','편측 1.0mm 여유',0,'가용 공간에서 예측값을 빼면 음수예요. 부족입니다.',1,'Moyers: 부호 오류')]},
+ {g:'진단',text:'다음 중 적절한 판단은?',zones:()=>[
+   CH('md1','경미한 공간 부족: 공간 유지·관찰(leeway space 활용)',1,'하악 leeway space(편측 약 1.7mm)를 보존하면 해결될 수 있는 범위예요.',0),
+   CH('md2','심한 부족: 즉시 연속 발치',0,'편측 1mm는 연속 발치를 고려할 정도가 아니에요.',1,'Moyers: 과잉 진단')]},
+
+ /* ===== 구강내과: 긴장성 두통 촉진 ===== */
+ CHAIR('ha','근육 촉진','sit'),
+ {view:'head',g:'촉진 압력',text:'근육 촉진 압력은?',zones:()=>[
+   CH('hp1','약 1kg, 2초 정도 유지',1,'표준화된 압력이어야 압통 판단이 신뢰할 수 있어요(관절은 약 0.5kg).',0),
+   CH('hp2','세게 누를수록 정확하다',0,'과한 압력은 정상 근육에서도 통증을 만들어 위양성이 됩니다.',1,'촉진: 과도한 압력')]},
+ ...HA_STEPS(),
+ {g:'기록',text:'촉진 중 무엇을 확인해 기록할까요?',zones:()=>[
+   CH('hr1','압통 여부와 평소 두통과 같은 통증인지(familiar pain), 관련통',1,'평소 두통이 재현되면 근육성 원인을 강하게 시사해요.',0),
+   CH('hr2','아프다고 하면 그냥 "압통 있음"만 기록',0,'familiar pain·관련통 여부가 진단에 중요해요.',1,'촉진: 기록 불충분')]},
+
  {grp:'post',view:'mouth',phase:'마무리',g:'발치 후 처치',text:'지혈에 필요한 것을 집으세요.',zones:()=>pickZ(['gauze'])},
  {grp:'post',g:'발치 후 처치',text:'발치와에 거즈를 올리고 물게 하세요.',zones:()=>[C('gz',T46,30,()=>{st.gauze=1;held=null;return OK('거즈 교합 압박. 혈병 유지를 위해 강한 세척은 피합니다.')})]},
  {grp:'end',phase:'완료',view:'end',kind:'end',g:'결과',text:'시뮬레이션 완료'}
@@ -755,11 +896,11 @@ for(let i=1;i<S.length;i++){for(const k of['phase','view','grp'])if(!S[i][k])S[i
 S.forEach(s=>{if(!s.kind)s.kind='zones'});
 
 let runStart=0,armT=0,freshLock=false,saved=null;
-function BACK_ZONE(fn){return{key:'back',dwell:900,label:'← 뒤로',rect:{x:20,y:118,w:120,h:46},act:()=>{fn();return{stay:1}}}}
+function BACK_ZONE(fn){return{key:'back',dwell:900,label:'← 뒤로',rect:{x:24,y:22,w:130,h:48},act:()=>{fn();return{stay:1}}}}
 function resetAll(keepCase){
   st={masked:0,sanit:0,lamp:{x:420,y:190},lightOn:0,gloved:0,gR:0,gL:0,gone:new Set(),onBench:0,ringOff:0,cart:0,cartFlip:true,needle:0,needleId:null,drop:0,
-    chair:0,thumb:0,anchor:0,site:0,depth:0,depthContact:0,aspPos:0,reasp:0,inject:0,sep:0,forceps:0,seated:0,extracted:0,fracture:0,gauze:0,
-    driver:null,sutId:null,loaded:0,adson:null,entry:null,exit:null,arcP:0,pulled:0,wAcc:0,wPrev:null,lastDir:0,throws:0,tension:0,knot:null,cut:0,tail:0,sutured:0,mirror:0,wheelAng:0,wPrevA:null,holeSz:{},airDry:0,clampId:null,sheetWing:0,frameBench:0,wingB:0,wingL:0,wing14:0,holes:new Set(),cts:new Set(),pSite:0,pDep:1,sCount:0,gel:0,gaugeRaw:0,passes:[],overs:[],knots:[],tieA:null,wrapC:{x:440,y:410},lastX:0,irrigated:0};
+    chair:0.5,thumb:0,anchor:0,site:0,depth:0,depthContact:0,aspPos:0,reasp:0,inject:0,sep:0,forceps:0,seated:0,extracted:0,fracture:0,gauze:0,
+    driver:null,sutId:null,loaded:0,adson:null,entry:null,exit:null,arcP:0,pulled:0,wAcc:0,wPrev:null,lastDir:0,throws:0,tension:0,knot:null,cut:0,tail:0,sutured:0,mirror:0,pdRec:{},psite:0,mobShown:0,haDone:{},mw:{},rf:{},tmjD:0,tmjB:0,tmjU:0,xarm:0,xring:0,xsensor:0,xsheath:0,xori:'h',tbiClean:0,thumbG:0,wheelAng:0,wPrevA:null,holeSz:{},airDry:0,clampId:null,sheetWing:0,frameBench:0,wingB:0,wingL:0,wing14:0,holes:new Set(),cts:new Set(),pSite:0,pDep:1,sCount:0,gel:0,gaugeRaw:0,passes:[],overs:[],knots:[],tieA:null,wrapC:{x:440,y:410},lastX:0,irrigated:0};
   held=null;score=100;mistakes=[];toastO=null;returnTo=null;savedHeld=null;contamT=0;saved=null;si=0;mode='practice';caseId='ext';
   if(keepCase){setCase(keepCase);si=idx('mode')}
   enterStep();
@@ -997,17 +1138,9 @@ function drawRoom(){
   ctx.fillStyle='#d9b08f';ctx.beginPath();ctx.ellipse(4,-6,8,11,0,0,7);ctx.fill();
   ctx.fillStyle='#ecc9aa';ctx.beginPath();ctx.moveTo(4,36);ctx.quadraticCurveTo(-4,54,-12,38);ctx.fill();
   ctx.fillStyle='#7a2e33';ctx.beginPath();ctx.ellipse(-26,37,7,5,0,0,7);ctx.fill();
-  ctx.fillStyle='rgba(111,179,224,0.75)';rr(8,28,26,12,5);ctx.fill();ctx.strokeStyle='#3b5f7a';ctx.lineWidth=1.5;ctx.stroke();
   ctx.restore();
   const ux=-Math.cos(a),uy=-Math.sin(a),nx=Math.sin(a),ny=-Math.cos(a);
   const m={x:h.x+(-26)*ux+40*nx,y:h.y+(-26)*uy+40*ny};
-  // 교합평면 표시
-  const s0=S[si],upper=s0.kind==='chair'&&s0.plane==='upper';
-  const oa=upper?-(1-st.chair)*Math.PI/2:-(1-st.chair)*0.6;
-  const okp=s0.kind==='chair'?Math.abs(st.chair-s0.target)<0.08:Math.abs(oa)<0.06;
-  ctx.strokeStyle=okp?'#2fbf8f':'#e0a24a';ctx.lineWidth=3;ctx.setLineDash([6,4]);
-  ctx.beginPath();ctx.moveTo(m.x-Math.cos(oa)*44,m.y-Math.sin(oa)*44);ctx.lineTo(m.x+Math.cos(oa)*44,m.y+Math.sin(oa)*44);ctx.stroke();ctx.setLineDash([]);
-  ctx.font='600 13px '+FONT;ctx.fillStyle='#24404e';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(upper?'상악 교합평면':'하악 교합평면',m.x+50,m.y-14);
   // 라이트
   const L=held==='lamp'?{x:cur.x,y:cur.y-30}:st.lamp;
   const jx=(372+L.x)/2,jy=Math.min(126,L.y-70);ctx.strokeStyle='#d6dee3';ctx.lineWidth=10;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(372,120);ctx.lineTo(jx,jy);ctx.lineTo(L.x,L.y-52);ctx.stroke();
@@ -1152,15 +1285,17 @@ function drawNeedleView(){
   ctx.fillText('바늘 끝',270,470);ctx.fillText('스웨이지',611,460);
   ctx.font='500 14px '+FONT;ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText((NAME[st.sutId]||'')+' · 3/8 circle reverse cutting',440,560);
 }
+function CASE_RECT(i){const cols=6,w=196,h=196,gx=12,gy=12,x0=(W-(cols*w+(cols-1)*gx))/2;return{x:x0+(i%cols)*(w+gx),y:92+Math.floor(i/cols)*(h+gy),w,h}}
 function drawCaseView(){
-  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
-  const TAGC={'구강외과':'#8fd3ff','보존':'#ffd36b','소아치과':'#ffb3cf','치주':'#b7f0a0'};
-  CASE_KEYS.forEach((k,i)=>{const c=CASES[k],x=25+(i%4)*212,y=170+Math.floor(i/4)*172;
-    rr(x,y,200,160,14);ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fill();
-    ctx.font='600 12px '+FONT;ctx.fillStyle=TAGC[c.tag]||'#fff';ctx.textAlign='left';ctx.textBaseline='top';
-    ctx.fillText((i+1)+' · '+c.tag,x+14,y+12);
-    const hName=wrap(c.name,x+14,y+32,172,23,'700 17px '+FONT,'#fff');
-    wrap(c.desc,x+14,y+40+hName,172,19,'500 13px '+FONT,'#cfe0ea')});
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#eaf6ff');g.addColorStop(1,'#c9e6fb');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.font='700 34px Gaegu, '+FONT;ctx.fillStyle='#1d5c98';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('케이스를 고르세요',W/2,46);
+  const TAGC={'구강외과':'#2f7fc8','보존':'#c98a00','소아치과':'#c2467a','치주':'#2f9a5a','영상치의학':'#7a5bd6','교정':'#d0662a','구강내과':'#16958a'};
+  CASE_KEYS.forEach((k,i)=>{const c=CASES[k],r=CASE_RECT(i);
+    ctx.shadowColor='rgba(30,80,130,0.15)';ctx.shadowBlur=10;rr(r.x,r.y,r.w,r.h,16);ctx.fillStyle='#ffffff';ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle=TAGC[c.tag]||'#2f6a96';rr(r.x+12,r.y+12,ctx.measureText?Math.min(150,24+c.tag.length*15):100,26,13);ctx.fill();
+    ctx.font='700 14px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText((i+1)+' · '+c.tag,r.x+22,r.y+25);
+    const hN=wrap(c.name,r.x+14,r.y+48,r.w-28,27,'700 21px '+FONT,'#1f3344');
+    wrap(c.desc,r.x+14,r.y+56+hN,r.w-28,20,'500 15px '+FONT,'#4f6a7d')});
 }
 function line(a,b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
 function dot(p,r){ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(p.x,p.y,r||3.5,0,7);ctx.fill()}
@@ -1200,12 +1335,14 @@ function drawLac(){
   if(st.gauze){ctx.globalAlpha=0.9;drawItem('gauze',440,420,2.2);ctx.globalAlpha=1}
 }
 function drawModeView(){
-  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
-  const box=(x,title,lines)=>{rr(x,190,310,340,16);ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fill();
-    ctx.font='700 26px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(title,x+26,216);
-    lines.forEach((l,i)=>wrap(l,x+26,268+i*58,260,24,'500 17px '+FONT,'#cfe0ea'))};
-  box(110,'연습 모드',['단계마다 할 일을 문장으로 안내합니다.','틀리면 바로 이유를 알려주고 다시 하게 합니다.','점수가 실시간으로 보입니다.','장갑 오염 시 장갑을 다시 낍니다.']);
-  box(470,'실전 모드',['단계 이름만 보여주고 방법은 알려주지 않습니다.','틀려도 그대로 진행되고, 일부 과정은 건너뛸 수도 있습니다.','결과와 해설은 끝나고 한 번에 봅니다.','실수는 모두 기록됩니다.']);
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#eaf6ff');g.addColorStop(1,'#c9e6fb');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.font='700 34px Gaegu, '+FONT;ctx.fillStyle='#1d5c98';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(CASES[caseId].name,W/2,52);
+  const box=(x,title,col,lines)=>{ctx.shadowColor='rgba(30,80,130,0.15)';ctx.shadowBlur=14;rr(x,110,500,520,22);ctx.fillStyle='#fff';ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle=col;rr(x,110,500,74,22);ctx.fill();ctx.fillRect(x,160,500,24);
+    ctx.font='700 34px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(title,x+32,150);
+    lines.forEach((l,i)=>wrap('• '+l,x+32,214+i*88,436,30,'500 22px '+FONT,'#2e4354'))};
+  box(120,'연습 모드','#3289d4',['단계마다 할 일을 문장으로 안내해요.','틀리면 바로 이유를 알려주고 다시 하게 해요.','점수가 실시간으로 보여요.','장갑이 오염되면 다시 껴요.']);
+  box(660,'실전 모드','#e07a2e',['단계 이름만 보여주고 방법은 알려주지 않아요.','틀려도 진행되고 일부는 건너뛸 수도 있어요.','결과와 해설은 끝나고 한 번에 봐요.','실수는 모두 기록돼요.']);
 }
 function drawTray(){
   ctx.fillStyle='rgba(12,24,36,0.92)';rr(896,108,376,604,14);ctx.fill();
@@ -1644,6 +1781,98 @@ function PUNCH14_STEP(group,text,last){return{g:'시트 펀칭',text,zones:()=>A
   const out=i===0||i===9;const fb=out?'그 자리는 #15/#25예요. 이번 격리 범위(#14–#24) 밖입니다.':'그 자리는 지금 맞춘 크기로 뚫을 치아가 아니에요.';
   if(EXAM()){if(out){st.holes.add(i);st.holeSz[i]=st.holeSize}penalize(5,out?'#14–24 러버댐: 격리 범위 밖 펀칭':'#14–24 러버댐: 구멍 크기 불일치','p'+i,fb);return{stay:1}}
   return BAD(fb,5,out?'#14–24 러버댐: 격리 범위 밖 펀칭':'#14–24 러버댐: 구멍 크기 불일치')}))}}
+/* ===== 공통 헬퍼(신규 케이스) ===== */
+function CHAIR(grp,phase,plane,cond){const txt={lower:'환자 자세: 입을 벌렸을 때 하악 교합면이 바닥과 평행하도록 풋 컨트롤로 등받이를 조절하세요(집은 채로 위아래).',
+  upper:'환자 자세: 등받이를 눕혀 상악 교합면이 바닥과 거의 수직이 되도록 풋 컨트롤로 조절하세요.',
+  sit:'환자 자세: 환자가 똑바로 앉도록 풋 컨트롤로 등받이를 세우세요.'}[plane];
+  return{grp,phase,view:'room',kind:'chair',plane,target:plane==='upper'?0:1,cond,g:'체어 조정',text:txt}}
+function PROBE_STEPS(){return PROBE_SITES.map(([nm,v],k)=>({g:'치주낭 측정',text:'#46 '+nm+': 치주 탐침 눈금을 읽어 기록하세요.',enter:()=>{st.psite=k},
+  zones:()=>[...Array(10)].map((_,i)=>({key:'pd'+(i+1),label:String(i+1),rect:{x:110+i*64,y:612,w:56,h:44},act:()=>{
+    if(i+1===v){st.pdRec[k]=v;return OK(nm+' '+v+'mm 기록.')}
+    return BAD('다시 읽어보세요. Williams 탐침은 1·2·3·5·7·8·9·10mm에 눈금이 있고 4·6mm는 비어 있어요.',5,'Probing: 눈금 판독 오류',()=>{st.pdRec[k]=i+1})}}))}))}
+function HA_STEPS(){return Object.keys(HA_PTS).map(k=>({g:HA_PTS[k].n,text:HA_PTS[k].n+'을(를) 찾아 촉진하세요(그 위치에서 멈추거나 집기).',
+  zones:()=>Object.keys(HA_PTS).filter(j=>!st.haDone[j]||j===k).map(j=>C('ha'+j,HA_PTS[j],20,()=>{
+    if(j===k){st.haDone[k]=1;return OK(HA_PTS[k].n+' 촉진. 환자: "'+(k==='tA'||k==='tM'?'거기 누르니까 평소 머리 아픈 데가 울려요.':'조금 뻐근해요.')+'"')}
+    return BAD('거긴 '+HA_PTS[j].n+' 위치예요.',5,'촉진: 근육 위치 오류('+HA_PTS[k].n+')',()=>{st.haDone[k]=1})}))}))}
+
+function drawWorkBench(){ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);ctx.fillStyle='#2b5378';rr(60,150,780,520,18);ctx.fill()}
+function drawXcp(){drawWorkBench();
+  const Y='#f2c94c';
+  ctx.fillStyle=Y;rr(200,410,170,40,8);ctx.fill();ctx.fillStyle='#d9ae2e';rr(228,280,44,140,6);ctx.fill();
+  ctx.fillStyle='#8a6d10';ctx.beginPath();ctx.arc(320,422,6,0,7);ctx.arc(342,438,6,0,7);ctx.fill();
+  if(st.xsensor){ctx.fillStyle='#2b3640';if(st.xori==='v')rr(214,250,72,100,8);else rr(196,280,108,70,8);ctx.fill();
+    if(st.xsheath){ctx.fillStyle='rgba(200,230,255,0.35)';if(st.xori==='v')rr(208,244,84,112,10);else rr(190,274,120,82,10);ctx.fill()}}
+  if(st.xarm){ctx.strokeStyle=Y;ctx.lineWidth=12;ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(340,430);ctx.lineTo(640,430);ctx.lineTo(640,300);ctx.stroke()}
+  if(st.xring){ctx.strokeStyle=Y;ctx.lineWidth=16;ctx.beginPath();ctx.arc(640,300,62,0,7);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.12)';ctx.beginPath();ctx.arc(640,300,54,0,7);ctx.fill();
+    if(st.xsensor){ctx.fillStyle='rgba(43,54,64,0.8)';rr(612,280,56,40,6);ctx.fill()}}
+  if(!st.xsensor){ctx.fillStyle='#2b3640';rr(720,535,80,50,8);ctx.fill();ctx.strokeStyle='#5a6a76';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(800,560);ctx.quadraticCurveTo(840,600,860,660);ctx.stroke();
+    if(st.xsheath){ctx.fillStyle='rgba(200,230,255,0.35)';rr(712,527,96,66,10);ctx.fill()}}
+  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.75)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('XCP 조립대',450,180)}
+function drawProbeR(){ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#f4efe4';ctx.beginPath();ctx.moveTo(330,170);ctx.quadraticCurveTo(420,140,510,170);ctx.lineTo(520,300);ctx.quadraticCurveTo(500,560,440,590);ctx.quadraticCurveTo(370,560,340,300);ctx.closePath();ctx.fill();
+  const v=PROBE_SITES[st.psite||0][1],GM=320,tipY=GM+v*22;
+  ctx.fillStyle='#d9cbb0';ctx.fillRect(338,300,184,6);
+  ctx.strokeStyle='#cfd8da';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(536,150);ctx.lineTo(536,tipY);ctx.stroke();
+  ctx.fillStyle='#cfd8da';rr(526,110,20,44,8);ctx.fill();
+  ctx.strokeStyle='#1f262c';ctx.lineWidth=3;[1,2,3,5,7,8,9,10].forEach(mm=>{const y=tipY-mm*22;ctx.beginPath();ctx.moveTo(530,y);ctx.lineTo(542,y);ctx.stroke()});
+  const gg=ctx.createLinearGradient(0,GM,0,640);gg.addColorStop(0,'#e48b8f');gg.addColorStop(1,'#c96f75');
+  ctx.fillStyle=gg;ctx.beginPath();ctx.moveTo(526,GM);ctx.quadraticCurveTo(600,GM-10,700,GM-6);ctx.lineTo(700,640);ctx.lineTo(526,640);ctx.closePath();ctx.fill();
+  ctx.font='600 15px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('#46 '+PROBE_SITES[st.psite||0][0],440,130);
+  ctx.fillStyle='rgba(255,255,255,0.08)';rr(720,150,150,250,12);ctx.fill();ctx.font='600 13px '+FONT;ctx.fillStyle='#bcd7ff';ctx.fillText('기록지 #46',795,170);
+  PROBE_SITES.forEach(([nm,_],k)=>{ctx.font='500 13px '+FONT;ctx.fillStyle='#e3ecf3';ctx.textAlign='left';ctx.fillText(nm.replace(/\(.*\)/,''),732,200+k*32);
+    ctx.textAlign='right';ctx.fillStyle=st.pdRec[k]?'#ffd36b':'rgba(255,255,255,0.3)';ctx.fillText(st.pdRec[k]?st.pdRec[k]+'mm':'—',860,200+k*32)})}
+function drawMob(){ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  const off=st.mobShown?Math.sin(performance.now()/160)*16:0;
+  ctx.fillStyle='#e48b8f';rr(200,420,480,200,20);ctx.fill();
+  ctx.save();ctx.translate(440+off,300);ctx.rotate(off*0.004);ctx.fillStyle='#f4efe4';rr(-80,-110,160,230,40);ctx.fill();ctx.restore();
+  ctx.fillStyle='#ef9fa3';rr(200,420,480,40,12);ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(400+i*22,170);ctx.lineTo(400+i*22,i%2?180:188);ctx.stroke()}
+  ctx.font='500 12px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText('0      1mm      2mm',444,200);
+  if(st.mobShown){ctx.font='700 16px '+FONT;ctx.fillStyle='#ffd36b';ctx.fillText('↔ 수평 약 1.5mm · 수직 함몰 없음',440,150)}}
+function drawTmj(){ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#e7dcc6';ctx.beginPath();ctx.moveTo(200,330);ctx.quadraticCurveTo(220,160,470,150);ctx.quadraticCurveTo(700,160,720,330);ctx.quadraticCurveTo(700,380,600,370);
+  ctx.quadraticCurveTo(530,300,470,300);ctx.quadraticCurveTo(440,330,410,300);ctx.quadraticCurveTo(330,340,260,350);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#1b2733';ctx.beginPath();ctx.ellipse(470,302,24,16,0,0,Math.PI);ctx.fill();
+  const cx=400+st.tmjB*70,cy=322+st.tmjD*30-st.tmjU*30-(st.tmjU>0.99?2:0),open=(1-st.tmjU)*0.35;
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(open);ctx.fillStyle='#efe6d2';
+  ctx.beginPath();ctx.ellipse(0,0,16,13,0,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(-12,6);ctx.lineTo(14,6);ctx.lineTo(24,170);ctx.quadraticCurveTo(10,200,-60,200);ctx.lineTo(-230,210);ctx.quadraticCurveTo(-250,180,-232,160);ctx.lineTo(-30,150);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#fbf7ee';for(let i=0;i<7;i++)rr(-220+i*26,138,20,18,4),ctx.fill();ctx.restore();
+  ctx.fillStyle='#fbf7ee';for(let i=0;i<7;i++){rr(240+i*26,316,20,18,4);ctx.fill()}
+  ctx.font='600 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.75)';ctx.textAlign='center';ctx.fillText(st.tmjU>0.99?'과두가 관절와에 정복됨':'과두가 관절융기 앞에 걸려 있음',470,620)}
+function drawOrtho(){ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#e48b8f';rr(150,220,580,330,40);ctx.fill();
+  [0,1].forEach(r=>{for(let i=0;i<8;i++){const x=232+i*60,y=r?405:300,h=r?78:92;ctx.fillStyle='#f6f1e6';rr(x,r?y:y-h+40,50,h,14);ctx.fill();
+    ctx.fillStyle='#b9c4cb';rr(x+15,r?y+30:y-22,20,16,3);ctx.fill();
+    if(!st.tbiClean){ctx.fillStyle='rgba(205,180,95,0.7)';ctx.beginPath();ctx.ellipse(x+25,r?y+8:y+30,14,5,0,0,7);ctx.fill()}}
+    ctx.strokeStyle='#cfd8da';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(232,r?443:286);ctx.lineTo(712,r?443:286);ctx.stroke()})}
+function drawLetter(){ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  const full=S[si].g==='완성',r=st.rf;ctx.fillStyle='#fbfaf6';
+  if(full){rr(150,120,590,470,8);ctx.fill();
+    ctx.font='700 22px '+FONT;ctx.fillStyle='#1f2a33';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('진료 의뢰서',445,140);
+    const L=[['수신',r.to||''],['환자','58세 남자 · 고혈압, 제2형 당뇨'],['복용 약물','Amlodipine, Metformin, Atorvastatin'],['치과 소견',r.find||''],['의심 원인',(r.drug||'')+' 연관 약물성 치은비대'],
+      ['요청 사항',r.req||''],['치과 계획',r.plan||''],['발신','○○치과 치과의사 (서명)']];
+    let y=190;L.forEach(([k,v])=>{ctx.font='700 14px '+FONT;ctx.fillStyle='#2f6a96';ctx.textAlign='left';ctx.fillText(k,180,y);y+=wrap(v,280,y,430,20,'500 14px '+FONT,'#2e3a44')+10})}
+  else{rr(150,120,590,112,8);ctx.fill();ctx.font='700 15px '+FONT;ctx.fillStyle='#1f2a33';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('진료 의뢰서 (작성 중)',170,132);
+    ctx.font='500 13px '+FONT;ctx.fillStyle='#5a6a76';ctx.fillText('수신: '+(r.to||'—')+'   의심 약물: '+(r.drug||'—'),170,162);ctx.fillText('소견: '+(r.find||'—'),170,184);ctx.fillText('요청: '+(r.req||'—'),170,206)}}
+function drawMoyers(){ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#e9e2d2';rr(280,130,300,110,30);ctx.fill();
+  MY_X.forEach((x,i)=>{ctx.fillStyle='#fbf7ee';rr(x-24,170,48,56,10);ctx.fill();
+    if(st.mw[i]){ctx.font='700 14px '+FONT;ctx.fillStyle='#c2467a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(MY_W[i]+'',x,150)}});
+  ctx.font='500 12px '+FONT;ctx.fillStyle='rgba(255,255,255,0.7)';ctx.textAlign='center';ctx.fillText('하악 전치부 모형',430,232+24);
+  ctx.fillStyle='rgba(255,255,255,0.08)';rr(600,112,280,130,10);ctx.fill();
+  ctx.font='700 12px '+FONT;ctx.fillStyle='#bcd7ff';ctx.textAlign='left';ctx.fillText('Moyers 75%  4전치 합 → 예측(편측)',612,126);
+  [['합','하악','상악'],['22.0','21.6','22.0'],['22.5','21.9','22.3'],['23.0','22.2','22.6'],['23.5','22.5','22.9']].forEach((r,k)=>{
+    ctx.font=(k?'500 ':'700 ')+'13px '+FONT;ctx.fillStyle=k?'#e3ecf3':'#ffd36b';ctx.fillText(r[0],620,148+k*19);ctx.fillText(r[1],700,148+k*19);ctx.fillText(r[2],780,148+k*19)})}
+function drawHeadV(){ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  const sk='#ecc9aa';ctx.fillStyle='#d4ad8c';ctx.beginPath();ctx.moveTo(470,420);ctx.lineTo(560,420);ctx.quadraticCurveTo(600,520,760,560);ctx.lineTo(780,660);ctx.lineTo(300,660);ctx.lineTo(320,560);ctx.quadraticCurveTo(440,540,470,420);ctx.fill();
+  ctx.fillStyle=sk;ctx.beginPath();ctx.ellipse(470,300,130,150,0,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(350,320);ctx.lineTo(330,360);ctx.lineTo(350,372);ctx.lineTo(345,410);ctx.quadraticCurveTo(370,460,430,450);ctx.lineTo(500,420);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#3b2a22';ctx.beginPath();ctx.ellipse(500,220,130,90,0.15,Math.PI*0.95,Math.PI*2.05);ctx.fill();
+  ctx.fillStyle='#d9b08f';ctx.beginPath();ctx.ellipse(530,320,16,26,0.1,0,7);ctx.fill();
+  ctx.strokeStyle='#8a5a48';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(360,300);ctx.lineTo(385,300);ctx.stroke();
+  ctx.fillStyle='#b4636a';ctx.beginPath();ctx.ellipse(352,392,10,4,0,0,7);ctx.fill()}
 /* ===== 클램프 보드 ===== */
 const CLAMP_CLASS=n=>n<=205?'molar':n<=209?'premolar':n<=211?'anterior':'cervical';
 const CLAMP_NAME={molar:'대구치',premolar:'소구치',anterior:'전치부',cervical:'전치부 치경부(retraction)'};
@@ -1731,7 +1960,7 @@ function updChair(s,dt,t){const h={x:600,y:612,r:36};
   st.chair=Math.max(0,Math.min(1,drag.c0-(cur.y-drag.oy)/150));
   ctx.font='600 15px '+FONT;ctx.fillStyle=ok?'#2fbf8f':'#ffd36b';ctx.textAlign='center';ctx.textBaseline='bottom';
   ctx.fillText(ok?'좋아요, 그대로 유지':(st.chair<s.target?'↑ 등받이를 더 세우세요':'↓ 등받이를 더 눕히세요'),600,570);
-  if(ok){drag.band+=dt;if(drag.band>700){toast(s.plane==='upper'?'상악 교합평면이 바닥과 거의 수직. 술자는 환자 머리 쪽(11–12시)에서 직접·간접 시야를 확보해요.':'하악 교합평면이 바닥과 평행. 하악 작업에 가장 좋은 자세예요.',1);next()}}else drag.band=0}
+  if(ok){drag.band+=dt;if(drag.band>700){toast(s.plane==='upper'?'상악 교합면이 바닥과 거의 수직. 술자는 환자 머리 쪽(11–12시)에서 시야를 확보해요.':s.plane==='sit'?'환자가 똑바로 앉았어요.':'하악 교합면이 바닥과 평행. 하악 작업에 좋은 자세예요.',1);next()}}else drag.band=0}
 
 /* ===== 타이틀 ===== */
 function drawTitleView(){
@@ -1819,7 +2048,7 @@ function updTension(s,dt,t){
 
 
 /* ================= 앱 셸: 홈 · 기록 · 리더보드 ================= */
-const APP_VERSION='v1.4';
+const APP_VERSION='v1.5';
 const PATCH_DATE='10월 1일';
 let screen='home',user=null;
 function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
@@ -1893,7 +2122,10 @@ function patchNotes(){return `
   <details class="intro-note">
     <summary class="notice-head"><span>🛠 패치 내역</span><span class="notice-meta">${PATCH_DATE} · ${APP_VERSION}</span></summary>
     <ul class="patch">
-      <li class="new">시작 화면을 <b>화면 가득</b> 밝게, 진료실을 <b>체어 일체형</b>(라이트 기둥·딜리버리 암·풋 컨트롤)으로 다시 그림, 구내 그림 질감 개선</li>
+      <li class="new"><b>새 케이스 7종</b>: XCP 조립 · 치주 probing+동요도 · 턱관절 탈구 정복 · 교정 TBI(변형 차터스법) · 약물성 치은비대 협진 의뢰서 · Moyers 분석 · 긴장성 두통 근육 촉진</li>
+      <li class="new"><b>모든 환자 케이스에 체어 조정</b> 단계 추가, 케이스·모드 선택 화면도 <b>화면 가득</b>(모바일에서 크게)</li>
+      <li class="new">진료실 그림에서 교합평면 표시선과 환자 보안경 제거</li>
+      <li>시작 화면을 <b>화면 가득</b> 밝게, 진료실을 <b>체어 일체형</b>(라이트 기둥·딜리버리 암·풋 컨트롤)으로 다시 그림, 구내 그림 질감 개선</li>
       <li class="new">트레이 아래에 <b>📋 문제 상황</b>(조건 포함) 표시</li>
       <li class="new"><b>러버댐 펀치 휠</b>을 직접 돌려 구멍 크기 조정. #14–24는 앵커치·견치·절치별로 크기를 바꿔가며 펀칭</li>
       <li class="new">치주 기구를 실제처럼 <b>양쪽 작업단</b> 모양으로 다시 그림</li>
@@ -2023,8 +2255,8 @@ document.getElementById('backBtn').onclick=()=>{
   if(confirm('진행 중인 기록이 사라집니다. 모드 선택으로 돌아갈까요?')){resetAll(caseId)}};
 document.getElementById('homeBtn').onclick=()=>{if(inRun()&&!confirm('진행 중인 기록이 사라집니다. 처음 화면으로 갈까요?'))return;showScreen('home')};
 document.querySelectorAll('#gamePage .themeBtn').forEach(b=>{b.textContent=themeLabel();b.onclick=toggleTheme});
-function syncPipBtn(){const b=document.getElementById('pipMinBtn');if(b)b.textContent=pipMin?'내 화면 펼치기':'내 화면 접기'}
-document.getElementById('pipMinBtn').onclick=()=>{pipMin=!pipMin;syncPipBtn()};
+function syncPipBtn(){const b=document.getElementById('pipMinBtn');if(b)b.textContent=pipIsMin()?'내 화면 펼치기':'내 화면 접기'}
+document.getElementById('pipMinBtn').onclick=()=>{if(pipOnStart())pipStartMin=!pipStartMin;else pipMin=!pipMin;syncPipBtn()};
 document.getElementById('pipMoveBtn').onclick=()=>{pipCorner=(pipCorner+1)%PIP_CORNERS.length;const p=pipActivePos();p.x=PIP_CORNERS[pipCorner].x;p.y=PIP_CORNERS[pipCorner].y};
 (()=>{const fb=document.getElementById('fsBtn'),fx=document.getElementById('fsExit'),fc=document.getElementById('fsCam'),box=document.querySelector('.stagebox');
   if(!fb||!box)return;
@@ -2045,7 +2277,7 @@ function loop(t){
   const px=cur.x,py=cur.y,k=handMode&&camOn?0.5:0.35;cur.x+=(cur.tx-cur.x)*k;cur.y+=(cur.ty-cur.y)*k;cur.vx=cur.x-px;cur.vy=cur.y-py;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1620';ctx.fillRect(0,0,W,H);
   if(screen!=='game'){zonesNow=[];requestAnimationFrame(loop);return}
-  if(pipDrag){const mn=pipIsMin(),p=pipActivePos();p.x=cur.x-pipDrag.dx;p.y=cur.y-pipDrag.dy-(mn?108:0)}
+  if(pipDrag){const mn=pipIsMin(),p=pipActivePos();p.x=cur.x-pipDrag.dx;p.y=cur.y-pipDrag.dy-(mn&&!pipOnStart()?108:0)}
   const s=S[si],view=typeof s.view==='function'?s.view():s.view;
   if(s.kind==='zones'){zonesNow=stepZones(s)}else if(s.kind==='end'){zonesNow=endZones()}else if(!['drag','depth','arc','wrap','tension','hold','circle','strokes','gauge','chair'].includes(s.kind)){zonesNow=[]}
   if(s.kind==='shake'){updShake(dt,t);if(S[si]===s)drawShake()}
@@ -2067,6 +2299,14 @@ function loop(t){
   else if(view==='clamps')drawClampBoard();
   else if(view==='instr')drawInstrBoard();
   else if(view==='title')drawTitleView();
+  else if(view==='xcp')drawXcp();
+  else if(view==='probeR')drawProbeR();
+  else if(view==='mob')drawMob();
+  else if(view==='tmj')drawTmj();
+  else if(view==='ortho')drawOrtho();
+  else if(view==='letter')drawLetter();
+  else if(view==='moyers')drawMoyers();
+  else if(view==='head')drawHeadV();
   else if(view==='room')drawRoom();
   else if(view==='glove')drawGloveView();
   else if(view==='bench')drawBench(false);
@@ -2091,7 +2331,7 @@ function loop(t){
       if(p>=1)next()}
     if(S[si]===s)checkContam(dt);
   }
-  if(S[si].id!=='title'){drawTray();drawHeader()}drawPip();drawToast();drawCursor();
+  if(S[si].grp!=='start'){drawTray();drawHeader()}drawPip();drawToast();drawCursor();
   requestAnimationFrame(loop);
 }
 resetAll();showScreen('home');requestAnimationFrame(loop);
