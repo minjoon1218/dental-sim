@@ -118,6 +118,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
 .help{margin-top:12px;font-size:13px;color:var(--ink-muted);line-height:1.7}
 video{display:none}
 [hidden]{display:none!important}
+.warnbox{background:#fff4d6;border-color:#f2c94c;color:#6b4e00}.warnbox b{color:#6b4e00}
 .fs-tools{display:none;position:absolute;top:calc(env(safe-area-inset-top,0px) + 8px);right:calc(env(safe-area-inset-right,0px) + 8px);gap:8px;z-index:3}
 .fs-tools button{width:44px;height:44px;border-radius:50%;border:none;background:rgba(0,0,0,0.55);color:#fff;font-size:18px;cursor:pointer}
 .stagebox:fullscreen .fs-tools,.stagebox.pseudo-fs .fs-tools{display:flex}
@@ -148,6 +149,7 @@ body.noscroll{overflow:hidden;position:fixed;width:100%}
       <button class="primary" id="camBtn">카메라 켜기</button>
       <button id="backBtn">← 뒤로</button>
       <button id="homeBtn">처음 화면</button>
+      <button id="handBtn">주로 쓰는 손: 오른손</button>
       <button id="pipMinBtn">내 화면 접기</button>
       <button id="pipMoveBtn">내 화면 옮기기</button>
       <button id="fsBtn">⛶ 전체 화면</button>
@@ -155,7 +157,7 @@ body.noscroll{overflow:hidden;position:fixed;width:100%}
       <label><input id="showCam" type="checkbox" checked> 내 화면 표시</label>
       <span id="status">마우스 모드</span>
     </div>
-    <p class="help">카메라를 켜면 MediaPipe 손 추적이 켜져요(처음 몇 초 로딩). 손 전체가 화면에 들어오게, 카메라에서 50–70cm 떨어져 손바닥을 카메라 쪽으로 향하면 가장 안정적이에요. 마우스로도 진행할 수 있어요.</p>
+    <p class="help">⚠️ <b>카메라는 Chrome에서 열어야 인식돼요.</b> 카메라를 켜면 MediaPipe 손 추적이 켜져요(처음 몇 초 로딩). 손 전체가 화면에 들어오게, 카메라에서 50–70cm 떨어져 손바닥을 카메라 쪽으로 향하면 가장 안정적이에요. 마우스로도 진행할 수 있어요.</p>
     <video id="vid" playsinline muted></video>
   </section>
 </div>
@@ -181,6 +183,8 @@ const clamp01=v=>Math.max(0,Math.min(1,v));
 /* ================= input ================= */
 let camOn=false,prevGray=null,lastMouse=-9999,mouseDown=false,inputSrc='mouse';
 let handMode=false,landmarker=null,handTried=false,pinch=false,handSeen=false,lastLm=null,lastVT=-1;
+const aux={x:200,y:400,tx:200,ty:400,seen:false,pinch:false,lm:null};
+let domHand=(()=>{try{return localStorage.getItem('dds_hand')||'R'}catch(e){return'R'}})();
 const SW=96,SH=54;
 const sm=document.createElement('canvas');sm.width=SW;sm.height=SH;
 const smx=sm.getContext('2d',{willReadFrequently:true});
@@ -192,7 +196,7 @@ async function startCam(){
     video.srcObject=s;await video.play();camOn=true;
     document.getElementById('camBtn').textContent='카메라 끄기';
     if(!handTried)initHands();else setStatus(handMode?'손 추적 ON':'움직임 추적 모드');
-  }catch(e){setStatus('카메라를 열 수 없음('+e.name+') · 마우스로 진행하세요')}
+  }catch(e){setStatus((typeof IS_CHROME!=='undefined'&&IS_CHROME)?'카메라를 열 수 없음('+e.name+') · 카메라 권한을 확인하세요':'카메라를 열 수 없음 · Chrome으로 접속해야 카메라가 인식돼요')}
 }
 async function initHands(){
   handTried=true;setStatus('손 추적 모델 불러오는 중…');
@@ -201,7 +205,7 @@ async function initHands(){
   try{
     const vision=await import(base+'/vision_bundle.mjs');
     const fs=await vision.FilesetResolver.forVisionTasks(base+'/wasm');
-    const mk=d=>vision.HandLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:model,delegate:d},runningMode:'VIDEO',numHands:1,
+    const mk=d=>vision.HandLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:model,delegate:d},runningMode:'VIDEO',numHands:2,
       minHandDetectionConfidence:0.5,minTrackingConfidence:0.5});
     try{landmarker=await mk('GPU')}catch(e){landmarker=await mk('CPU')}
     handMode=true;setStatus('손 추적 ON · 엄지·검지 사이가 커서, 엄지-검지 집기 = 잡기');
@@ -225,26 +229,40 @@ function trackMotion(){
 }
 function lmNorm(p){const c=camCrop(),vw=video.videoWidth||640,vh=video.videoHeight||480;
   return{x:1-(p.x*vw-c.sx)/c.sw,y:(p.y*vh-c.sy)/c.sh}}
+function handPt(lm){const a=lmNorm(lm[8]),b=lmNorm(lm[4]),gain=0.74,off=(1-gain)/2;return{x:clamp01(((a.x+b.x)/2-off)/gain)*W,y:clamp01(((a.y+b.y)/2-off)/gain)*H}}
+function pinchDist(lm){const size=Math.hypot(lm[0].x-lm[9].x,lm[0].y-lm[9].y)||0.1;return Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y)/size}
 function trackHands(){
   if(video.currentTime===lastVT)return;lastVT=video.currentTime;
   let r;try{r=landmarker.detectForVideo(video,performance.now())}catch(e){return}
-  const lm=r&&r.landmarks&&r.landmarks[0];lastLm=lm||null;
-  if(!lm){handSeen=false;if(pinch){pinch=false;onRelease('pinch')}return}
-  handSeen=true;
-  if(performance.now()-lastMouse>900){
-    const a=lmNorm(lm[8]),b=lmNorm(lm[4]),gain=0.74,off=(1-gain)/2;
-    cur.tx=clamp01(((a.x+b.x)/2-off)/gain)*W;cur.ty=clamp01(((a.y+b.y)/2-off)/gain)*H;
-  }
-  const size=Math.hypot(lm[0].x-lm[9].x,lm[0].y-lm[9].y)||0.1;
-  const dp=Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y)/size;
-  if(!pinch&&dp<0.33){pinch=true;onPress('pinch')}
-  else if(pinch&&dp>0.5){pinch=false;onRelease('pinch')}
+  const lms=(r&&r.landmarks)||[];
+  let main=null,sub=null;
+  if(lms.length===1)main=lms[0];
+  else if(lms.length>=2){const A=lms[0],B=lms[1],ax=lmNorm(A[9]).x,bx=lmNorm(B[9]).x;
+    const right=ax>bx?A:B,left=ax>bx?B:A;main=domHand==='R'?right:left;sub=domHand==='R'?left:right}
+  lastLm=main||null;aux.lm=sub||null;
+  if(!main){handSeen=false;if(pinch){pinch=false;onRelease('pinch')}}
+  else{handSeen=true;
+    if(performance.now()-lastMouse>900){const p=handPt(main);cur.tx=p.x;cur.ty=p.y}
+    const dp=pinchDist(main);if(!pinch&&dp<0.33){pinch=true;onPress('pinch')}else if(pinch&&dp>0.5){pinch=false;onRelease('pinch')}}
+  if(!sub){aux.seen=false;if(aux.pinch){aux.pinch=false}}
+  else{aux.seen=true;const p=handPt(sub);aux.tx=p.x;aux.ty=p.y;
+    const dp=pinchDist(sub);if(!aux.pinch&&dp<0.33){aux.pinch=true;onPress('aux')}else if(aux.pinch&&dp>0.5){aux.pinch=false}}
 }
+function twoHands(){return handMode&&camOn&&aux.seen}
+function auxOK(s){if(!s||!s.aux||!twoHands())return true;const a=s.aux();return Math.hypot(aux.x-a.x,aux.y-a.y)<=a.r+24}
+function drawAuxTarget(s){if(!s||!s.aux||!(handMode&&camOn))return;const a=s.aux(),ok=auxOK(s);
+  ctx.save();ctx.setLineDash(ok&&aux.seen?[]:[7,6]);ctx.strokeStyle=ok&&aux.seen?'#ff9ec7':'rgba(255,158,199,0.85)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,7);ctx.stroke();ctx.restore();
+  ctx.font='600 13px '+FONT;ctx.fillStyle='#ffb8d6';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('🤚 '+a.label,a.x,a.y+a.r+6);
+  if(!aux.seen){ctx.font='500 12px '+FONT;ctx.fillStyle='rgba(255,184,214,0.8)';ctx.fillText('(반대 손도 화면에 보이면 같이 써요)',a.x,a.y+a.r+24)}}
+function auxGate(s,px,py){if(auxOK(s))return true;ctx.font='700 18px '+FONT;ctx.fillStyle='#ff9ec7';ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('반대 손을 분홍 원에 두세요: '+s.aux().label,px||440,(py||200));return false}
 function toStage(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
 cv.addEventListener('pointermove',e=>{const p=toStage(e);cur.tx=p.x;cur.ty=p.y;lastMouse=performance.now()});
 cv.addEventListener('pointerdown',e=>{const p=toStage(e);cur.tx=cur.x=p.x;cur.ty=cur.y=p.y;lastMouse=performance.now();mouseDown=true;onPress('mouse')});
 window.addEventListener('pointerup',()=>{if(mouseDown){mouseDown=false;onRelease('mouse')}});
 function onPress(src){inputSrc=src;if(screen!=='game')return;
+  const P=src==='aux'?aux:cur;
+  if(src==='aux'){if(blocked()||performance.now()<armT)return;for(const z of zonesNow){if(z.key!=='handle'&&inZone(z,P.x,P.y)){fire(z);return}}return}
   const b=pipBar();if(inR(b,cur.x,cur.y)){if(cur.x>b.x+b.w-30){if(pipOnStart())pipStartMin=!pipStartMin;else pipMin=!pipMin;syncPipBtn()}else pipDrag={dx:cur.x-PIP.x,dy:cur.y-PIP.y,src};return}
   if(blocked()||performance.now()<armT)return;for(const z of zonesNow){if(inZone(z,cur.x,cur.y)){fire(z);return}}}
 function onRelease(src){if(pipDrag&&pipDrag.src===src)pipDrag=null;if(drag&&drag.by===src){const s=S[si];
@@ -894,8 +912,16 @@ const S=[
  {grp:'post',g:'발치 후 처치',text:'발치와에 거즈를 올리고 물게 하세요.',zones:()=>[C('gz',T46,30,()=>{st.gauze=1;held=null;return OK('거즈 교합 압박. 혈병 유지를 위해 강한 세척은 피합니다.')})]},
  {grp:'end',phase:'완료',view:'end',kind:'end',g:'결과',text:'시뮬레이션 완료'}
 ];
+S.forEach(st0=>{
+  if(st0.kind==='depth'||(st0.kind==='drag'&&st0.hud))st0.aux=()=>({x:Z.notch.x-10,y:Z.notch.y,r:46,label:'반대 손 엄지: 관상돌기 절흔 견인'});
+  if(st0.kind==='shake')st0.aux=()=>({x:440,y:650,r:52,label:'반대 손: 하악 지지'});
+  if(st0.kind==='arc')st0.aux=()=>({x:st.entry.x-46,y:st.entry.y+34,r:42,label:'조직겸자: 판막 고정'});
+  if(st0.kind==='tension'){const d0=st0.dir;st0.aux=()=>{const c=st.wrapC||{x:440,y:410};return{x:c.x-d0*170,y:c.y,r:54,label:'반대 손: 긴 실 반대로 당기기'}}}
+  if(st0.kind==='strokes')st0.aux=()=>({x:740,y:250,r:52,label:'미러: 볼·혀 견인'});
+});
 for(let i=1;i<S.length;i++){for(const k of['phase','view','grp'])if(!S[i][k])S[i][k]=S[i-1][k]}
 S.forEach(s=>{if(!s.kind)s.kind='zones'});
+S.forEach(st0=>{if(st0.grp==='tmj'&&st0.kind==='drag')st0.aux=()=>({x:cur.x-150,y:cur.y,r:64,label:'반대쪽 엄지도 함께'})});
 
 let runStart=0,armT=0,freshLock=false,saved=null;
 function BACK_ZONE(fn){return{key:'back',dwell:900,label:'← 뒤로',rect:{x:24,y:22,w:130,h:48},act:()=>{fn();return{stay:1}}}}
@@ -1400,10 +1426,10 @@ function drawPip(){
     else{ctx.fillStyle='#243341';ctx.fillRect(PIP.x,PIP.y,PIP.w,PIP.h);ctx.font='500 14px '+FONT;ctx.fillStyle='#8fa6b6';ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(camOn?'내 화면 숨김':'카메라 꺼짐',PIP.x+PIP.w/2,PIP.y+PIP.h/2)}
     if(st.masked){ctx.fillStyle='rgba(140,195,234,0.55)';rr(PIP.x+78,PIP.y+70,100,52,16);ctx.fill()}
-    if(lastLm&&camOn){const P=lastLm.map(p=>{const n=lmNorm(p);return{x:PIP.x+n.x*PIP.w,y:PIP.y+n.y*PIP.h}});
-      ctx.strokeStyle=pinch?'#ffd36b':'#8fd3ff';ctx.lineWidth=1.5;
+    [[aux.lm,'#ff9ec7',aux.pinch],[lastLm,'#8fd3ff',pinch]].forEach(([LM,col,pc])=>{if(!LM||!camOn)return;const P=LM.map(p=>{const n=lmNorm(p);return{x:PIP.x+n.x*PIP.w,y:PIP.y+n.y*PIP.h}});
+      ctx.strokeStyle=pc?'#ffd36b':col;ctx.lineWidth=1.5;
       HAND_LINKS.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(P[a].x,P[a].y);ctx.lineTo(P[b].x,P[b].y);ctx.stroke()});
-      ctx.fillStyle=ctx.strokeStyle;P.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,2,0,7);ctx.fill()})}
+      ctx.fillStyle=ctx.strokeStyle;P.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,2,0,7);ctx.fill()})});
     ctx.restore();
   }else{
     rr(PIP.x,PIP.y,PIP.w,PIP.h,18);ctx.fillStyle='rgba(36,51,65,0.95)';ctx.fill();
@@ -1459,7 +1485,10 @@ function drawToast(){if(!toastO)return;if(performance.now()>toastO.until){toastO
 function drawCursor(){
   if(held)drawItem(held,cur.x,cur.y,1.15,{assembled:held==='syringe'&&st.needle,flip:st.cartFlip});
   else if(st.driver&&['sutprep','sut8','lac'].includes(S[si].grp)&&!st.sutured)drawItem(st.driver,cur.x+30,cur.y+18,1.1);
-  if(st.mirror&&['sc','rp'].includes(S[si].grp))drawItem('mirror',cur.x-60,cur.y+30,0.9);
+  const mirrorAt=twoHands()?aux:{x:cur.x-60,y:cur.y+30};
+  if(st.mirror&&['sc','rp'].includes(S[si].grp))drawItem('mirror',mirrorAt.x,mirrorAt.y,0.9);
+  if(twoHands()&&screen==='game'){ctx.beginPath();ctx.arc(aux.x,aux.y,aux.pinch?11:8,0,7);ctx.fillStyle=aux.pinch?'#ffd36b':'#ff9ec7';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
+    ctx.font='600 11px '+FONT;ctx.fillStyle='#ffb8d6';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('보조 손',aux.x,aux.y+13)}
   const grab=handMode&&camOn?pinch:mouseDown;
   ctx.beginPath();ctx.arc(cur.x,cur.y,grab?11:8,0,7);ctx.fillStyle=grab?'#ffd36b':'#8fd3ff';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
   if(dwellP>0){ctx.beginPath();ctx.arc(cur.x,cur.y,18,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,dwellP));ctx.strokeStyle='#8fd3ff';ctx.lineWidth=4;ctx.stroke()}
@@ -1482,6 +1511,7 @@ function updDrag(s,dt,t){
   zonesNow=[];dwellP=0;
   if(blocked())return;
   if(!holding()){drag=null;if(s.apply)s.apply(0);return}
+  if(!auxGate(s,440,h.y-60)){drag.ox=cur.x-(s.axis==='x'?drag.p*s.dir:0);drag.oy=cur.y-(s.axis==='y'?drag.p*s.dir:0);return}
   const rawSigned=(s.axis==='x'?cur.x-drag.ox:cur.y-drag.oy)*s.dir;
   if(EXAM()&&s.alt&&s.alt.opposite&&rawSigned<-28){penalize(10,s.alt.why,'alt',s.alt.fb);jumpTo(s.alt.to);return}
   let raw=Math.max(0,Math.min(s.amount,rawSigned)),p=raw;
@@ -1502,6 +1532,7 @@ function updDepth(s,dt,t){
   if(!drag){zonesNow=[{key:'handle',x:h.x,y:h.y,r:h.r,act:()=>{drag={ox:cur.x,oy:cur.y-st.depth*7,push:0,by:inputSrc};return{stay:1}}}];runZones(dt);handleRing(h,t);return}
   zonesNow=[];dwellP=0;
   if(!holding()){drag=null;return}
+  if(!auxGate(s,440,200)){drag.oy=cur.y-st.depth*7;return}
   let mm=(cur.y-drag.oy)/7;
   if(mm>22){if(!st.depthContact){st.depthContact=1;toast('골 접촉! 약 22mm. 이제 1mm 후퇴하세요.',1,2200)}
     drag.oy+=(mm-22)*7;mm=22;drag.push+=dt;
@@ -1512,7 +1543,7 @@ function updDepth(s,dt,t){
   if(st.depthContact&&st.depth<=21&&st.depth>=17){toast('골 접촉 후 1mm 후퇴. 하악공 부근 위치입니다.',1);next()}
 }
 function updShake(dt,t){
-  const s=sh;s.grip=holding();
+  const s=sh;s.grip=holding()&&auxOK(S[si]);
   if(s.stage==='luxate'){
     if(!s.grip){s.ext=cur.x;s.lastExt=cur.x;s.dir=0;return}
     const x=cur.x,HY=30;
@@ -1695,6 +1726,7 @@ function updStrokes(s,dt,t){
   ctx.font='600 16px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('스트로크 '+st.sCount+' / '+s.n,a.x,a.y+a.r+12);
   st.warnT=Math.max(0,(st.warnT||0)-dt);
   if(st.warnT>0&&!EXAM()){ctx.font='700 18px '+FONT;ctx.fillStyle='#ffb547';ctx.fillText(s.sub?'힘 빼고 가볍고 길게!':'너무 빨라요. 짧고 조절된 스트로크로!',a.x,a.y-a.r-40)}
+  if(!auxGate(s,a.x,a.y-a.r-40)){st.sPrev=null;return}
   if(!holding()||!inside){st.sPrev=null;ctx.font='600 14px '+FONT;ctx.fillStyle='#ffd36b';ctx.fillText(handMode&&camOn?'기구를 쥔 채(집기) 여기서 위로':'여기서 위로 끌어올리기',a.x,a.y-a.r-18);return}
   if(st.sPrev==null){st.sPrev=cur.y;st.sStart=cur.y;st.sArmed=true;st.sPeak=cur.y}
   const dy=cur.y-st.sPrev;st.sPrev=cur.y;
@@ -2138,6 +2170,7 @@ function updArc(s,dt,t){
   if(!drag){zonesNow=[{key:'handle',x:tip.x,y:tip.y,r:30,act:()=>{drag={by:inputSrc,off:0};return{stay:1}}}];runZones(dt);handleRing({x:tip.x,y:tip.y,r:30},t);return}
   zonesNow=[];dwellP=0;
   if(!holding()){drag=null;return}
+  if(!auxGate(s,440,160))return;
   const vx=cur.x-g.cx,vy=cur.y-g.cy,along=vx*g.ux+vy*g.uy,perp=vx*g.px+vy*g.py;
   let th=Math.atan2(perp,-along);if(th<0)th=th< -Math.PI/2?Math.PI:0;
   const tt=th/Math.PI,off=Math.abs(Math.hypot(vx,vy)-g.R);
@@ -2175,6 +2208,7 @@ function updTension(s,dt,t){
   if(!drag){zonesNow=[{key:'handle',x:tp.x,y:tp.y,r:28,act:()=>{drag={ox:cur.x,oy:cur.y,by:inputSrc,band:0};return{stay:1}}}];runZones(dt);handleRing({x:tp.x,y:tp.y,r:28},t);return}
   zonesNow=[];dwellP=0;
   if(!holding()){drag=null;st.tension=0;return}
+  if(!auxGate(s,440,200)){drag.ox=cur.x-st.tension*s.dir;return}
   const raw=(cur.x-drag.ox)*s.dir;st.tension=raw;
   const bx=290,by=140,bw=300;ctx.fillStyle='rgba(255,255,255,0.15)';rr(bx,by,bw,14,7);ctx.fill();
   ctx.fillStyle='rgba(143,211,255,0.45)';ctx.fillRect(bx+bw*70/150,by,bw*45/150,14);
@@ -2190,7 +2224,7 @@ function updTension(s,dt,t){
 
 
 /* ================= 앱 셸: 홈 · 기록 · 리더보드 ================= */
-const APP_VERSION='v1.7';
+const APP_VERSION='v1.9';
 const PATCH_DATE='10월 1일';
 let screen='home',user=null;
 function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
@@ -2251,11 +2285,16 @@ function brandBlock(small){
       <div class="brand-sub">~실기 떨어지는 건 싫으니까<br>과평에 올인하려고 합니다~</div>
       <div class="brand-line">✦ 경희치대 79회 국시 전원 합격 기원 ✦</div>
     </div></div>`}
-function notices(){return `
+const UA=navigator.userAgent||'';
+const IN_APP=/KAKAOTALK|Instagram|FBAN|FBAV|NAVER|Line\/|DaumApps|everytimeApp|wv\)/i.test(UA);
+const IS_CHROME=/Chrome|CriOS/.test(UA)&&!/Edg|OPR|SamsungBrowser|Whale/.test(UA)&&!IN_APP;
+function chromeWarn(){if(IS_CHROME)return'';return '<div class="intro-note warnbox">⚠️ <b>'+(IN_APP?'앱 안의 브라우저로 열려 있어요.':'지금 브라우저는 Chrome이 아니에요.')+'</b> 카메라 손 인식은 <b>Chrome</b>에서만 안정적으로 돼요. '+(IN_APP?'오른쪽 위 메뉴 → <b>다른 브라우저로 열기</b> → Chrome을 선택하세요.':'Chrome으로 이 주소를 열어 주세요.')+' (마우스·터치로는 지금도 할 수 있어요)</div>'}
+function notices(){return chromeWarn()+`
   <div class="intro-note chalkboard">
     <div class="notice-head"><span>📢 B반 공지사항</span></div>
+    <p>⚠️ <b>카메라는 크롬(Chrome)으로 접속해야 인식돼요.</b> 카카오톡 같은 앱 안에서 링크를 열었다면 '다른 브라우저로 열기'에서 Chrome을 선택하세요.</p>
     <p><b>카메라를 켜면</b> 내 손이 그대로 기구가 돼요. <b>엄지·검지 사이</b>가 커서예요. 마우스·터치로도 할 수 있어요.</p>
-    <p><b>엄지-검지를 집으면 잡기, 떼면 놓기</b>. 노란 고리가 뜨면 집은 채로 안내 방향으로 움직이면 돼요.</p>
+    <p><b>엄지-검지를 집으면 잡기, 떼면 놓기</b>. 노란 고리가 뜨면 집은 채로 안내 방향으로 움직이면 돼요. <b>양손</b>이 보이면 반대 손으로 분홍 원의 보조 동작도 함께 해요.</p>
     <p>멸균 장갑을 낀 뒤 <b>얼굴(내 화면)이나 무영등을 만지면 오염</b>이에요. 실제 술식처럼 조심!</p>
     <p><b>두근두근 치의학부 코드 그대로</b> 로그인돼요. 따로 가입할 필요 없어요. <b>실전 모드</b> 점수가 리더보드에 올라가요.</p>
     <p class="chalk-cta">🦷 이제 술식하러 가볼까요! ✨</p>
@@ -2264,6 +2303,8 @@ function patchNotes(){return `
   <details class="intro-note">
     <summary class="notice-head"><span>🛠 패치 내역</span><span class="notice-meta">${PATCH_DATE} · ${APP_VERSION}</span></summary>
     <ul class="patch">
+      <li class="new"><b>Chrome 안내</b>: 카메라는 Chrome에서만 인식된다는 공지 추가, Chrome이 아니거나 카카오톡 등 앱 안 브라우저면 경고 표시</li>
+      <li class="new"><b>양손 인식</b>: 손 두 개를 동시에 추적해요. 주로 쓰는 손이 기구, 반대 손(분홍 커서)은 엄지 견인·미러·조직겸자·하악 지지·실 당기기 같은 보조 동작. 분홍 원에 반대 손이 있어야 진행돼요(한 손만 보이면 자동으로 한 손 모드)</li>
       <li class="new"><b>EPT·실란트·불소·턱관절·근육 촉진</b> 화면을 실사풍으로 다시 그림(치아 음영·점막 혈관·실제 측면 두개골·두경부 해부, 연습 모드에선 촉진 근육 위치를 흐리게 표시)</li>
       <li class="new">케이스 선택을 <b>페이지 넘기기</b>(6개씩 크게)로 바꾸고 오른쪽에 내 화면 자리 확보, 과목 태그 글자 잘림 수정</li>
       <li class="new">XCP 구성품·칫솔·캘리퍼 등 <b>빠져 있던 기구 그림</b> 추가, XCP 조립대를 실물처럼 다시 그림, 트레이 기구에 입체감</li>
@@ -2402,6 +2443,8 @@ document.getElementById('backBtn').onclick=()=>{
 document.getElementById('homeBtn').onclick=()=>{if(inRun()&&!confirm('진행 중인 기록이 사라집니다. 처음 화면으로 갈까요?'))return;showScreen('home')};
 document.querySelectorAll('#gamePage .themeBtn').forEach(b=>{b.textContent=themeLabel();b.onclick=toggleTheme});
 function syncPipBtn(){const b=document.getElementById('pipMinBtn');if(b)b.textContent=pipIsMin()?'내 화면 펼치기':'내 화면 접기'}
+(()=>{const hb=document.getElementById('handBtn');if(!hb)return;const lab=()=>hb.textContent='주로 쓰는 손: '+(domHand==='R'?'오른손':'왼손');lab();
+  hb.onclick=()=>{domHand=domHand==='R'?'L':'R';try{localStorage.setItem('dds_hand',domHand)}catch(e){}lab()}})();
 document.getElementById('pipMinBtn').onclick=()=>{if(pipOnStart())pipStartMin=!pipStartMin;else pipMin=!pipMin;syncPipBtn()};
 document.getElementById('pipMoveBtn').onclick=()=>{pipCorner=(pipCorner+1)%PIP_CORNERS.length;const p=pipActivePos();p.x=PIP_CORNERS[pipCorner].x;p.y=PIP_CORNERS[pipCorner].y};
 (()=>{const fb=document.getElementById('fsBtn'),fx=document.getElementById('fsExit'),fc=document.getElementById('fsCam'),box=document.querySelector('.stagebox');
@@ -2420,7 +2463,7 @@ let last=performance.now();
 function loop(t){
   const dt=Math.min(50,t-last);last=t;
   if(camOn&&video.readyState>=2){if(handMode&&landmarker)trackHands();else trackMotion()}
-  const px=cur.x,py=cur.y,k=handMode&&camOn?0.5:0.35;cur.x+=(cur.tx-cur.x)*k;cur.y+=(cur.ty-cur.y)*k;cur.vx=cur.x-px;cur.vy=cur.y-py;
+  aux.x+=(aux.tx-aux.x)*0.5;aux.y+=(aux.ty-aux.y)*0.5;const px=cur.x,py=cur.y,k=handMode&&camOn?0.5:0.35;cur.x+=(cur.tx-cur.x)*k;cur.y+=(cur.ty-cur.y)*k;cur.vx=cur.x-px;cur.vy=cur.y-py;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1620';ctx.fillRect(0,0,W,H);
   if(screen!=='game'){zonesNow=[];requestAnimationFrame(loop);return}
   if(pipDrag){const mn=pipIsMin(),p=pipActivePos();p.x=cur.x-pipDrag.dx;p.y=cur.y-pipDrag.dy-(mn&&!pipOnStart()?108:0)}
@@ -2477,7 +2520,7 @@ function loop(t){
       if(p>=1)next()}
     if(S[si]===s)checkContam(dt);
   }
-  if(S[si].grp!=='start'){drawTray();drawHeader()}drawPip();drawToast();drawCursor();
+  if(S[si].grp!=='start'){drawAuxTarget(S[si]);drawTray();drawHeader()}drawPip();drawToast();drawCursor();
   requestAnimationFrame(loop);
 }
 resetAll();showScreen('home');requestAnimationFrame(loop);
