@@ -94,9 +94,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
 <script>
 (function(){
-/* ===== 설정: Apps Script 웹앱 URL을 붙여넣으면 서버 기록·리더보드가 켜집니다 ===== */
-const API_URL='';
+/* ===== 설정: Supabase 프로젝트 URL과 anon(publishable) 키를 넣으면 서버 기록·리더보드가 켜집니다 ===== */
+const SUPABASE_URL='';          // 예: https://abcdefgh.supabase.co
+const SUPABASE_ANON_KEY='';     // Project Settings → API Keys의 anon(또는 publishable) 키. service_role 키는 절대 넣지 마세요
 const CLASS_NAME='두근두근 치의학부 B반';
+const API_ON=!!(SUPABASE_URL&&SUPABASE_ANON_KEY);
 if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h){this.rect(x,y,w,h)}}
 const W=1280,H=720,DW=750;
 const cv=document.getElementById('stage'),ctx=cv.getContext('2d');
@@ -1025,24 +1027,36 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 user=lsGet('dds_user',null);
 const ov=document.getElementById('ov');
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+async function rpc(fn,args){
+  const h={'Content-Type':'application/json',apikey:SUPABASE_ANON_KEY};
+  if(SUPABASE_ANON_KEY.startsWith('eyJ'))h.Authorization='Bearer '+SUPABASE_ANON_KEY;
+  const r=await fetch(SUPABASE_URL.replace(/\/+$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(args)});
+  if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 async function api(params,body){
-  if(!API_URL)throw new Error('no api');
-  const r=body?await fetch(API_URL,{method:'POST',body:JSON.stringify(body)}):await fetch(API_URL+'?'+new URLSearchParams(params));
-  const j=await r.json();if(!j.ok)throw new Error(j.error||'error');return j}
+  if(!API_ON)throw new Error('no api');
+  if(body){const ok=await rpc('sim_submit',{p_code:body.code,p_case:body.case,p_mode:body.mode,p_score:body.score,p_duration:body.durationSec,p_mistakes:body.mistakes});
+    if(ok!==true)throw new Error('invalid code');return{ok:true}}
+  if(params.action==='login'){const rows=await rpc('sim_login',{p_code:params.code});if(!rows||!rows.length)throw new Error('invalid code');
+    return{user:{code:rows[0].code,name:rows[0].name}}}
+  if(params.action==='history'){const rows=await rpc('sim_history',{p_code:params.code});
+    return{records:rows.map(r=>({time:r.created_at,case:r.case_id,mode:r.mode,score:r.score,durationSec:r.duration_sec,mistakes:r.mistakes||[]}))}}
+  if(params.action==='board'){const rows=await rpc('sim_leaderboard',{p_case:params.case,p_mode:params.mode});
+    return{board:rows.map(r=>({name:r.name,score:r.score,durationSec:r.duration_sec,time:r.created_at}))}}
+  throw new Error('unknown action')}
 function fmtTime(sec){sec=Math.round(sec||0);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
 function fmtDate(iso){const d=new Date(iso);if(isNaN(d))return'';return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 const MODE_NAME={practice:'연습',exam:'실전'};
 function showScreen(n,arg){screen=n;if(n==='game'){ov.hidden=true;return}ov.hidden=false;
   if(n==='home')renderHome();else if(n==='records')renderRecords();else if(n==='board')renderBoard(arg||{c:'ext',m:'exam'})}
-function serverNote(){return API_URL?'':'<p class="ovnote">기록 서버가 아직 연결되지 않았어요. 기록은 이 기기에만 저장되고 리더보드도 이 기기 기록만 보여요.</p>'}
+function serverNote(){return API_ON?'':'<p class="ovnote">기록 서버가 아직 연결되지 않았어요. 기록은 이 기기에만 저장되고 리더보드도 이 기기 기록만 보여요.</p>'}
 function renderHome(msg){
   if(!user){
     ov.innerHTML='<div class="ovcard"><p class="ovsub">치과 술식 시뮬레이터</p><h2>'+esc(CLASS_NAME)+'</h2>'+
-      '<label class="ovfield">'+(API_URL?'발급받은 개인 코드':'이름')+'<input id="codeIn" autocomplete="off" spellcheck="false" placeholder="'+(API_URL?'예: B-7KQ2M':'이름 입력')+'"></label>'+
+      '<label class="ovfield">'+(API_ON?'발급받은 개인 코드':'이름')+'<input id="codeIn" autocomplete="off" spellcheck="false" placeholder="'+(API_ON?'예: B-7KQ2M':'이름 입력')+'"></label>'+
       '<div class="ovrow"><button class="primary" id="loginBtn">입장</button><button id="guestBtn">코드 없이 체험</button></div>'+
       '<p class="ovmsg" id="ovmsg">'+esc(msg||'')+'</p>'+serverNote()+'</div>';
     const go=async()=>{const v=document.getElementById('codeIn').value.trim();if(!v)return;const m=document.getElementById('ovmsg');
-      if(!API_URL){user={code:'LOCAL:'+v,name:v,local:1};lsSet('dds_user',user);renderHome();return}
+      if(!API_ON){user={code:'LOCAL:'+v,name:v,local:1};lsSet('dds_user',user);renderHome();return}
       m.textContent='확인 중…';
       try{const j=await api({action:'login',code:v});user={code:j.user.code,name:j.user.name};lsSet('dds_user',user);renderHome()}
       catch(e){m.textContent='코드를 확인할 수 없어요. 발급받은 코드를 다시 확인해 주세요.'}};
@@ -1066,8 +1080,8 @@ async function renderRecords(){
   ov.innerHTML='<div class="ovcard wide"><div class="ovhead"><h3>내 기록</h3><button id="ovBack">← 뒤로</button></div><div id="recBody" class="ovscroll">불러오는 중…</div></div>';
   document.getElementById('ovBack').onclick=()=>showScreen('home');
   let recs,src='';
-  try{if(!API_URL||user.local)throw 0;recs=(await api({action:'history',code:user.code})).records}
-  catch(e){recs=lsGet('dds_records',[]).filter(r=>r.code===user.code).reverse();src=API_URL&&!user.local?'<p class="ovnote">서버에 연결하지 못해 이 기기 기록만 보여요.</p>':''}
+  try{if(!API_ON||user.local)throw 0;recs=(await api({action:'history',code:user.code})).records}
+  catch(e){recs=lsGet('dds_records',[]).filter(r=>r.code===user.code).reverse();src=API_ON&&!user.local?'<p class="ovnote">서버에 연결하지 못해 이 기기 기록만 보여요.</p>':''}
   recs=recs.map(normRec);
   const body=document.getElementById('recBody');if(!body)return;
   if(!recs.length){body.innerHTML='<p class="ovmsg">아직 기록이 없어요. 한 번 완주하면 여기에 쌓입니다.</p>'+src;return}
@@ -1086,8 +1100,8 @@ async function renderBoard(sel){
   ov.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>renderBoard({c:b.dataset.c,m:sel.m}));
   ov.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>renderBoard({c:sel.c,m:b.dataset.m}));
   let list,note='';
-  try{if(!API_URL)throw 0;list=(await api({action:'board',case:sel.c,mode:sel.m})).board}
-  catch(e){note='<p class="ovnote">'+(API_URL?'서버에 연결하지 못해 ':'')+'이 기기에 저장된 기록만 보여요.</p>';
+  try{if(!API_ON)throw 0;list=(await api({action:'board',case:sel.c,mode:sel.m})).board}
+  catch(e){note='<p class="ovnote">'+(API_ON?'서버에 연결하지 못해 ':'')+'이 기기에 저장된 기록만 보여요.</p>';
     const bestBy={};lsGet('dds_records',[]).map(normRec).filter(r=>r.case===sel.c&&r.mode===sel.m).forEach(r=>{const b=bestBy[r.code];
       if(!b||r.score>b.score||(r.score===b.score&&r.durationSec<b.durationSec))bestBy[r.code]=r});
     list=Object.values(bestBy).sort((a,b)=>b.score-a.score||a.durationSec-b.durationSec)}
@@ -1102,7 +1116,7 @@ async function saveRecord(){
   if(!user||user.guest){saved={status:'guest',dur};return}
   const rec={time:new Date().toISOString(),case:caseId,mode,score,durationSec:dur,mistakes:uniq,name:user.name,code:user.code};
   const all=lsGet('dds_records',[]);all.push(rec);lsSet('dds_records',all.slice(-300));
-  if(!API_URL||user.local){saved={status:'local',dur};return}
+  if(!API_ON||user.local){saved={status:'local',dur};return}
   saved={status:'saving',dur};
   try{await api(null,Object.assign({action:'record'},rec));saved={status:'ok',dur}}catch(e){saved={status:'fail',dur}}
 }
