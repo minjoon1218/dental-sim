@@ -5,98 +5,157 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>두근두근 치의학부 B반 · 술식 시뮬레이터</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Gaegu:wght@700&display=swap">
 <style>
 :root{
-  --bg:#eef2f1; --surface:#ffffff; --ink:#15302b; --muted:#5d746f;
-  --scrub:#2f6f62; --steel:#c9d1d3; --line:#d5dedb; --blood:#b3261e;
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E8F4FC;--surface:#FFFFFF;--surface-alt:#F1F8FE;--ink:#2E4354;--ink-muted:#5B788C;--line:#BEDCF2;
+  --accent:#3289D4;--accent-soft:#D5EAFA;--accent-ink:#1D5C98;--warn:#B8552B;--sparkle:#9ED2F6;--radius:14px;--title-shadow:#fff;--ban:#FFE27A;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0f1715; --surface:#16211e; --ink:#e3ece9; --muted:#8fa6a0;
-    --scrub:#5cb3a0; --steel:#3a4744; --line:#26332f; --blood:#ff7a70;
+    --bg:#15212c;--surface:#1d2c39;--surface-alt:#243848;--ink:#e6f1fa;--ink-muted:#a5c0d3;--line:#2f4a60;
+    --accent:#6bb8f2;--accent-soft:#23415c;--accent-ink:#a9d9ff;--warn:#E08A5C;--sparkle:#86c6f3;--title-shadow:#243848;--ban:#2c5f8c;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0f1715; --surface:#16211e; --ink:#e3ece9; --muted:#8fa6a0;
-  --scrub:#5cb3a0; --steel:#3a4744; --line:#26332f; --blood:#ff7a70;
+  --bg:#15212c;--surface:#1d2c39;--surface-alt:#243848;--ink:#e6f1fa;--ink-muted:#a5c0d3;--line:#2f4a60;
+  --accent:#6bb8f2;--accent-soft:#23415c;--accent-ink:#a9d9ff;--warn:#E08A5C;--sparkle:#86c6f3;--title-shadow:#243848;--ban:#2c5f8c;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;}
-.wrap{max-width:1100px;margin:0 auto;padding:16px}
-h1{font-size:1.35rem;margin:4px 0 2px;font-weight:700;letter-spacing:-0.01em}
-.sub{color:var(--muted);margin:0 0 12px;font-size:.92rem;line-height:1.6;max-width:72ch}
-.stagebox{position:relative;border-radius:14px;overflow:hidden;background:#0c1412;border:1px solid var(--line)}
-canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
-.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
-button{font:inherit;font-weight:600;font-size:.9rem;padding:9px 14px;border-radius:8px;border:1px solid var(--line);
-  background:var(--surface);color:var(--ink);cursor:pointer}
-button.primary{background:var(--scrub);color:#fff;border-color:var(--scrub)}
-button:focus-visible{outline:3px solid var(--scrub);outline-offset:2px}
-label{font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:6px}
-#status{font-size:.88rem;color:var(--muted);margin-left:auto}
-.help{margin-top:14px;font-size:.88rem;color:var(--muted);line-height:1.7;max-width:80ch}
-video{display:none}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;min-height:100vh}
+.app{max-width:1100px;margin:0 auto;padding:20px 18px 40px}
+#homePage{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 
-.ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,22,19,0.92);padding:16px;overflow:auto}
-.ov[hidden]{display:none}
-.ovcard{background:var(--surface);color:var(--ink);border-radius:16px;padding:28px 30px;width:min(440px,100%);box-shadow:0 10px 40px rgba(0,0,0,0.35)}
-.ovcard.wide{width:min(860px,100%);max-height:100%;display:flex;flex-direction:column}
-.ovcard h2{font-size:1.9rem;margin:2px 0 14px;letter-spacing:-0.02em}
-.ovcard h3{font-size:1.25rem;margin:0}
-.ovsub{margin:0;color:var(--scrub);font-weight:600;font-size:.95rem}
-.ovhello{margin:0 0 16px;color:var(--muted)}
-.ovfield{display:flex;flex-direction:column;gap:6px;font-size:.9rem;color:var(--muted);margin-bottom:12px}
-.ovfield input{font:inherit;font-size:1.1rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);letter-spacing:.04em}
-.ovrow{display:flex;gap:8px;flex-wrap:wrap}
-.ovcol{display:flex;flex-direction:column;gap:8px}
-.ovcol button.big{font-size:1.1rem;padding:14px}
-button.ghost{background:transparent}
-button:disabled{opacity:.45;cursor:not-allowed}
-.ovmsg{color:var(--muted);font-size:.9rem;min-height:1.2em;margin:10px 0 0}
-.ovnote{font-size:.82rem;color:var(--muted);background:var(--bg);border-radius:8px;padding:8px 10px;margin:12px 0 0;line-height:1.55}
-.ovhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.ovscroll{overflow:auto;min-height:0}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.tab{font-size:.82rem;padding:6px 10px;font-weight:500}
-.tab.on{background:var(--scrub);color:#fff;border-color:var(--scrub)}
-.ovtable{width:100%;border-collapse:collapse;font-size:.9rem}
-.ovtable th{text-align:left;color:var(--muted);font-weight:600;padding:8px 6px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface)}
-.ovtable td{padding:8px 6px;border-bottom:1px solid var(--line)}
-.ovtable tr.rrow{cursor:pointer}
-.ovtable tr.rrow:hover{background:var(--bg)}
-.ovtable tr.rdet td{color:var(--muted);font-size:.85rem;line-height:1.6;background:var(--bg)}
-.ovtable tr.me td{background:rgba(47,111,98,0.14);font-weight:600}
-.stagebox{position:relative}
+/* 브랜드 */
+.brand-block{position:relative;background:var(--surface);border:2px solid var(--line);border-radius:24px;padding:32px 28px 26px;text-align:center;overflow:hidden}
+.brand-shape{position:absolute;pointer-events:none;z-index:0}
+.brand-text{position:relative;z-index:1}
+.brand-title{margin:0;font-family:'Gaegu',sans-serif;font-weight:700;font-size:clamp(36px,7vw,56px);line-height:1.1;color:var(--accent);text-shadow:3px 3px 0 var(--title-shadow)}
+.brand-sub{margin-top:8px;font-family:'Gaegu',sans-serif;font-weight:700;font-size:clamp(18px,3.4vw,24px);color:var(--accent-ink)}
+.brand-line{font-family:'Gaegu',sans-serif;font-weight:700;font-size:16px;color:var(--accent);margin-top:10px}
+.mini-ban{background:linear-gradient(transparent 55%,var(--ban) 55%);padding:0 4px;color:var(--accent-ink)}
+.brand-ban{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:4px}
+.ban-text{display:inline-block;font-size:1.45em;line-height:1;color:var(--accent-ink);padding:2px 22px 6px;border-radius:999px;
+  background:linear-gradient(transparent 52%,var(--ban) 52%,var(--ban) 92%,transparent 92%);text-shadow:3px 3px 0 var(--title-shadow)}
+.ban-star{font-size:.6em;color:var(--sparkle)}
+ul.patch li.new::marker{content:"🆕 "}
+.brand-mini{font-family:'Gaegu',sans-serif;font-weight:700;font-size:24px;color:var(--accent);text-align:center;padding:4px 0}
+@keyframes brandPopIn{0%{opacity:0;transform:scale(.85) translateY(8px)}100%{opacity:1;transform:none}}
+.brand-enter{animation:brandPopIn .7s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes twinkle{0%,100%{opacity:.25;transform:scale(.75) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(18deg)}}
+.tw{display:inline-block;animation:twinkle 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.bob{animation:bob 3s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.tw,.bob,.brand-enter{animation:none}}
+
+/* 공지·패치 카드 */
+.intro-note{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;font-size:14px;color:var(--ink-muted);line-height:1.65}
+.intro-note p{margin:0 0 8px}.intro-note p:last-child{margin-bottom:0}
+.intro-note b{color:var(--ink);font-weight:600}
+.intro-note.center{text-align:center}
+.notice-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;font-size:15px;font-weight:700;color:var(--accent-ink);margin-bottom:10px}
+.notice-meta{font-size:11.5px;font-weight:500;color:var(--ink-muted)}
+summary.notice-head{cursor:pointer;list-style:none;margin-bottom:0}
+summary.notice-head::-webkit-details-marker{display:none}
+summary.notice-head::after{content:"▾";color:var(--ink-muted);font-weight:400}
+details.intro-note:not([open]) summary.notice-head::after{content:"▸"}
+details[open] summary.notice-head{margin-bottom:10px}
+.chalkboard{background:#2f4a3d;border:10px solid #7a5230;box-shadow:inset 0 0 22px rgba(0,0,0,.35);color:#e8efe9}
+.chalkboard .notice-head{color:#cfe9ff}
+.chalkboard b{color:#ffe08a}
+.chalk-cta{font-family:'Gaegu',sans-serif;font-weight:700;font-size:22px;color:#ffe08a;margin:14px 0 0!important;text-align:center}
+ul.patch{margin:0;padding-left:18px;line-height:1.8}
+
+/* 입장 카드 */
+.action .field{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--ink-muted);margin-bottom:6px}
+.action input{font:inherit;font-size:20px;letter-spacing:.12em;text-transform:uppercase;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--surface-alt);color:var(--ink);text-align:center}
+.action input:focus{outline:none;border-color:var(--accent)}
+.next-btn{display:block;margin:14px auto 6px;background:var(--accent);color:#fff;border:none;border-radius:999px;padding:16px 44px;font-family:'Gaegu',sans-serif;font-weight:700;font-size:22px;cursor:pointer;box-shadow:0 4px 0 var(--accent-ink);transition:transform .08s}
+.next-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--accent-ink)}
+.btn-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.btn-soft{font:inherit;font-size:14px;font-weight:600;background:var(--surface-alt);color:var(--accent-ink);border:1px solid var(--line);border-radius:999px;padding:9px 18px;cursor:pointer}
+.btn-soft:hover{border-color:var(--accent)}
+.btn-soft:disabled{opacity:.45;cursor:not-allowed}
+.link-btn{display:block;margin:4px auto 0;background:none;border:none;color:var(--ink-muted);font:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line);padding:2px 0}
+.link-btn.small{display:inline;margin:0;font-size:12px;font-weight:500}
+.msg{text-align:center;color:var(--ink-muted);min-height:1.2em;margin:8px 0 0}
+.hint{font-size:12.5px;color:var(--ink-muted);background:var(--surface-alt);border-radius:10px;padding:8px 12px;margin:10px 0 0!important}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* 기록·리더보드 */
+.page-head{display:flex;justify-content:space-between;align-items:center}
+.page-head h2{margin:0;font-family:'Gaegu',sans-serif;font-size:30px;color:var(--accent-ink)}
+.sort-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.sort-btn{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px;font:inherit;font-size:12.5px;color:var(--ink-muted);cursor:pointer}
+.sort-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stats div{background:var(--surface-alt);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;display:flex;flex-direction:column}
+.stats b{font-size:22px;color:var(--accent)}
+.stats span{font-size:12px}
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px;color:var(--ink)}
+.tbl th{text-align:left;color:var(--ink-muted);font-weight:600;padding:8px 6px;border-bottom:2px dashed var(--line);white-space:nowrap}
+.tbl td{padding:9px 6px;border-bottom:1px solid var(--line)}
+.tbl .rrow{cursor:pointer}.tbl .rrow:hover{background:var(--surface-alt)}
+.tbl .rdet td{color:var(--ink-muted);font-size:13px;line-height:1.7;background:var(--surface-alt)}
+.tbl tr.me td{background:var(--accent-soft);font-weight:600}
+.tbl .rank{font-size:18px;width:52px}
+.pill{font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 8px;background:var(--accent-soft);color:var(--accent-ink)}
+.pill.exam{background:var(--accent);color:#fff}
+.star{color:var(--accent)}
+
+/* 시뮬레이터 화면 */
+.game-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.stagebox{position:relative;border-radius:16px;overflow:hidden;background:#0c1412;border:2px solid var(--line)}
+canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.bar button{font:inherit;font-weight:600;font-size:14px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.bar button.primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 3px 0 var(--accent-ink)}
+.bar label{font-size:13px;color:var(--ink-muted);display:flex;align-items:center;gap:6px}
+#status{font-size:13px;color:var(--ink-muted);margin-left:auto}
+.help{margin-top:12px;font-size:13px;color:var(--ink-muted);line-height:1.7}
+video{display:none}
+[hidden]{display:none!important}
+.rotate-hint{display:none;margin:0 0 8px;font-size:13px;color:var(--accent-ink);background:var(--accent-soft);border-radius:10px;padding:8px 12px;text-align:center}
+@media (orientation:portrait) and (max-width:820px){.rotate-hint{display:block}}
+.stagebox:fullscreen{display:flex;align-items:center;justify-content:center;background:#000;border:none;border-radius:0}
+.stagebox:fullscreen canvas{width:auto;height:auto;max-width:100vw;max-height:100vh}
+.stagebox:-webkit-full-screen{display:flex;align-items:center;justify-content:center;background:#000;width:100%;height:100%}
+@media (max-width:640px){.app{padding:12px 10px 30px}.bar button{font-size:13px;padding:8px 11px}.bar label{font-size:12px}#status{margin-left:0;width:100%}.help{font-size:12px}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>두근두근 치의학부 B반 · 술식 시뮬레이터</h1>
-  <p class="sub">카메라를 켜면 MediaPipe 손 추적이 켜집니다. 엄지와 검지 사이가 커서이고, 엄지-검지를 집으면 잡기, 떼면 놓기입니다. 노란 고리는 집은 채로 안내된 방향으로 움직이는 동작이에요. 장갑을 낀 뒤 얼굴(내 화면)이나 라이트를 만지면 오염으로 기록됩니다.</p>
-  <div class="stagebox"><canvas id="stage" aria-label="시뮬레이션 화면"></canvas><div id="ov" class="ov"></div></div>
-  <div class="bar">
-    <button class="primary" id="camBtn">카메라 켜기</button>
-    <button id="backBtn">← 뒤로</button>
-    <button id="homeBtn">처음 화면</button>
-    <label>움직임 추적 감도 <input id="sens" type="range" min="10" max="60" value="28"></label>
-    <label><input id="showCam" type="checkbox" checked> 내 화면 표시</label>
-    <span id="status">마우스 모드</span>
-  </div>
-  <p class="help">손 추적 모델은 인터넷에서 내려받기 때문에 로컬에서 열어야 동작합니다(처음 몇 초 로딩). 불러오지 못하면 자동으로 움직임 추적 + 멈춰서 선택 방식으로 바뀌어요. 손 전체가 화면에 들어오게, 카메라에서 50–70cm 거리에서 손바닥을 카메라 쪽으로 향하면 가장 안정적입니다. 마우스로도 진행할 수 있어요.</p>
-  <video id="vid" playsinline muted></video>
+<div class="app">
+  <section id="homePage"></section>
+  <section id="gamePage" hidden>
+    <div class="game-top">
+      <div class="brand-mini"><span class="tw" style="animation-delay:.3s">✦</span> 두근두근 치의학부 <b class="mini-ban">B반</b> <span class="tw">✦</span></div>
+      <button class="btn-soft themeBtn">🌙 다크 모드로 보기</button>
+    </div>
+    <p class="rotate-hint">📱 휴대폰을 가로로 돌리면 훨씬 크게 보여요. 터치로도 진행할 수 있어요.</p>
+    <div class="stagebox"><canvas id="stage" aria-label="시뮬레이션 화면"></canvas></div>
+    <div class="bar">
+      <button class="primary" id="camBtn">카메라 켜기</button>
+      <button id="backBtn">← 뒤로</button>
+      <button id="homeBtn">처음 화면</button>
+      <button id="pipMinBtn">내 화면 접기</button>
+      <button id="pipMoveBtn">내 화면 옮기기</button>
+      <button id="fsBtn">⛶ 전체 화면</button>
+      <label>움직임 추적 감도 <input id="sens" type="range" min="10" max="60" value="28"></label>
+      <label><input id="showCam" type="checkbox" checked> 내 화면 표시</label>
+      <span id="status">마우스 모드</span>
+    </div>
+    <p class="help">카메라를 켜면 MediaPipe 손 추적이 켜져요(처음 몇 초 로딩). 손 전체가 화면에 들어오게, 카메라에서 50–70cm 떨어져 손바닥을 카메라 쪽으로 향하면 가장 안정적이에요. 마우스로도 진행할 수 있어요.</p>
+    <video id="vid" playsinline muted></video>
+  </section>
 </div>
-
 <script>
 (function(){
 /* ===== 설정: Supabase 프로젝트 URL과 anon(publishable) 키를 넣으면 서버 기록·리더보드가 켜집니다 ===== */
-const SUPABASE_URL='https://khstilpjsvabimttzjww.supabase.co/rest/v1/';          // 예: https://abcdefgh.supabase.co
-const SUPABASE_ANON_KEY='sb_publishable_Cl2pXHilGiENy_YMU3vaRQ_XyJ_crdt';     // Project Settings → API Keys의 anon(또는 publishable) 키. service_role 키는 절대 넣지 마세요
+const SUPABASE_URL='https://khstilpjsvabimttzjww.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_Cl2pXHilGiENy_YMU3vaRQ_XyJ_crdt';  // publishable 키만. secret 키는 절대 넣지 마세요
 const CLASS_NAME='두근두근 치의학부 B반';
 const API_ON=!!(SUPABASE_URL&&SUPABASE_ANON_KEY);
 if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h){this.rect(x,y,w,h)}}
@@ -177,33 +236,53 @@ function toStage(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.lef
 cv.addEventListener('pointermove',e=>{const p=toStage(e);cur.tx=p.x;cur.ty=p.y;lastMouse=performance.now()});
 cv.addEventListener('pointerdown',e=>{const p=toStage(e);cur.tx=cur.x=p.x;cur.ty=cur.y=p.y;lastMouse=performance.now();mouseDown=true;onPress('mouse')});
 window.addEventListener('pointerup',()=>{if(mouseDown){mouseDown=false;onRelease('mouse')}});
-function onPress(src){inputSrc=src;if(screen!=='game'||blocked()||performance.now()<armT)return;for(const z of zonesNow){if(inZone(z,cur.x,cur.y)){fire(z);return}}}
-function onRelease(src){if(drag&&drag.by===src){const s=S[si];
+function onPress(src){inputSrc=src;if(screen!=='game')return;
+  const b=pipBar();if(inR(b,cur.x,cur.y)){if(cur.x>b.x+b.w-30){pipMin=!pipMin;syncPipBtn()}else pipDrag={dx:cur.x-PIP.x,dy:cur.y-PIP.y,src};return}
+  if(blocked()||performance.now()<armT)return;for(const z of zonesNow){if(inZone(z,cur.x,cur.y)){fire(z);return}}}
+function onRelease(src){if(pipDrag&&pipDrag.src===src)pipDrag=null;if(drag&&drag.by===src){const s=S[si];
   if(s.kind==='drag'){drag=null;if(s.apply)s.apply(0)}else if(s.kind==='depth'){drag=null}}}
 function holding(){if(handMode&&camOn&&performance.now()-lastMouse>900)return pinch;return true}
 
 /* ================= layout ================= */
 const PIP={x:16,y:H-160,w:256,h:144};
+let pipMin=false,pipDrag=null;const pipPos={x:16,y:H-160};
+const PIP_CORNERS=[{x:16,y:H-160},{x:618,y:H-160},{x:618,y:150},{x:16,y:150}];let pipCorner=0;
+function pipIsMin(){return pipMin||(S&&S[si]&&S[si].grp==='start')}
+function layoutPip(){const mn=pipIsMin();PIP.w=mn?176:256;PIP.h=mn?36:144;
+  PIP.x=Math.max(4,Math.min(W-PIP.w-4,pipPos.x));PIP.y=Math.max(134,Math.min(H-PIP.h-4,pipPos.y+(mn?108:0)))}
+function pipBar(){return{x:PIP.x,y:PIP.y-26,w:PIP.w,h:24}}
+function inR(r,x,y){return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h}
 const CF={x:560,y:150,w:300,h:170};
 const ITEMS=[['mask','마스크'],['sanit','손소독제'],['gloves','멸균 장갑'],['syringe','흡인형 주사기'],['cart','리도카인 카트리지'],['n27','27G long'],
  ['n30','30G short'],['explorer','탐침'],['gauze','거즈'],['f17','#17'],['f23','#23 Cowhorn'],['f151','#151'],
  ['f222','#222'],['f150','#150'],['f53','#53R'],['f18','#18R'],['f210','#210'],
- ['saline','생리식염수 시린지'],['nh','지침기'],['hemo','모스키토 겸자'],['adson','Adson 조직겸자'],['s4','4-0 silk'],['s2','2-0 silk'],['s6','6-0 nylon'],['sc','봉합 가위']];
+ ['saline','생리식염수 시린지'],['egloves','진료용 장갑'],['ept','전기치수검사기'],['paste','치약(전도 매질)'],['cotton','코튼롤'],['air','3-way 시린지'],['lipclip','립클립'],['ice','냉검사 스프레이'],['w8a','클램프 W8A'],['w2a','클램프 W2A'],['c212','클램프 #212'],['floss','치실'],['punch','러버댐 펀치'],['cforceps','클램프 포셉'],['sheet','러버댐 시트'],['frame','영 프레임'],['brush','프로피 브러시'],['pumice','퍼미스'],['fpaste','불소 페이스트'],['etch','37% 인산 에칭젤'],['sealant','실란트'],['curing','광중합기'],['artpaper','교합지'],['ejector','석션 팁'],['fgel','APF 불소 겔'],['ftray','불소 트레이'],['sickleA','전치부 sickle'],['sickleP','구치부 sickle'],['univ','Universal curette'],['g12','Gracey 1/2'],['g56','Gracey 5/6'],['g78','Gracey 7/8'],['g1112','Gracey 11/12'],['g1314','Gracey 13/14'],['nh','지침기'],['hemo','모스키토 겸자'],['adson','Adson 조직겸자'],['s4','4-0 silk'],['s2','2-0 silk'],['s6','6-0 nylon'],['sc','봉합 가위']];
 const NAME=Object.fromEntries(ITEMS);
 const SUTTRAY=['nh','hemo','adson','s4','s2','s6','sc','gauze','explorer'];
 const TRAY={start:[],prep:['mask','sanit','gloves','gauze','explorer'],ane:['syringe','cart','n27','n30','explorer','gauze'],
   ext:['explorer','gauze','f17','f23','f151','f222','f150','f53','f18','f210'],sutprep:SUTTRAY,sut8:SUTTRAY,
-  lacpre:['saline','gauze','explorer','nh'],lac:['saline'].concat(SUTTRAY),post:['gauze','explorer','sc'],end:[]};
+  lacpre:['saline','gauze','explorer','nh'],prepc:['mask','sanit','egloves','gloves','gauze','explorer'],ept:['ept','paste','cotton','air','lipclip','ice','explorer','gauze'],dam:['w8a','w2a','c212','floss','punch','cforceps','sheet','frame','explorer','gauze'],seal:['brush','pumice','fpaste','air','cotton','etch','sealant','curing','explorer','artpaper'],dam14:['w2a','w8a','c212','floss','punch','cforceps','sheet','frame','explorer'],fluor:['brush','pumice','fpaste','air','ftray','fgel','ejector','cotton','gauze'],sc:['sickleA','sickleP','univ','g1314','explorer','air'],rp:['g12','g56','g78','g1112','g1314','sickleP','explorer'],lac:['saline'].concat(SUTTRAY),post:['gauze','explorer','sc'],end:[]};
 function curTray(){const s=S[si];let t=TRAY[s.grp]||[];
   if(EXAM()&&s.skip){const g=S[idx(skipTo(s))].grp;if(g!==s.grp)t=t.concat((TRAY[g]||[]).filter(x=>!t.includes(x)))}
   return t.slice(0,18)}
 function slot(id){const i=curTray().indexOf(id),c=i%3,r=(i/3)|0;return{x:906+c*120,y:116+r*98,w:112,h:92}}
 const NEEDLE_PT=f=>{const a=Math.PI-Math.PI*f;return{x:440+170*Math.cos(a),y:440-170*Math.sin(a)}};
-const CASES={ext:{name:'IANB + #46 발치',grps:['prep','ane','ext','post'],phases:['준비','기구 조립','IANB','발치']},
-  ext8:{name:'#46 발치 + 8자 봉합',grps:['prep','ext','sutprep','sut8','post'],phases:['준비','발치','봉합']},
-  s8:{name:'발치와 8자 봉합만',grps:['sutprep','sut8','post'],phases:['봉합']},
-  lac:{name:'상악 전치부 치은 열상 봉합',grps:['prep','lacpre','sutprep','lac'],phases:['준비','세척','봉합']}};
-const CASE_KEYS=['ext','ext8','s8','lac'];
+const CASES={ext:{name:'IANB + #46 발치',tag:'구강외과',desc:'감염 관리부터 마취, 탐침 박리, 포셉 발치까지',grps:['prep','ane','ext','post'],phases:['준비','기구 조립','IANB','발치']},
+  ext8:{name:'#46 발치 + 8자 봉합',tag:'구강외과',desc:'마취 완료 가정. 발치 후 발치와 8자 봉합',grps:['prep','ext','sutprep','sut8','post'],phases:['준비','발치','봉합']},
+  s8:{name:'발치와 8자 봉합만',tag:'구강외과',desc:'발치가 끝난 상태에서 8자 봉합만',grps:['sutprep','sut8','post'],phases:['봉합']},
+  lac:{name:'상악 전치부 치은 열상',tag:'구강외과',desc:'#21–#23 세척 후 단순 단속 봉합 4바늘',grps:['prep','lacpre','sutprep','lac'],phases:['준비','세척','봉합']},
+  ept:{name:'#46 전기치수검사(EPT)',tag:'보존',desc:'격리·건조, 대조치 비교, 접촉 위치와 판독',grps:['prepc','ept'],phases:['준비','EPT']},
+  dam:{name:'#46 러버댐 장착',tag:'보존',desc:'클램프 선택·결찰, 펀칭, 장착과 인버팅',grps:['prepc','dam'],phases:['준비','러버댐']},
+  seal:{name:'#36 실란트',tag:'소아치과',desc:'세마, 방습, 산부식, 도포, 광중합, 점검',grps:['prepc','seal'],phases:['준비','실란트']},
+  dam14:{name:'#14–24 러버댐 장착',tag:'보존',desc:'소구치 클램프, 8홀 펀칭, 접촉점 통과',grps:['prepc','dam14'],phases:['준비','러버댐']},
+  fluor:{name:'불소 트레이 도포',tag:'소아치과',desc:'치면세마부터 트레이·겔 양·4분 도포',grps:['prepc','fluor'],phases:['준비','불소 도포']},
+  sc:{name:'치은연상 스케일링',tag:'치주',desc:'치식 숨김. 부위 보고 sickle·각도·레스트',grps:['prepc','sc'],phases:['준비','SC']},
+  rp:{name:'치근활택술(RP)',tag:'치주',desc:'치식 숨김. 부위 보고 Gracey·삽입 각도',grps:['prepc','rp'],phases:['준비','RP']}};
+const CASE_KEYS=['ext','ext8','s8','lac','ept','dam','dam14','seal','fluor','sc','rp'];
+function gloveType(){return CASES[caseId].grps.includes('prepc')?'exam':'sterile'}
+function afterGloving(){if(returnTo!==null){si=returnTo;returnTo=null;held=savedHeld;savedHeld=null;enterStep();return true}return false}
+function CH(key,label,ok,fb,row,why,accept,onOk){return{key,label,rect:{x:110,y:250+row*84,w:670,h:66},act:()=>{
+  if(ok){if(onOk)onOk();return OK(fb)}return BAD(fb,5,why||label,accept||(()=>{}))}}}
 const P8={BM:{x:395,y:515},BM1:{x:368,y:488},BM8:{x:420,y:590},LM:{x:395,y:305},LM1:{x:368,y:334},BD:{x:485,y:515},BD1:{x:512,y:488},LD:{x:485,y:305},LD1:{x:512,y:334}};
 const SUTVIEW=()=>caseId==='lac'?'lac':'socket';
 function skipTo(s){return typeof s.skip.to==='function'?s.skip.to():s.skip.to}
@@ -287,7 +366,7 @@ const FORCEPS_WRONG={
   f18:['#18R은 상악 우측 대구치용입니다.',5,'포셉 선택: #18R'],
   f210:['#210은 상악 제3대구치용입니다.',5,'포셉 선택: #210']};
 const S=[
- {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[BACK_ZONE(()=>showScreen('home'))].concat(CASE_KEYS.map((c,i)=>({key:'case'+i,dwell:1300,rect:{x:25+i*212,y:190,w:200,h:380},act:()=>{setCase(c);return{ok:1}}})))},
+ {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[BACK_ZONE(()=>showScreen('home'))].concat(CASE_KEYS.map((c,i)=>({key:'case'+i,dwell:1300,rect:{x:25+(i%4)*212,y:170+Math.floor(i/4)*172,w:200,h:160},act:()=>{setCase(c);return{ok:1}}})))},
  {grp:'start',id:'mode',phase:'모드',view:'mode',g:'모드 선택',text:'모드를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[
    BACK_ZONE(()=>resetAll()),
    {key:'m1',dwell:1300,rect:{x:110,y:190,w:310,h:340},act:()=>{mode='practice';runStart=performance.now();return{ok:1}}},
@@ -300,17 +379,17 @@ const S=[
  {grp:'prep',id:'lamp',g:'술자 준비',text:'장갑을 끼기 전에 무영등부터 맞춥니다. 라이트 손잡이를 잡으세요.',skip:{to:'gloveStart',why:'무영등 미조정',fb:'장갑을 낀 뒤에는 라이트를 만질 수 없어 시야 확보가 어려워집니다.'},
    zones:()=>[C('lamp',{x:st.lamp.x,y:st.lamp.y+30},32,()=>{held='lamp';return OK()})]},
  {grp:'prep',g:'술자 준비',text:'라이트를 환자 입 위쪽으로 옮기세요.',zones:()=>[C('lt',lightTarget(),46,()=>{const t=lightTarget();st.lamp={x:t.x,y:t.y-30};st.lightOn=1;held=null;return OK('라이트 조정 완료. 장갑을 낀 뒤에는 라이트가 비멸균 물체입니다.')})]},
- {grp:'prep',gl:1,id:'gloveStart',g:'멸균 장갑 착용',text:'멸균 장갑 포장을 집으세요.',zones:()=>pickZ(['gloves'])},
- {grp:'prep',gl:1,g:'멸균 장갑 착용',text:'장갑 포장을 멸균 작업대 위에 펼치세요.',zones:()=>[{key:'cf',rect:CF,act:()=>{held=null;st.gone.add('gloves');st.gR=0;st.gL=0;return OK()}}]},
- {grp:'prep',gl:1,view:'glove',g:'멸균 장갑 착용',text:'맨손으로 오른쪽 장갑을 집으세요. 맨손이 닿아도 되는 부분만 잡아야 합니다.',zones:()=>[
+ {grp:'prep',gl:'sterile',id:'gloveStart',g:'멸균 장갑 착용',text:'멸균 장갑 포장을 집으세요.',zones:()=>pickZ(['gloves'])},
+ {grp:'prep',gl:'sterile',g:'멸균 장갑 착용',text:'장갑 포장을 멸균 작업대 위에 펼치세요.',zones:()=>[{key:'cf',rect:CF,act:()=>{held=null;st.gone.add('gloves');st.gR=0;st.gL=0;return OK()}}]},
+ {grp:'prep',gl:'sterile',view:'glove',g:'멸균 장갑 착용',text:'맨손으로 오른쪽 장갑을 집으세요. 맨손이 닿아도 되는 부분만 잡아야 합니다.',zones:()=>[
    C('g1ok',{x:585,y:458},26,()=>{held='gloveR';return OK('맞아요. 접혀서 겉으로 나온 커프는 피부에 닿을 안쪽 면이라 맨손으로 잡아도 됩니다.')}),
    C('g1bad',{x:585,y:330},30,()=>BAD('장갑 외면(손바닥·손가락)을 맨손으로 잡으면 오염입니다.',10,'장갑 착용: 맨손으로 외면 접촉',()=>{held='gloveR'}))]},
- {grp:'prep',gl:1,g:'멸균 장갑 착용',text:'오른손에 끼우세요.',zones:()=>[C('rh',{x:640,y:620},46,()=>{held=null;st.gR=1;return OK()})]},
- {grp:'prep',gl:1,g:'멸균 장갑 착용',text:'장갑 낀 오른손으로 왼쪽 장갑을 집으세요. 장갑 낀 손은 장갑 외면에만 닿아야 합니다.',zones:()=>[
+ {grp:'prep',gl:'sterile',g:'멸균 장갑 착용',text:'오른손에 끼우세요.',zones:()=>[C('rh',{x:640,y:620},46,()=>{held=null;st.gR=1;return OK()})]},
+ {grp:'prep',gl:'sterile',g:'멸균 장갑 착용',text:'장갑 낀 오른손으로 왼쪽 장갑을 집으세요. 장갑 낀 손은 장갑 외면에만 닿아야 합니다.',zones:()=>[
    C('g2ok',{x:295,y:403},22,()=>{held='gloveL';return OK('맞아요. 접힌 커프 틈 안쪽(외면끼리 맞닿는 곳)으로 손가락을 넣어 잡습니다.')}),
    C('g2bad',{x:295,y:466},24,()=>BAD('접혀서 겉으로 나온 커프 면은 피부에 닿을 안쪽 면이에요. 장갑 낀 손이 닿으면 오염입니다.',10,'장갑 착용: 장갑 낀 손으로 커프 안쪽 면 접촉',()=>{held='gloveL'}))]},
- {grp:'prep',gl:1,g:'멸균 장갑 착용',text:'왼손에 끼우세요.',zones:()=>[C('lh',{x:360,y:620},46,()=>{held=null;st.gL=1;return OK()})]},
- {grp:'prep',gl:1,kind:'drag',g:'멸균 장갑 착용',text:'커프를 펴세요. 장갑 낀 손가락을 반대쪽 접힌 커프 틈에 넣은 채 위로 밀어 올리세요.',handle:()=>({x:500,y:620,r:38}),axis:'y',dir:-1,amount:90,
+ {grp:'prep',gl:'sterile',g:'멸균 장갑 착용',text:'왼손에 끼우세요.',zones:()=>[C('lh',{x:360,y:620},46,()=>{held=null;st.gL=1;return OK()})]},
+ {grp:'prep',gl:'sterile',kind:'drag',g:'멸균 장갑 착용',text:'커프를 펴세요. 장갑 낀 손가락을 반대쪽 접힌 커프 틈에 넣은 채 위로 밀어 올리세요.',handle:()=>({x:500,y:620,r:38}),axis:'y',dir:-1,amount:90,
    onDone:()=>{st.gloved=1;toast('착용 완료. 손은 허리 위·가슴 아래로. 라이트, 얼굴, 마스크는 이제 만지면 안 됩니다.',1,3600);
      if(returnTo!==null){si=returnTo;returnTo=null;held=savedHeld;savedHeld=null;enterStep();return true}}},
 
@@ -418,35 +497,270 @@ const S=[
  CUT_STEP(),
 
  ...LAC_STEPS(),
+ {id:'cmask',grp:'prepc',phase:'준비',view:'room',g:'술자 준비',text:'술자 준비부터 시작합니다. 트레이에서 마스크를 집으세요.',
+   skip:{to:'csanit',why:'마스크 미착용',fb:'마스크는 비말·에어로졸 차단의 기본입니다.'},zones:()=>pickZ(['mask'])},
+ {g:'술자 준비',text:'마스크를 쓰세요. 집은 마스크를 왼쪽 아래 내 화면(얼굴)으로 가져가세요.',zones:()=>[{key:'pip',rect:PIP,act:()=>{st.masked=1;held=null;st.gone.add('mask');return OK('착용 완료.')}}]},
+ {id:'csanit',g:'술자 준비',text:'손 위생: 손소독제를 집으세요.',skip:{to:'clamp',why:'손 위생 생략',fb:'장갑 착용 전 손 위생은 필수입니다.'},zones:()=>pickZ(['sanit'])},
+ {g:'술자 준비',text:'손소독제를 내 화면(손)으로 가져가 소독하세요.',zones:()=>[{key:'pip',rect:PIP,act:()=>{st.sanit=1;held=null;return OK('손 소독 완료.')}}]},
+ {id:'clamp',g:'술자 준비',text:'장갑을 끼기 전에 무영등부터 맞춥니다. 라이트 손잡이를 잡으세요.',skip:{to:'cgloveStart',why:'무영등 미조정',fb:'장갑을 낀 뒤에는 라이트를 만질 수 없어 시야 확보가 어려워집니다.'},
+   zones:()=>[C('lamp',{x:st.lamp.x,y:st.lamp.y+30},32,()=>{held='lamp';return OK()})]},
+ {g:'술자 준비',text:'라이트를 환자 입 위쪽으로 옮기세요.',zones:()=>[C('lt',lightTarget(),46,()=>{const t=lightTarget();st.lamp={x:t.x,y:t.y-30};st.lightOn=1;held=null;return OK('라이트 조정 완료.')})]},
+ {id:'cgloveStart',gl:'exam',g:'장갑 착용',text:'이 술식에 맞는 장갑을 집으세요.',
+   zones:()=>pickZ(['egloves'],{gloves:['이 술식은 비멸균 진료용(검진용) 장갑으로 충분해요. 멸균 장갑은 외과 술식용입니다.',0]})},
+ {gl:'exam',g:'장갑 착용',text:'장갑을 끼세요. 내 화면(손)으로 가져가세요.',zones:()=>[{key:'pip',rect:PIP,act:()=>{held=null;st.gloved=1;
+   toast('장갑 착용. 이제 얼굴·마스크·라이트는 만지지 마세요.',1);if(afterGloving())return{stay:1};return OK()}}]},
+
+ /* ===== EPT ===== */
+ {grp:'ept',phase:'EPT',view:'ept',g:'환자 설명',text:'검사 전에 환자에게 어떻게 설명할까요?',zones:()=>[
+   CH('ea','따뜻하거나 찌릿한 느낌이 들면 바로 손을 들어주세요',1,'처음 느낌이 오는 순간이 역치예요. 신호를 미리 약속해야 정확하고 환자도 안심해요.',0),
+   CH('eb','조금 아파도 끝까지 참아주세요',0,'참게 하면 역치를 지나 과자극이 되고 결과도 부정확해집니다.',1,'EPT 설명: 참으라고 함'),
+   CH('ec','설명 없이 바로 시작한다',0,'설명 없이 하면 환자가 놀라고 반응 신호도 정해지지 않아요.',2,'EPT 설명 생략')]},
+ {g:'검사 준비',text:'검사기를 집어 오른쪽 위 거치대에 놓으세요.',zones:()=>pickZ(['ept'])},
+ {g:'검사 준비',text:'검사기를 거치대에 놓으세요.',zones:()=>[C('dock',{x:800,y:165},40,()=>{st.eptOn=1;held=null;return OK()})]},
+ {id:'eIso',g:'격리·건조',text:'검사할 두 치아를 격리합니다. 격리에 쓸 것을 집으세요.',skip:{to:'ePaste',why:'격리·건조 생략',fb:'타액이 있으면 전류가 치은·인접치로 새어 위양성이 나옵니다.'},zones:()=>pickZ(['cotton'])},
+ {g:'격리·건조',text:'#36 협측 전정에 코튼롤을 놓으세요.',zones:()=>[C('c36',{x:640,y:528},30,()=>{st.cot36=1;return OK()})]},
+ {g:'격리·건조',text:'#46 협측 전정에도 놓으세요.',zones:()=>[C('c46',{x:240,y:528},30,()=>{st.cot46=1;held=null;return OK()})]},
+ {g:'격리·건조',text:'치면을 건조할 기구를 집으세요.',zones:()=>pickZ(['air'])},
+ {kind:'hold',g:'격리·건조',text:'#36 치면에 대고 유지해서 건조하세요.',at:()=>({x:640,y:350,r:34}),dur:1200,label:'건조'},
+ {kind:'hold',g:'격리·건조',text:'#46 치면도 건조하세요. 습기가 남으면 전류가 새서 위양성이 나와요.',at:()=>({x:240,y:350,r:34}),dur:1200,label:'건조',onDone:()=>{held=null;st.dry=1}},
+ {id:'ePaste',g:'검사 준비',text:'프로브 끝에 바를 전도 매질을 집으세요.',zones:()=>pickZ(['paste'])},
+ {g:'검사 준비',text:'프로브 끝(검사기에서 나온 팁)에 바르세요.',zones:()=>[C('tipP',{x:705,y:222},26,()=>{st.paste=1;held=null;return OK('전도 매질이 있어야 전류가 법랑질로 고르게 전달돼요.')})]},
+ {id:'eClip',g:'회로 연결',text:'회로를 완성할 것을 집으세요.',skip:{to:'eFirst',why:'립클립(접지) 생략',fb:'회로가 이어지지 않으면 반응이 없어 위음성이 나옵니다. 장갑 낀 술자는 회로가 될 수 없어요.'},zones:()=>pickZ(['lipclip'])},
+ {g:'회로 연결',text:'하순에 거세요.',zones:()=>[C('lip',{x:440,y:620},30,()=>{st.clip=1;held=null;return OK('립클립으로 환자를 통해 회로가 완성됩니다.')})]},
+ {id:'eFirst',g:'검사',text:'어느 치아부터 검사할까요?',zones:()=>[
+   C('f36',{x:640,y:350},62,()=>{st.eTarget=36;return OK('대조치(반대측 동명치)부터: 이 환자의 정상 반응 기준을 먼저 확인합니다.')}),
+   C('f46',{x:240,y:350},62,()=>BAD('의심 치아부터 하면 비교 기준이 없어요. 대조치(#36)를 먼저 검사합니다.',5,'EPT: 대조치보다 의심치 먼저',()=>{st.eTarget=36}))]},
+ {g:'검사',text:'#36에 프로브를 댈 위치를 고르세요.',zones:()=>[
+   C('p36',{x:640,y:322},18,()=>{st.contact={x:640,y:322};return OK('건전 법랑질, 협측 교합측~중앙 1/3. 치수각에 가까워 반응이 잘 나옵니다.')}),
+   C('p36c',{x:640,y:432},18,()=>BAD('치은에 가까우면 전류가 치주조직으로 새서 위양성이 나옵니다.',5,'EPT: 치경부 접촉',()=>{st.contact={x:640,y:432}}))]},
+ {kind:'drag',eSlider:1,g:'검사',text:'전류를 천천히 올리세요(집은 채로 오른쪽으로). 환자가 손을 들면 멈춥니다.',handle:()=>({x:330+(drag?drag.p:0),y:150,r:24}),axis:'x',dir:1,amount:85,rate:0.022,minDur:2500,
+   slowMsg:'천천히 올려야 정확한 역치를 잡고 환자도 놀라지 않아요',fastWhy:'EPT: 전류를 급하게 올림',fastFb:'전류는 천천히 올려야 역치가 정확하고 환자가 놀라지 않습니다.',
+   apply:p=>{st.eptVal=Math.round(p/200*80)},onDone:()=>{st.ctrl=st.eptVal},okfb:'환자: "찌릿해요!" (손 들기) → #36 반응 수치 34'},
+ {g:'검사',text:'이제 #46에 프로브를 댈 위치를 고르세요.',enter:()=>{st.eptVal=0;st.contact=null},zones:()=>[
+   C('p46',{x:240,y:322},18,()=>{st.contact={x:240,y:322};return OK('건전 법랑질 부위. 수복물과 치은을 피했어요.')}),
+   C('p46r',{x:205,y:280},18,()=>BAD('금속 수복물에 대면 전류가 수복물을 따라 치주조직으로 흘러 위양성이 나옵니다.',5,'EPT: 수복물 위 접촉',()=>{st.contact={x:205,y:280}})),
+   C('p46c',{x:240,y:432},18,()=>BAD('치은에 가까우면 전류가 새서 위양성이 나옵니다.',5,'EPT: 치경부 접촉',()=>{st.contact={x:240,y:432}}))]},
+ {kind:'drag',eSlider:1,g:'검사',text:'전류를 천천히 올리세요. 이번엔 최대치까지 올려봅니다.',handle:()=>({x:330+(drag?drag.p:0),y:150,r:24}),axis:'x',dir:1,amount:200,rate:0.03,minDur:4000,
+   slowMsg:'천천히 올려야 정확한 역치를 잡고 환자도 놀라지 않아요',fastWhy:'EPT: 전류를 급하게 올림',fastFb:'전류는 천천히 올려야 역치가 정확하고 환자가 놀라지 않습니다.',
+   apply:p=>{st.eptVal=Math.round(p/200*80)},okfb:'#46: 최대치(80)까지 무반응'},
+ {g:'판독',text:'결과를 어떻게 해석할까요? (#36: 34에서 반응 / #46: 80까지 무반응)',zones:()=>[
+   CH('ia','치수 괴사 의심. 냉검사·타진·방사선과 종합해 판단',1,'EPT는 신경 반응만 보는 보조 검사라 위양성·위음성이 있어요. 반드시 다른 검사와 종합합니다.',0),
+   CH('ib','무반응이니 바로 발치를 결정한다',0,'단일 검사로 치료를 결정하지 않습니다. 근관치료로 보존 가능한지 종합 평가가 먼저예요.',1,'EPT 판독: 단일 검사로 치료 결정'),
+   CH('ic','수치가 높을수록 치수 상태가 나쁘다',0,'EPT 수치의 크기는 치수 건강 정도와 비례하지 않아요. 반응 유무와 대조치 비교가 핵심입니다.',2,'EPT 판독: 수치 크기로 상태 판단')]},
+
+ /* ===== 러버댐 ===== */
+ {grp:'dam',phase:'러버댐',view:'dam',g:'클램프 선택',text:'#46(하악 대구치)에 맞는 클램프를 고르세요.',
+   zones:()=>pickZ(['w8a'],{w2a:['W2A는 소구치용이에요. 대구치에는 jaw가 넓은 대구치용(W8A 등)을 씁니다.',5,'러버댐: 소구치용 클램프'],
+     c212:['#212는 전치부 치경부 수복용 클램프입니다.',5,'러버댐: 전치부용 클램프']})},
+ {g:'클램프 준비',text:'클램프에 안전줄을 묶을 것을 집으세요.',skip:{to:'dPunch',why:'클램프 치실 결찰 생략',fb:'클램프가 튀거나 부러질 때 삼킴·흡인을 막는 안전줄이에요. 반드시 묶습니다.'},
+   zones:()=>pickZ(['floss'],{},()=>{st.ligated=1;st.clampId=held;held=null})},
+ {id:'dPunch',view:'sheet',g:'시트 펀칭',text:'시트에 구멍을 뚫을 기구를 집으세요.',enter:()=>{if(held&&held[0]!=='f'){st.clampId=st.clampId||held;held=null}},zones:()=>pickZ(['punch'])},
+ {g:'시트 펀칭',text:'펀치 구멍 크기를 고르세요(오른쪽 펀치 휠).',zones:()=>[1,2,3,4,5].map(n=>C('h'+n,{x:790,y:150+n*70},22,()=>{
+   if(n===5){st.holeSize=5;return OK('클램프를 거는 대구치는 가장 큰 구멍(5번)입니다.')}
+   return BAD(n<=2?'작은 구멍은 하악 전치용이에요. 클램프 걸 대구치는 가장 큰 구멍을 씁니다.':'대구치 클램프 치아에는 가장 큰 구멍(5번)을 써야 시트가 찢어지지 않아요.',5,'러버댐: 펀치 크기 '+n+'번',()=>{st.holeSize=n})}))},
+ {g:'시트 펀칭',text:'#46 위치에 구멍을 뚫으세요. (시트를 환자 얼굴에 댄 방향으로 보고 있어요)',zones:()=>[
+   C('qLL',{x:330,y:450},22,()=>{st.punchAt={x:330,y:450};return OK('하악 우측 대구치: 아래쪽, 환자 우측(화면 왼쪽).')}),
+   C('qUL',{x:330,y:250},22,()=>BAD('위쪽은 상악이에요.',5,'러버댐: 펀칭 위치(상악)',()=>{st.punchAt={x:330,y:250}})),
+   C('qLR',{x:550,y:450},22,()=>BAD('그쪽은 환자 좌측이에요. 시트를 환자 얼굴에 댄 방향 기준으로 환자 우측은 화면 왼쪽입니다.',5,'러버댐: 펀칭 위치(좌우 반대)',()=>{st.punchAt={x:550,y:450}}))]},
+ {view:'dam',g:'클램프 장착',text:'클램프를 벌려 장착할 기구를 집으세요.',enter:()=>{held=null},zones:()=>pickZ(['cforceps'])},
+ {g:'클램프 장착',text:'클램프를 #46에 가져가세요.',zones:()=>[C('ct',{x:440,y:410},40,()=>{st.clampOn=1;return OK()})]},
+ {kind:'drag',g:'클램프 장착',text:'클램프 jaw 네 점이 치경부(최대풍융부 아래)에 닿도록 눌러 seat하세요(아래로).',handle:()=>({x:440,y:410,r:30}),axis:'y',dir:1,amount:45,
+   apply:p=>st.clampSeat=p/45,onDone:()=>{held=null},okfb:'4점 접촉으로 안정. 손가락으로 살짝 흔들어 움직이지 않는지 확인합니다.'},
+ {g:'시트 장착',text:'시트를 집으세요.',zones:()=>pickZ(['sheet'])},
+ {g:'시트 장착',text:'구멍을 늘려 클램프 활(bow) 위로 씌우세요.',zones:()=>[C('sh',{x:440,y:410},44,()=>{st.sheet=1;held=null;return OK()})]},
+ {g:'시트 장착',text:'시트를 펴서 고정할 것을 집으세요.',zones:()=>pickZ(['frame'])},
+ {g:'시트 장착',text:'시트 바깥쪽에 걸어 고정하세요.',zones:()=>[C('fr',{x:440,y:600},34,()=>{st.frame=1;held=null;return OK('시트가 팽팽해지면서 시야가 확보됩니다.')})]},
+ {g:'마무리',text:'인접면으로 시트를 넣을 것을 집으세요.',zones:()=>pickZ(['floss'])},
+ {kind:'drag',g:'마무리',text:'#45–#46 접촉점에서 치실로 시트를 눌러 통과시키세요(아래로).',handle:()=>({x:365,y:410,r:24}),axis:'y',dir:1,amount:40,onDone:()=>{st.flossed=1;held=null},okfb:'시트가 접촉점 아래로 들어갔어요.'},
+ {g:'마무리',text:'시트 가장자리를 치은열구로 말아 넣을(inversion) 기구를 집으세요.',zones:()=>pickZ(['explorer'])},
+ {kind:'hold',g:'마무리',text:'협측 치경부를 따라 시트를 말아 넣으세요.',at:()=>({x:440,y:478,r:26}),dur:900,label:'인버팅'},
+ {kind:'hold',g:'마무리',text:'설측도 말아 넣으세요.',at:()=>({x:440,y:342,r:26}),dur:900,label:'인버팅',onDone:()=>{st.inverted=1;held=null},okfb:'인버팅 완료. 타액 누출이 막힙니다.'},
+ {g:'최종 점검',text:'시작 전에 무엇을 확인할까요?',zones:()=>[
+   CH('da','누출·코 막힘·클램프 치은 압박 여부 확인',1,'밀착(누출 없음), 시트가 코를 막지 않는지, 클램프가 치은을 누르지 않는지 확인하면 완성!',0),
+   CH('db','확인 없이 바로 술식을 시작한다',0,'누출이 있거나 코를 막으면 술식 중 오염·환자 불편이 생깁니다. 장착 후 반드시 점검해요.',1,'러버댐: 최종 점검 생략')]},
+
+ /* ===== 실란트 ===== */
+ {grp:'seal',phase:'실란트',view:'seal',g:'치면 세마',text:'#36 교합면을 세마합니다. 회전 기구를 집으세요.',zones:()=>pickZ(['brush'])},
+ {g:'치면 세마',text:'세마제를 고르세요.',zones:()=>pickZ(['pumice'],{fpaste:['불소·오일이 든 페이스트는 법랑질에 남아 산부식과 접착을 방해할 수 있어요. 무불소 퍼미스를 씁니다.',5,'실란트: 불소 함유 페이스트 사용']},id=>{st.pasteId=id;held='brush'})},
+ {kind:'circle',g:'치면 세마',text:'교합면 위에서 원을 그리며 3바퀴 세마하세요. 열구 속 치태를 제거합니다.',center:()=>({x:440,y:400}),turns:3,onDone:()=>{st.clean=1;held=null},okfb:'세마 완료.'},
+ {g:'수세·격리',text:'씻어낼 기구를 집으세요.',zones:()=>pickZ(['air'])},
+ {kind:'hold',g:'수세·격리',text:'교합면에 대고 유지해서 세마제를 깨끗이 씻어내세요.',at:()=>({x:440,y:400,r:40}),dur:1200,label:'수세',onDone:()=>{held=null}},
+ {id:'sIso',g:'수세·격리',text:'방습할 것을 집으세요.',skip:{to:'sDry',why:'방습(격리) 생략',fb:'타액 오염은 실란트 탈락의 가장 흔한 원인입니다.'},zones:()=>pickZ(['cotton'])},
+ {g:'수세·격리',text:'협측 전정에 놓으세요.',zones:()=>[C('cb',{x:440,y:600},30,()=>{st.cotB=1;return OK()})]},
+ {g:'수세·격리',text:'설측에도 놓으세요.',zones:()=>[C('cl',{x:440,y:212},30,()=>{st.cotL=1;held=null;return OK()})]},
+ {id:'sDry',g:'건조',text:'건조할 기구를 집으세요.',zones:()=>pickZ(['air'])},
+ {kind:'hold',g:'건조',text:'교합면을 건조하세요.',at:()=>({x:440,y:400,r:40}),dur:1000,label:'건조',onDone:()=>{held=null}},
+ {g:'산부식',text:'산부식제를 집으세요.',zones:()=>pickZ(['etch'])},
+ {g:'산부식',text:'산부식제를 어디에 바를까요?',zones:()=>[
+   C('ef',{x:440,y:400},34,()=>{st.etched=1;held=null;return OK('소와·열구와 교두 경사 2mm 정도까지. 실란트가 덮일 범위보다 살짝 넓게.')}),
+   C('eg',{x:610,y:520},26,()=>BAD('치은까지 바르면 연조직 자극·화학적 화상이 생깁니다. 교합면 소와·열구 위주로.',5,'실란트: 산부식제 치은 도포',()=>{st.etched=1;held=null}))]},
+ {kind:'wait',dur:2600,g:'산부식',text:'산부식 15–20초 대기 중…',waitMsg:'⏱ 15–20초'},
+ {g:'수세·건조',text:'씻어낼 기구를 집으세요.',zones:()=>pickZ(['air'])},
+ {kind:'hold',g:'수세·건조',text:'산부식제를 충분히 수세하세요(10–15초).',at:()=>({x:440,y:400,r:40}),dur:1200,label:'수세'},
+ {kind:'hold',g:'수세·건조',text:'이어서 완전히 건조하세요.',at:()=>({x:440,y:400,r:40}),dur:1000,label:'건조',onDone:()=>{held=null;st.frosty=1}},
+ {g:'확인',text:'건조 후 부식된 법랑질은 어떻게 보여야 할까요?',zones:()=>[
+   CH('fa','백묵처럼 하얗고 불투명(chalky white)',1,'정상 부식면. 이 상태가 아니면 재부식·재건조합니다.',0,null,null,()=>{st.saliva=Math.random()<0.35?1:0}),
+   CH('fb','반짝이고 투명하게 젖은 듯',0,'부식이 부족하거나 덜 마른 상태예요. 재건조 또는 재부식합니다.',1,'실란트: 부식면 판독 오류',()=>{st.saliva=Math.random()<0.35?1:0})]},
+ {cond:()=>st.saliva,g:'오염 대처',text:'건조 중 환자 혀가 닿아 부식면이 타액에 오염됐어요!',zones:()=>[
+   CH('sa','수세·건조 후 5–10초 재부식',1,'오염된 부식면은 결합이 안 돼요. 다시 부식해 새 면을 만듭니다.',0,null,null,()=>{st.saliva=0}),
+   CH('sb','살짝 닦고 그대로 실란트 도포',0,'타액 단백질이 미세 다공을 막아 실란트가 쉽게 탈락합니다.',1,'실란트: 타액 오염 후 재부식 안 함',()=>{st.saliva=0})]},
+ {g:'실란트 도포',text:'실란트를 집으세요.',zones:()=>pickZ(['sealant'])},
+ {kind:'drag',g:'실란트 도포',text:'근심 소와에서 시작해 중심 열구를 따라 얇게 흘려 넣으세요(오른쪽으로). 과충전은 금물!',handle:()=>({x:320+(drag?drag.p:0),y:400,r:26}),axis:'x',dir:1,amount:240,
+   apply:p=>st.sealP=p/240,onDone:()=>{held=null}},
+ {g:'실란트 도포',text:'기포를 없앨 기구를 집으세요.',zones:()=>pickZ(['explorer'])},
+ {kind:'hold',g:'실란트 도포',text:'열구 속을 탐침으로 살살 저어 기포를 제거하세요.',at:()=>({x:440,y:400,r:34}),dur:900,label:'기포 제거',onDone:()=>{held=null}},
+ {g:'광중합',text:'광중합기를 집으세요.',zones:()=>pickZ(['curing'])},
+ {g:'광중합',text:'광중합기 팁을 어떻게 둘까요?',zones:()=>[
+   CH('la2','치면에 1–2mm로 최대한 가깝게, 수직으로',1,'거리와 각도가 광량을 결정해요. 가깝고 수직일수록 중합이 확실합니다.',0),
+   CH('lb2','멀리서 비스듬히 넓게 비춘다',0,'거리가 멀고 기울면 광량이 급감해 중합 불량 → 탈락 원인이 됩니다.',1,'실란트: 광중합 거리·각도 부적절')]},
+ {kind:'hold',g:'광중합',text:'팁을 교합면에 대고 유지하세요(20초).',at:()=>({x:440,y:400,r:40}),dur:2000,label:'20초',onDone:()=>{st.cured=1;held=null},okfb:'중합 완료. 표면이 단단해졌어요.'},
+ {g:'점검',text:'유지력을 확인할 기구를 집으세요.',zones:()=>pickZ(['explorer'])},
+ {kind:'hold',g:'점검',text:'탐침을 실란트 가장자리에 걸어 당겨보세요. 떨어지지 않아야 해요.',at:()=>({x:440,y:400,r:34}),dur:800,label:'유지력',onDone:()=>{held=null},okfb:'단단히 붙어 있어요.'},
+ {g:'점검',text:'교합을 확인할 것을 집으세요.',zones:()=>pickZ(['artpaper'])},
+ {g:'점검',text:'#36에 대고 물어보게 하세요.',zones:()=>[C('ap',{x:440,y:400},40,()=>{held=null;st.cotB=0;st.cotL=0;return OK('높은 곳 없음. 높으면 버로 조정합니다. 실란트 완성!')})]},
+
+ /* ===== #14–24 러버댐 ===== */
+ {grp:'dam14',phase:'러버댐',view:'dam14',g:'클램프 선택',text:'#14–#24 격리입니다. 양 끝(#14, #24) 고정용 클램프를 고르세요.',
+   zones:()=>pickZ(['w2a'],{w8a:['W8A는 대구치용이에요. 소구치(#14·#24) 고정에는 소구치용 클램프를 씁니다.',5,'#14–24 러버댐: 대구치용 클램프'],
+     c212:['#212는 전치부 치경부 수복용 retraction 클램프예요. 양 끝 고정용이 아닙니다.',5,'#14–24 러버댐: #212 클램프']})},
+ {g:'클램프 준비',text:'클램프에 안전줄을 묶을 것을 집으세요.',skip:{to:'d14Punch',why:'클램프 치실 결찰 생략',fb:'클램프가 튀거나 부러질 때 삼킴·흡인을 막는 안전줄이에요.'},
+   zones:()=>pickZ(['floss'],{},()=>{st.ligated=1;held=null})},
+ {id:'d14Punch',view:'sheet14',g:'시트 펀칭',text:'구멍을 뚫을 기구를 집으세요.',enter:()=>{if(held&&held!=='punch')held=null},zones:()=>pickZ(['punch'])},
+ {g:'시트 펀칭',text:'#14부터 #24까지 8개 구멍을 뚫으세요. 시트의 치열궁 표시는 #15–#25(10개)예요. 가운데 두 개가 중절치.',zones:()=>ARCH_MARKS.map((m,i)=>C('hm'+i,m,15,()=>{
+     const ok=i>=1&&i<=8;
+     if(ok){st.holes.add(i);return [...st.holes].filter(k=>k>=1&&k<=8).length>=8?OK('#14–#24, 8개 펀칭 완료. 간격이 치아 간격과 맞아야 시트가 찢어지지 않아요.'):{stay:1}}
+     if(EXAM()){st.holes.add(i);penalize(5,'#14–24 러버댐: 격리 범위 밖 펀칭','out'+i,'#15·#25는 이번 격리 범위 밖이에요. 필요 없는 구멍은 누출 원인이 됩니다.');return{stay:1}}
+     return BAD('그 자리는 #15/#25예요. 이번 격리 범위(#14–#24) 밖입니다.',5,'#14–24 러버댐: 격리 범위 밖 펀칭')}))},
+ {view:'dam14',g:'클램프 장착',text:'클램프 포셉을 집으세요.',enter:()=>{held=null},zones:()=>pickZ(['cforceps'])},
+ {g:'클램프 장착',text:'#14에 클램프를 장착하세요.',zones:()=>[C('k14',UPT(3),26,()=>{st.cl14=1;return OK()})]},
+ {g:'클램프 장착',text:'반대쪽 #24에도 장착하세요.',zones:()=>[C('k24',UPT(10),26,()=>{st.cl24=1;held=null;return OK('양 끝 소구치 클램프로 시트를 고정합니다.')})]},
+ {g:'시트 장착',text:'시트를 집으세요.',zones:()=>pickZ(['sheet'])},
+ {g:'시트 장착',text:'구멍을 #14–#24에 차례로 끼우며 씌우세요.',zones:()=>[C('sh14',{x:440,y:300},50,()=>{st.sheet14=1;held=null;return OK()})]},
+ {g:'시트 장착',text:'시트를 펴서 고정할 것을 집으세요.',zones:()=>pickZ(['frame'])},
+ {g:'시트 장착',text:'시트 바깥쪽에 걸어 고정하세요.',zones:()=>[C('fr14',{x:440,y:625},30,()=>{st.frame=1;held=null;return OK()})]},
+ {g:'인접면 통과',text:'접촉점에 시트를 넣을 것을 집으세요.',zones:()=>pickZ(['floss'])},
+ {g:'인접면 통과',text:'격리 범위 안의 접촉점 7곳에 치실로 시트를 통과시키세요.',zones:()=>CONTACTS14().map((p,i)=>C('ct'+i,p,13,()=>{
+     const ok=i>=1&&i<=7;
+     if(ok){st.cts.add(i);return [...st.cts].filter(k=>k>=1&&k<=7).length>=7?OK('7곳 모두 통과. 시트가 접촉점 아래로 들어갔어요.'):{stay:1}}
+     if(EXAM()){st.cts.add(i);penalize(5,'#14–24 러버댐: 범위 밖 접촉점','ctout'+i,'#15–14, #24–25 접촉점은 격리 범위 밖이에요.');return{stay:1}}
+     return BAD('그 접촉점은 격리 범위 밖이에요(#14–#24 사이만).',5,'#14–24 러버댐: 범위 밖 접촉점')}))},
+ {g:'마무리',text:'시트 가장자리를 말아 넣을 기구를 집으세요.',enter:()=>{held=null},zones:()=>pickZ(['explorer'])},
+ {kind:'hold',g:'마무리',text:'전치부 순측 치경부를 따라 시트를 말아 넣으세요.',at:()=>({x:440,y:150,r:28}),dur:900,label:'인버팅'},
+ {kind:'hold',g:'마무리',text:'구개측도 말아 넣으세요.',at:()=>({x:440,y:250,r:28}),dur:900,label:'인버팅',onDone:()=>{st.inverted=1;held=null},okfb:'인버팅 완료.'},
+ {g:'최종 점검',text:'시작 전에 무엇을 확인할까요?',zones:()=>[
+   CH('d14a','#14–24 노출, 누출·코 막힘·클램프 압박 확인',1,'격리 범위가 다 드러났는지, 누출과 코 막힘이 없는지 확인하면 완성!',0),
+   CH('d14b','확인 없이 바로 술식을 시작한다',0,'누출이나 코 막힘이 있으면 오염·환자 불편이 생깁니다.',1,'#14–24 러버댐: 최종 점검 생략')]},
+
+ /* ===== 소아치과 불소 트레이 ===== */
+ {grp:'fluor',phase:'불소 도포',view:'fluor',g:'치면 세마',text:'먼저 치면세마입니다. 회전 기구를 집으세요.',zones:()=>pickZ(['brush'])},
+ {g:'치면 세마',text:'세마제를 고르세요.',zones:()=>pickZ(['pumice','fpaste'],{},id=>{st.pasteId=id;held='brush'})},
+ {kind:'circle',g:'치면 세마',text:'상악 치열 위에서 원을 그리며 2바퀴 세마하세요.',center:()=>({x:440,y:255}),turns:2,okfb:'상악 세마 완료.'},
+ {kind:'circle',g:'치면 세마',text:'하악 치열도 2바퀴 세마하세요.',center:()=>({x:440,y:470}),turns:2,onDone:()=>{st.fclean=1;held=null},okfb:'하악 세마 완료.'},
+ {g:'수세',text:'씻어낼 기구를 집으세요.',zones:()=>pickZ(['air'])},
+ {kind:'hold',g:'수세',text:'세마제를 씻어내세요.',at:()=>({x:440,y:360,r:44}),dur:1100,label:'수세',onDone:()=>{held=null}},
+ {g:'자세',text:'불소 도포 동안 환자 자세는?',zones:()=>[
+   CH('pa','의자를 세우고 고개를 약간 앞으로 숙이게',1,'겔이 목으로 넘어가 삼키거나 구역질하는 걸 줄입니다.',0),
+   CH('pb','뒤로 눕혀 편하게 한다',0,'눕히면 겔이 인두로 흘러 삼킴·구역이 생기기 쉬워요.',1,'불소: 환자를 눕힘')]},
+ {g:'트레이 선택',text:'트레이를 집으세요.',zones:()=>pickZ(['ftray'])},
+ {g:'트레이 선택',text:'어떤 크기를 고를까요?',zones:()=>[
+   CH('ta','치열 전체와 최후방 치아 원심까지 덮는 크기',1,'모든 치면이 겔에 닿아야 효과가 고르게 나옵니다.',0),
+   CH('tb','앞니만 덮이면 작은 것도 괜찮다',0,'최후방 구치가 빠지면 우식 위험이 큰 부위가 도포되지 않아요.',1,'불소: 트레이가 작음'),
+   CH('tc','넉넉하게 클수록 좋다',0,'너무 크면 연조직을 자극하고 구역·삼킴이 늘어납니다.',2,'불소: 트레이가 큼')]},
+ {g:'겔 담기',text:'불소 겔을 집으세요.',zones:()=>pickZ(['fgel'])},
+ {view:'trayfill',kind:'gauge',g:'겔 담기',text:'겔을 트레이에 짜 넣으세요(집은 채로 위로). 적정량에서 멈추고 유지!',handle:()=>({x:740,y:560,r:26}),axis:'y',dir:-1,
+   lo:40,hi:62,over:95,apply:r=>st.gel=r,overWhy:'불소: 겔 과량',overFb:'겔이 많으면 넘쳐 삼키게 되고, 아이는 급성 불소 독성(오심·구토) 위험이 있어요. 트레이 깊이의 1/3 이하만.',
+   okfb:'트레이 깊이의 1/3 이하. 아동은 한 트레이에 약 2mL 이하가 기준이에요.'},
+ {view:'fluor',g:'건조',text:'치면을 건조할 기구를 집으세요.',enter:()=>{held=null},zones:()=>pickZ(['air'])},
+ {kind:'hold',g:'건조',text:'치면을 건조하세요. 젖어 있으면 불소가 희석돼요.',at:()=>({x:440,y:360,r:44}),dur:900,label:'건조',onDone:()=>{held='ftray'}},
+ {g:'트레이 삽입',text:'상악에 트레이를 넣으세요.',zones:()=>[C('tu',{x:440,y:255},40,()=>{st.trayU=1;return OK()})]},
+ {g:'트레이 삽입',text:'하악에도 넣고 가볍게 물게 하세요.',zones:()=>[C('tl',{x:440,y:470},40,()=>{st.trayL=1;held=null;return OK()})]},
+ {id:'fEj',g:'타액 흡인',text:'도포 중 삼킴을 막을 것을 집으세요.',skip:{to:'fWait',why:'타액 흡인(석션) 생략',fb:'침과 함께 불소를 삼키지 않도록 saliva ejector를 반드시 씁니다.'},zones:()=>pickZ(['ejector'])},
+ {g:'타액 흡인',text:'구강저(혀 밑)에 걸어두세요.',zones:()=>[C('ej',{x:440,y:365},30,()=>{st.ej=1;held=null;return OK()})]},
+ {id:'fWait',kind:'wait',dur:2600,g:'도포',text:'도포 중… 아이가 삼키지 않도록 살펴보세요.',waitMsg:'⏱ 1.23% APF 겔 · 4분'},
+ {kind:'hold',g:'제거',text:'트레이를 빼고 남은 겔을 석션으로 제거하세요.',at:()=>({x:440,y:360,r:44}),dur:1000,label:'트레이 제거·석션',onDone:()=>{st.trayU=0;st.trayL=0}},
+ {g:'주의사항',text:'보호자와 아이에게 어떻게 안내할까요?',zones:()=>[
+   CH('qa','30분간 먹거나 마시지 말고, 헹구지 않기',1,'불소가 법랑질에 머무는 시간을 확보합니다. 침은 뱉어도 돼요.',0),
+   CH('qb','바로 물로 헹구고 식사해도 된다',0,'바로 헹구거나 먹으면 불소 효과가 크게 떨어집니다.',1,'불소: 주의사항 오류')]},
+
+ /* ===== 치은연상 SC ===== */
+ {grp:'sc',phase:'SC',view:'perio',enter:()=>{st.pSite=0},g:'부위 1',text:'표시된 치석 부위를 보세요(치식은 숨겨져 있어요). 이 부위에 맞는 기구를 고르세요.',
+   zones:()=>pickZ(['sickleA'],{sickleP:['구치부용 sickle은 생크가 굽어 있어요. 이 부위는 전치부라 직선형 전치부 sickle이 맞아요.',5,'SC: 부위-기구 불일치(전치부)'],
+     g1314:['Gracey 13/14는 구치부 원심면 치은연하용이에요. 치은연상 치석에는 sickle을 씁니다.',5,'SC: 치은연상에 Gracey'],
+     univ:['universal curette도 쓸 수 있지만 두꺼운 치은연상 치석 제거엔 sickle이 효율적이에요.',2,'SC: sickle 대신 curette']})},
+ {g:'부위 1',text:'작업단을 어떻게 적용할까요?',zones:()=>[
+   CH('aa','치석 바로 아래에 넣고 날–치면 각도 70–80°',1,'70–80°에서 치석이 가장 효율적으로 떨어집니다.',0),
+   CH('ab','45°보다 눕혀서 문지른다',0,'각도가 작으면 치석 표면만 매끈해지는 burnishing이 생겨요.',1,'SC: 작업 각도 과소'),
+   CH('ac','90°보다 세워서 긁는다',0,'90° 이상이면 날이 치은을 손상시키고 치면을 파냅니다.',2,'SC: 작업 각도 과대')]},
+ {g:'부위 1',text:'손 고정은?',zones:()=>[
+   CH('ra','인접 치아에 약지로 구내 레스트',1,'안정된 지지점이 있어야 짧고 강한 스트로크가 가능하고 미끄러짐이 없어요.',0),
+   CH('rb','지지 없이 손목 힘으로',0,'지지점이 없으면 기구가 미끄러져 연조직을 다치게 합니다.',1,'SC: 레스트 없음')]},
+ {view:'pz',kind:'strokes',g:'부위 1',text:'치석 아래에서 짧고 힘있게 치관 방향(위)으로 끌어올리세요. 4번.',at:()=>({x:560,y:378,r:60}),n:4,len:45,maxSpeed:40,sub:0,
+   onDone:()=>{st.pSite=1;held=null},okfb:'부위 1 치석 제거 완료.'},
+ {view:'perio',g:'부위 2',text:'다음 표시 부위에 맞는 기구를 고르세요.',zones:()=>pickZ(['sickleP'],{sickleA:['직선형 전치부 sickle은 구치부 곡면에 잘 닿지 않아요. 생크가 굽은 구치부 sickle을 씁니다.',5,'SC: 부위-기구 불일치(구치부)'],
+     g1314:['Gracey는 치은연하 치근면용이에요.',5,'SC: 치은연상에 Gracey'],univ:['쓸 수는 있지만 치은연상 치석엔 sickle이 효율적이에요.',2,'SC: sickle 대신 curette']})},
+ {view:'pz',kind:'strokes',g:'부위 2',text:'같은 요령으로 4번 끌어올리세요.',at:()=>({x:560,y:378,r:60}),n:4,len:45,maxSpeed:40,sub:0,onDone:()=>{st.pSite=2;held=null},okfb:'부위 2 치석 제거 완료.'},
+ {view:'perio',g:'확인',text:'남은 치석을 확인할 기구를 집으세요.',zones:()=>pickZ(['explorer'])},
+ {kind:'hold',g:'확인',text:'치면을 따라 탐침으로 훑어 거친 곳이 없는지 확인하세요.',at:()=>({x:440,y:370,r:50}),dur:1000,label:'탐침 확인',onDone:()=>{held=null},okfb:'남은 치석 없음. 치은연상 SC 완료!'},
+
+ /* ===== RP ===== */
+ {grp:'rp',phase:'RP',view:'perio',enter:()=>{st.pSite=10},g:'부위 1',text:'표시된 치주낭(치식 숨김)의 치근면입니다. 이 부위에 맞는 Gracey를 고르세요.',
+   zones:()=>pickZ(['g1314'],{g1112:['11/12는 구치부 근심면용이에요. 표시된 곳은 원심면입니다.',5,'RP: 근심/원심 혼동(원심)'],
+     g78:['7/8은 구치부 협·설면용이에요. 인접면에는 11/12(근심)·13/14(원심)를 씁니다.',5,'RP: 인접면에 7/8'],
+     g12:['1/2는 전치부용이에요.',5,'RP: 전치부용 Gracey'],g56:['5/6은 전치·소구치용이에요.',5,'RP: 전치부용 Gracey'],
+     sickleP:['sickle은 끝이 뾰족해 치은연하에 넣으면 치은과 치근을 손상시켜요.',5,'RP: 치은연하에 sickle']})},
+ {g:'부위 1',text:'치주낭에 넣을 때 각도는?',zones:()=>[
+   CH('ia2','0°에 가깝게 닫아서 넣고, 바닥에서 70° 정도로 연다',1,'닫은 채로 넣어야 치은을 안 다치고, 작업 때 열어야 치석이 걸립니다.',0),
+   CH('ib2','처음부터 90°로 세워서 넣는다',0,'세운 채 넣으면 날이 치주낭 벽(치은)을 찢습니다.',1,'RP: 삽입 각도 오류')]},
+ {g:'부위 1',text:'올바른 작업단을 고르는 기준은?',zones:()=>[
+   CH('wa','터미널 생크가 작업 치면과 평행',1,'평행하면 아래쪽(기울어진) 절단연이 치면에 맞게 적응됩니다.',0),
+   CH('wb','터미널 생크가 치면과 수직',0,'수직이면 반대쪽 작업단이거나 적응이 틀린 상태예요.',1,'RP: 작업단 선택 기준 오류')]},
+ {view:'pz',kind:'strokes',g:'부위 1',text:'치주낭 바닥부터 겹치게, 가볍고 길게 치관 방향으로 4번 끌어올리세요.',at:()=>({x:560,y:470,r:70}),n:4,len:55,maxSpeed:34,sub:1,
+   onDone:()=>{st.pSite=11;held=null},okfb:'부위 1 치근면이 매끈해졌어요.'},
+ {view:'perio',g:'부위 2',text:'다음 표시 부위에 맞는 Gracey를 고르세요.',zones:()=>pickZ(['g1112'],{g1314:['13/14는 원심면용이에요. 표시된 곳은 근심면입니다.',5,'RP: 근심/원심 혼동(근심)'],
+     g78:['인접면에는 11/12(근심)·13/14(원심)를 씁니다.',5,'RP: 인접면에 7/8'],g12:['1/2는 전치부용이에요.',5,'RP: 전치부용 Gracey'],g56:['5/6은 전치·소구치용이에요.',5,'RP: 전치부용 Gracey'],
+     sickleP:['sickle은 치은연하에 쓰지 않아요.',5,'RP: 치은연하에 sickle']})},
+ {view:'pz',kind:'strokes',g:'부위 2',text:'같은 요령으로 4번.',at:()=>({x:560,y:470,r:70}),n:4,len:55,maxSpeed:34,sub:1,onDone:()=>{st.pSite=12;held=null},okfb:'부위 2 완료.'},
+ {view:'perio',g:'부위 3',text:'다음 표시 부위에 맞는 Gracey를 고르세요.',zones:()=>pickZ(['g12','g56'],{g1314:['13/14는 구치부 원심면용이에요.',5,'RP: 전치부에 구치부용'],g1112:['11/12는 구치부 근심면용이에요.',5,'RP: 전치부에 구치부용'],
+     g78:['7/8은 구치부 협·설면용이에요.',5,'RP: 전치부에 구치부용'],sickleP:['sickle은 치은연하에 쓰지 않아요.',5,'RP: 치은연하에 sickle']})},
+ {view:'pz',kind:'strokes',g:'부위 3',text:'같은 요령으로 4번.',at:()=>({x:560,y:470,r:70}),n:4,len:55,maxSpeed:34,sub:1,onDone:()=>{st.pSite=13;held=null},okfb:'부위 3 완료.'},
+ {view:'perio',g:'평가',text:'치근면 상태를 확인할 기구를 집으세요.',zones:()=>pickZ(['explorer'])},
+ {kind:'hold',g:'평가',text:'치주낭 안 치근면을 탐침으로 훑어 매끈한지 확인하세요.',at:()=>({x:440,y:370,r:50}),dur:1000,label:'탐침 확인',onDone:()=>{held=null}},
+ {g:'주의사항',text:'시술 후 환자에게 어떻게 안내할까요?',zones:()=>[
+   CH('pa2','며칠간 시릴 수 있고, 부드러운 칫솔로 계속 관리',1,'치근면 노출로 일시적 지각과민이 흔해요. 잇몸이 줄며 치아가 길어 보일 수 있다는 것도 함께 설명합니다.',0),
+   CH('pb2','아무 증상도 없을 테니 신경 쓰지 않아도 된다',0,'지각과민·치은 퇴축을 미리 설명하지 않으면 환자가 놀라고 불신이 생겨요.',1,'RP: 술후 설명 누락')]},
+
  {grp:'post',view:'mouth',phase:'마무리',g:'발치 후 처치',text:'지혈에 필요한 것을 집으세요.',zones:()=>pickZ(['gauze'])},
  {grp:'post',g:'발치 후 처치',text:'발치와에 거즈를 올리고 물게 하세요.',zones:()=>[C('gz',T46,30,()=>{st.gauze=1;held=null;return OK('거즈 교합 압박. 혈병 유지를 위해 강한 세척은 피합니다.')})]},
  {grp:'end',phase:'완료',view:'end',kind:'end',g:'결과',text:'시뮬레이션 완료'}
 ];
 for(let i=1;i<S.length;i++){for(const k of['phase','view','grp'])if(!S[i][k])S[i][k]=S[i-1][k]}
 S.forEach(s=>{if(!s.kind)s.kind='zones'});
-const GLOVE_START=idx('gloveStart');
 
 let runStart=0,armT=0,freshLock=false,saved=null;
 function BACK_ZONE(fn){return{key:'back',dwell:900,label:'← 뒤로',rect:{x:20,y:118,w:120,h:46},act:()=>{fn();return{stay:1}}}}
 function resetAll(keepCase){
   st={masked:0,sanit:0,lamp:{x:420,y:190},lightOn:0,gloved:0,gR:0,gL:0,gone:new Set(),onBench:0,ringOff:0,cart:0,cartFlip:true,needle:0,needleId:null,drop:0,
     chair:0,thumb:0,anchor:0,site:0,depth:0,depthContact:0,aspPos:0,reasp:0,inject:0,sep:0,forceps:0,seated:0,extracted:0,fracture:0,gauze:0,
-    driver:null,sutId:null,loaded:0,adson:null,entry:null,exit:null,arcP:0,pulled:0,wAcc:0,wPrev:null,lastDir:0,throws:0,tension:0,knot:null,cut:0,tail:0,sutured:0,passes:[],overs:[],knots:[],tieA:null,wrapC:{x:440,y:410},lastX:0,irrigated:0};
+    driver:null,sutId:null,loaded:0,adson:null,entry:null,exit:null,arcP:0,pulled:0,wAcc:0,wPrev:null,lastDir:0,throws:0,tension:0,knot:null,cut:0,tail:0,sutured:0,holes:new Set(),cts:new Set(),pSite:0,pDep:1,sCount:0,gel:0,gaugeRaw:0,passes:[],overs:[],knots:[],tieA:null,wrapC:{x:440,y:410},lastX:0,irrigated:0};
   held=null;score=100;mistakes=[];toastO=null;returnTo=null;savedHeld=null;contamT=0;saved=null;si=0;mode='practice';caseId='ext';
   if(keepCase){setCase(keepCase);si=idx('mode')}
   enterStep();
 }
 function enterStep(){dw={key:null,t:0,lock:null};drag=null;penSet=new Set();stepT0=performance.now();
   const s=S[si];if(s.enter)s.enter();
-  if(s.grp==='start'||s.kind==='end'){armT=performance.now()+700;freshLock=true}else{armT=0;freshLock=false}
+  armT=(s.grp==='start'||s.kind==='end')?performance.now()+700:0;freshLock=true;
   if(s.kind==='end'&&!saved)saveRecord();
   if(s.kind==='shake')sh={prog:0,dir:0,ext:cur.x,lastExt:cur.x,violent:0,cool:0,warn:0,stage:'luxate',pullY:0,doneT:0};
   if(s.kind==='depth'){st.depth=0;st.depthContact=0}
   if(s.kind==='wrap'){st.wAcc=0;st.wPrev=null}
   if(s.kind==='tension'){st.tension=0;drag=holding()?{ox:cur.x,oy:cur.y,by:inputSrc,band:0}:null}
-  if(s.kind==='arc'){st.arcP=0}}
+  if(s.kind==='arc'){st.arcP=0}
+  if(s.kind==='hold')st.holdT=0;
+  if(s.kind==='circle'){st.cAcc=0;st.cPrev=null}
+  if(s.kind==='strokes'){st.sCount=0;st.sPrev=null;st.pDep=1}
+  if(s.kind==='gauge'){st.gaugeRaw=0}}
 function stepOn(s){if(s.cond&&!s.cond())return false;if(s.grp==='start'||s.grp==='end')return true;
-  if(returnTo!==null&&s.gl)return true;return CASES[caseId].grps.includes(s.grp)}
+  if(returnTo!==null&&s.gl)return s.gl===gloveType();return CASES[caseId].grps.includes(s.grp)}
 function next(){si++;while(si<S.length-1&&!stepOn(S[si]))si++;enterStep()}
 function jumpTo(id){si=idx(id);enterStep()}
 
@@ -458,8 +772,8 @@ function runZones(dt){
   dwellP=0;
   if(blocked()){dw.key=null;return}
   let over=null;for(const z of zonesNow)if(inZone(z,cur.x,cur.y)){over=z;break}
-  if(performance.now()<armT){if(freshLock&&over)dw.lock=over.key;return}
-  freshLock=false;
+  if(freshLock){if(over)dw.lock=over.key;freshLock=false}
+  if(performance.now()<armT){if(over)dw.lock=over.key;return}
   if(!over){dw.key=null;dw.lock=null;return}
   if(handMode&&camOn)return; // 손 추적 모드: 집기로만 선택
   if(dw.lock===over.key)return;
@@ -469,7 +783,9 @@ function runZones(dt){
 }
 function stepZones(s){
   let zs=s.zones();
-  if(EXAM()&&s.skip){const ti=idx(skipTo(s));const sk=s.skip;
+  if(EXAM()&&s.skip&&!S[idx(skipTo(s))].zones){const ti=idx(skipTo(s)),sk=s.skip;
+    zs=zs.concat([{key:'skipbtn',label:'이 단계 건너뛰기',rect:{x:160,y:118,w:190,h:44},act:()=>{penalize(10,sk.why,'skip',sk.fb);si=ti;enterStep();return{stay:1}}}])}
+  else if(EXAM()&&s.skip){const ti=idx(skipTo(s));const sk=s.skip;
     const extra=S[ti].zones().filter(z=>z.tray?(z.good||z.acceptable):true).map(z=>({...z,key:'skip:'+z.key,act:()=>{
       penalize(10,sk.why,'skip',sk.fb);si=ti;enterStep();return z.act()}}));
     zs=extra.concat(zs)}
@@ -488,7 +804,7 @@ function checkContam(dt){
       penalize(10,why,null,'멸균 장갑을 낀 손으로 비멸균 물체를 만지면 장갑을 교체해야 합니다.');
       if(EXAM()){contamCool=5000;flashT=performance.now();return}
       toast((inPip?'얼굴·마스크':'라이트 손잡이')+'를 만졌어요. 장갑이 오염됐습니다. 새 장갑으로 교체하세요.',0,3800);
-      savedHeld=held;held=null;returnTo=si;st.gloved=0;st.gR=0;st.gL=0;st.gone.delete('gloves');si=GLOVE_START;enterStep();}
+      savedHeld=held;held=null;returnTo=si;st.gloved=0;st.gR=0;st.gL=0;st.gone.delete('gloves');st.gone.delete('egloves');si=idx(gloveType()==='exam'?'cgloveStart':'gloveStart');enterStep();}
   }else contamT=0;
 }
 /* ================= drawing: items ================= */
@@ -530,9 +846,9 @@ function drawItem(id,x,y,s,o){o=o||{};ctx.save();ctx.translate(x,y);ctx.scale(s,
   case 'mask':ctx.fillStyle='#8cc3ea';rr(-34,-20,68,40,10);ctx.fill();ctx.strokeStyle='#5f9dc9';ctx.lineWidth=2;
     for(const yy of[-8,0,8]){ctx.beginPath();ctx.moveTo(-30,yy);ctx.lineTo(30,yy);ctx.stroke()}
     ctx.strokeStyle='#e8eef0';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(-40,0,8,14,0,0,7);ctx.stroke();ctx.beginPath();ctx.ellipse(40,0,8,14,0,0,7);ctx.stroke();break;
-  case 'sanit':ctx.fillStyle='#e6f3ef';rr(-15,-10,30,40,6);ctx.fill();ctx.fillStyle='#2f6f62';ctx.fillRect(-15,2,30,14);
+  case 'sanit':ctx.fillStyle='#e6f3ef';rr(-15,-10,30,40,6);ctx.fill();ctx.fillStyle='#2f6a96';ctx.fillRect(-15,2,30,14);
     ctx.fillStyle='#bfc9c7';ctx.fillRect(-5,-20,10,10);ctx.fillRect(-5,-25,20,5);break;
-  case 'gloves':ctx.fillStyle='#fff';rr(-38,-28,76,56,6);ctx.fill();ctx.strokeStyle='#2f6f62';ctx.lineWidth=3;ctx.stroke();glove(0,8,0.2,false);break;
+  case 'gloves':ctx.fillStyle='#fff';rr(-38,-28,76,56,6);ctx.fill();ctx.strokeStyle='#2f6a96';ctx.lineWidth=3;ctx.stroke();glove(0,8,0.2,false);break;
   case 'syringe':ctx.strokeStyle='#cfd8da';ctx.lineWidth=3;ctx.beginPath();ctx.arc(-46,0,9,0,7);ctx.stroke();
     ctx.fillStyle='#cfd8da';ctx.fillRect(-37,-2,14,4);rr(-24,-8,56,16,4);ctx.fill();ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(-16,-5,40,10);
     if(o.assembled){ctx.fillStyle='#3a6fb5';ctx.fillRect(-12,-4,30,8);ctx.fillStyle='#e7c64a';ctx.fillRect(32,-4,8,8);
@@ -548,6 +864,38 @@ function drawItem(id,x,y,s,o){o=o||{};ctx.save();ctx.translate(x,y);ctx.scale(s,
   case 'lamp':drawLampShape(0,30);break;
   case 'gloveR':glove(0,10,0.3,false);break;
   case 'gloveL':glove(0,10,0.3,true);break;
+  case 'egloves':ctx.fillStyle='#7fb6e8';rr(-16,-24,32,44,10);ctx.fill();for(let i=0;i<4;i++){rr(-16+i*8,-36,7,16,3);ctx.fill()}ctx.save();ctx.translate(-20,-4);ctx.rotate(-0.6);rr(-4,-12,8,18,4);ctx.fill();ctx.restore();break;
+  case 'ept':ctx.fillStyle='#e6edf2';rr(-30,-20,44,36,6);ctx.fill();ctx.fillStyle='#203040';rr(-26,-16,36,14,3);ctx.fill();
+    ctx.strokeStyle='#9fb3c4';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(14,0);ctx.quadraticCurveTo(30,4,36,-14);ctx.stroke();ctx.strokeStyle='#dfe6e8';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(36,-14);ctx.lineTo(40,-24);ctx.stroke();break;
+  case 'paste':ctx.fillStyle='#f4f7fb';rr(-30,-9,46,18,6);ctx.fill();ctx.fillStyle='#4f8fd6';ctx.fillRect(-30,-9,14,18);ctx.fillStyle='#d6dde0';rr(16,-5,12,10,3);ctx.fill();break;
+  case 'cotton':ctx.fillStyle='#fbfbf6';rr(-30,-9,60,18,9);ctx.fill();ctx.strokeStyle='#dcdccf';ctx.lineWidth=1;ctx.stroke();break;
+  case 'air':ctx.fillStyle='#cfd8da';rr(-34,-6,40,12,5);ctx.fill();ctx.fillRect(-8,-16,8,10);ctx.fillRect(-20,-16,8,10);ctx.strokeStyle='#cfd8da';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(6,0);ctx.lineTo(34,-10);ctx.stroke();break;
+  case 'lipclip':ctx.strokeStyle='#cfd8da';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-20,-18);ctx.lineTo(-20,8);ctx.arc(-10,8,10,Math.PI,0,true);ctx.lineTo(0,-6);ctx.stroke();ctx.strokeStyle='#e2a03a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-20,-18);ctx.quadraticCurveTo(10,-30,34,-10);ctx.stroke();break;
+  case 'ice':ctx.fillStyle='#bfe3ff';rr(-12,-22,24,44,6);ctx.fill();ctx.fillStyle='#4f8fd6';ctx.fillRect(-12,-6,24,10);ctx.fillStyle='#cfd8da';ctx.fillRect(-4,-30,8,8);break;
+  case 'w8a':case 'w2a':case 'c212':{const w=id==='w8a'?22:id==='w2a'?16:12;ctx.strokeStyle='#cfd8da';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,4,w,Math.PI*1.1,Math.PI*1.9);ctx.stroke();
+    ctx.fillStyle='#cfd8da';rr(-w-6,4,12,8,2);ctx.fill();rr(w-6,4,12,8,2);ctx.fill();if(id==='c212'){ctx.beginPath();ctx.moveTo(-w,14);ctx.lineTo(w,14);ctx.stroke()}break}
+  case 'floss':ctx.fillStyle='#e9f3ff';ctx.beginPath();ctx.arc(0,0,16,0,7);ctx.fill();ctx.fillStyle='#4f8fd6';ctx.beginPath();ctx.arc(0,0,7,0,7);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(14,6);ctx.lineTo(36,18);ctx.stroke();break;
+  case 'punch':ctx.strokeStyle='#cfd8da';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-34,8);ctx.lineTo(4,0);ctx.moveTo(-34,-8);ctx.lineTo(4,0);ctx.stroke();ctx.fillStyle='#cfd8da';ctx.beginPath();ctx.arc(18,0,14,0,7);ctx.fill();
+    ctx.fillStyle='#5d6e78';for(let i=0;i<5;i++){const a=i*1.25;ctx.beginPath();ctx.arc(18+Math.cos(a)*8,Math.sin(a)*8,1+i*0.5,0,7);ctx.fill()}break;
+  case 'cforceps':ctx.strokeStyle='#cfd8da';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-34,10);ctx.lineTo(0,0);ctx.lineTo(-34,-10);ctx.moveTo(0,0);ctx.lineTo(22,-8);ctx.moveTo(0,0);ctx.lineTo(22,8);ctx.stroke();ctx.fillStyle='#cfd8da';ctx.beginPath();ctx.arc(24,-8,3.5,0,7);ctx.arc(24,8,3.5,0,7);ctx.fill();break;
+  case 'sheet':ctx.fillStyle='rgba(70,170,125,0.95)';rr(-26,-24,52,48,4);ctx.fill();break;
+  case 'frame':ctx.strokeStyle='#3b6fb0';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-24,-22);ctx.lineTo(-24,22);ctx.lineTo(24,22);ctx.lineTo(24,-22);ctx.stroke();break;
+  case 'brush':ctx.fillStyle='#cfd8da';rr(-34,-6,44,12,5);ctx.fill();ctx.fillStyle='#e9e2d2';ctx.beginPath();ctx.arc(18,0,9,0,7);ctx.fill();ctx.strokeStyle='#bfb6a3';ctx.lineWidth=2;ctx.stroke();break;
+  case 'pumice':case 'fpaste':ctx.fillStyle=id==='pumice'?'#c9ced2':'#f2b6cc';rr(-18,-12,36,28,6);ctx.fill();ctx.fillStyle='#f4f7fb';rr(-20,-18,40,8,3);ctx.fill();
+    ctx.font='700 9px '+FONT;ctx.fillStyle='#24404e';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id==='pumice'?'PUMICE':'F',0,4);break;
+  case 'etch':case 'sealant':ctx.fillStyle=id==='etch'?'#4f8fd6':'#f6efd8';rr(-30,-7,44,14,4);ctx.fill();ctx.strokeStyle='#9fb3c4';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#cfd8da';ctx.fillRect(-38,-3,8,6);ctx.strokeStyle='#cfd8da';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(32,-6);ctx.stroke();break;
+  case 'curing':ctx.fillStyle='#e6edf2';rr(-34,-10,40,20,8);ctx.fill();ctx.fillRect(-20,10,12,18);ctx.fillStyle='#3a7bd5';ctx.beginPath();ctx.moveTo(6,-4);ctx.lineTo(34,-14);ctx.lineTo(36,-6);ctx.lineTo(6,4);ctx.fill();break;
+  case 'artpaper':ctx.fillStyle='#3a6fd8';rr(-30,-8,60,16,3);ctx.fill();ctx.fillStyle='#d64a4a';ctx.fillRect(-30,-8,60,4);break;
+  case 'ejector':ctx.strokeStyle='#e6edf2';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-30,14);ctx.lineTo(10,14);ctx.quadraticCurveTo(26,14,26,-2);ctx.lineTo(26,-18);ctx.stroke();ctx.fillStyle='#4f8fd6';ctx.fillRect(-34,10,8,8);break;
+  case 'fgel':ctx.fillStyle='#ffb27a';rr(-14,-16,28,36,6);ctx.fill();ctx.fillStyle='#f4f7fb';ctx.fillRect(-6,-26,12,10);ctx.font='700 9px '+FONT;ctx.fillStyle='#5a3418';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('APF',0,4);break;
+  case 'ftray':ctx.strokeStyle='#bfe0f7';ctx.lineWidth=9;ctx.beginPath();ctx.ellipse(0,6,26,20,0,Math.PI,0);ctx.stroke();break;
+  case 'sickleA':case 'sickleP':case 'univ':case 'g12':case 'g56':case 'g78':case 'g1112':case 'g1314':{
+    const bend={sickleA:0,sickleP:0.7,univ:0.5,g12:0.3,g56:0.45,g78:0.8,g1112:1.0,g1314:1.25}[id];
+    ctx.fillStyle='#cfd8da';rr(-36,-5,40,10,5);ctx.fill();ctx.strokeStyle='#cfd8da';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(4,0);ctx.lineTo(18,0);ctx.lineTo(18+12*Math.cos(bend),-12*Math.sin(bend));ctx.stroke();
+    const ex=18+12*Math.cos(bend),ey=-12*Math.sin(bend);ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(ex,ey);
+    if(id.startsWith('sickle'))ctx.lineTo(ex+10,ey-6);else ctx.quadraticCurveTo(ex+10,ey-2,ex+8,ey+6);ctx.stroke();break}
   case 'saline':ctx.fillStyle='rgba(225,240,250,0.95)';rr(-30,-9,52,18,4);ctx.fill();ctx.strokeStyle='#9fb0ab';ctx.lineWidth=1.5;ctx.stroke();
     ctx.fillStyle='#bfc9c7';ctx.fillRect(-40,-3,10,6);ctx.fillRect(-44,-10,4,20);ctx.strokeStyle='#d6dde0';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(22,0);ctx.lineTo(40,4);ctx.stroke();
     ctx.font='700 11px '+FONT;ctx.fillStyle='#2e5fa8';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('N/S',-4,0);break;
@@ -560,7 +908,7 @@ function drawItem(id,x,y,s,o){o=o||{};ctx.save();ctx.translate(x,y);ctx.scale(s,
     ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(30,-3);ctx.lineTo(36,0);ctx.lineTo(30,3);ctx.stroke();break;
   case 's4':case 's2':case 's6':ctx.fillStyle='#f7f7f2';rr(-30,-22,60,44,5);ctx.fill();
     ctx.fillStyle=id==='s6'?'#2e5fa8':'#222';ctx.fillRect(-30,-22,60,12);
-    ctx.font='700 15px '+FONT;ctx.fillStyle='#24443e';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id==='s4'?'4-0':id==='s2'?'2-0':'6-0',0,6);break;
+    ctx.font='700 15px '+FONT;ctx.fillStyle='#24404e';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id==='s4'?'4-0':id==='s2'?'2-0':'6-0',0,6);break;
   case 'sc':ctx.strokeStyle='#d6dde0';ctx.lineWidth=4;ctx.beginPath();ctx.arc(-34,-10,8,0,7);ctx.stroke();ctx.beginPath();ctx.arc(-34,10,8,0,7);ctx.stroke();
     ctx.beginPath();ctx.moveTo(-26,-8);ctx.lineTo(36,4);ctx.moveTo(-26,8);ctx.lineTo(36,-4);ctx.stroke();break;
   default:if(id&&id[0]==='f'){ctx.scale(1.05,1.05);forcepsShape(id)}
@@ -573,23 +921,23 @@ function drawLampShape(x,y){ctx.fillStyle='#eef2f1';ctx.strokeStyle='#9fb0ab';ct
 
 /* ================= drawing: views ================= */
 function drawRoom(){
-  let g=ctx.createLinearGradient(0,104,0,620);g.addColorStop(0,'#dbe7e3');g.addColorStop(1,'#c3d4cf');ctx.fillStyle=g;ctx.fillRect(0,104,890,516);
-  ctx.fillStyle='#a6b8b2';ctx.fillRect(0,620,890,100);
+  let g=ctx.createLinearGradient(0,104,0,620);g.addColorStop(0,'#dbe8f1');g.addColorStop(1,'#c3d4e0');ctx.fillStyle=g;ctx.fillRect(0,104,890,516);
+  ctx.fillStyle='#a6b8c6';ctx.fillRect(0,620,890,100);
   // bracket table pole + CF
   ctx.fillStyle='#8a9a96';ctx.fillRect(700,320,12,300);
-  ctx.fillStyle='#2f6f62';rr(CF.x,CF.y,CF.w,CF.h,10);ctx.fill();
+  ctx.fillStyle='#2f6a96';rr(CF.x,CF.y,CF.w,CF.h,10);ctx.fill();
   ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;for(let i=CF.x+20;i<CF.x+CF.w;i+=20){ctx.beginPath();ctx.moveTo(i,CF.y);ctx.lineTo(i,CF.y+CF.h);ctx.stroke()}
   ctx.font='600 15px '+FONT;ctx.fillStyle='rgba(255,255,255,0.85)';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('멸균 작업대',CF.x+12,CF.y+10);
   if(st.gone.has('gloves')&&!(st.gR&&st.gL))drawItem('gloves',CF.x+80,CF.y+95,1.2);
   if(st.onBench&&st.gone.has('syringe'))drawItem('syringe',CF.x+200,CF.y+95,1.3,{assembled:st.needle});
   // chair
   ctx.fillStyle='#5b6967';rr(360,628,220,22,8);ctx.fill();rr(440,540,60,92,6);ctx.fill();
-  ctx.fillStyle='#2f6f62';rr(300,515,330,42,16);ctx.fill();
+  ctx.fillStyle='#2f6a96';rr(300,515,330,42,16);ctx.fill();
   ctx.beginPath();ctx.moveTo(612,517);ctx.lineTo(772,577);ctx.lineTo(760,606);ctx.lineTo(602,556);ctx.closePath();ctx.fill();
   const h=headPos();
   ctx.save();ctx.translate(310,540);ctx.rotate(Math.PI+h.a);
-  ctx.fillStyle='#2f6f62';rr(-10,-22,240,44,18);ctx.fill();
-  ctx.fillStyle='#24574d';rr(232,-16,44,32,10);ctx.fill();
+  ctx.fillStyle='#2f6a96';rr(-10,-22,240,44,18);ctx.fill();
+  ctx.fillStyle='#24527a';rr(232,-16,44,32,10);ctx.fill();
   ctx.fillStyle='#a9c9dc';rr(20,18,180,30,12);ctx.fill();
   ctx.restore();
   // manikin head
@@ -599,7 +947,7 @@ function drawRoom(){
   ctx.fillStyle='#7a2e33';ctx.beginPath();ctx.ellipse(m.x,m.y,12,7,h.a-0.95,0,7);ctx.fill();
   const oa=(h.a-0.95);ctx.strokeStyle=Math.abs(oa)<0.06?'#2fbf8f':'#e0a24a';ctx.lineWidth=3;
   ctx.beginPath();ctx.moveTo(m.x-Math.cos(oa)*40,m.y-Math.sin(oa)*40);ctx.lineTo(m.x+Math.cos(oa)*40,m.y+Math.sin(oa)*40);ctx.stroke();
-  ctx.font='500 13px '+FONT;ctx.fillStyle='#24443e';ctx.textAlign='left';ctx.fillText('교합평면',m.x+44,m.y-8);
+  ctx.font='500 13px '+FONT;ctx.fillStyle='#24404e';ctx.textAlign='left';ctx.fillText('교합평면',m.x+44,m.y-8);
   // light
   const L=held==='lamp'?{x:cur.x,y:cur.y-30}:st.lamp;
   ctx.strokeStyle='#cfd8d5';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(300,104);ctx.lineTo(300,130);ctx.lineTo(L.x,L.y-52);ctx.stroke();
@@ -607,10 +955,10 @@ function drawRoom(){
   if(held!=='lamp')drawLampShape(L.x,L.y+30);
   // pedal
   const pd=st.chair*8;ctx.fillStyle='#3d4846';rr(566,600+pd,68,22,8);ctx.fill();
-  ctx.font='500 13px '+FONT;ctx.fillStyle='#24443e';ctx.textAlign='center';ctx.fillText('풋 페달',600,632+pd);
+  ctx.font='500 13px '+FONT;ctx.fillStyle='#24404e';ctx.textAlign='center';ctx.fillText('풋 페달',600,632+pd);
 }
 function drawGloveView(){
-  ctx.fillStyle='#2b5f55';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#2b5378';ctx.fillRect(0,104,890,616);
   ctx.fillStyle='#fbfbf8';rr(110,170,660,360,8);ctx.fill();
   ctx.strokeStyle='#e2e2da';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(440,170);ctx.lineTo(440,530);ctx.stroke();
   ctx.font='500 14px '+FONT;ctx.fillStyle='#8a948f';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('LEFT',295,505);ctx.fillText('RIGHT',585,505);
@@ -621,7 +969,7 @@ function drawGloveView(){
 }
 function drawBench(hudMode){
   const y=380,rx=ringX();
-  if(!hudMode){ctx.fillStyle='#2b5f55';ctx.fillRect(0,104,890,616);
+  if(!hudMode){ctx.fillStyle='#2b5378';ctx.fillRect(0,104,890,616);
     ctx.strokeStyle='rgba(255,255,255,0.08)';for(let i=0;i<890;i+=24){ctx.beginPath();ctx.moveTo(i,104);ctx.lineTo(i,720);ctx.stroke()}}
   ctx.fillStyle='#cfd8da';rr(250,y-50,14,100,4);ctx.fill();
   ctx.fillStyle='#cfd8da';rr(260,y-28,380,56,8);ctx.fill();
@@ -647,7 +995,7 @@ function drawHud(){
   ctx.fillText('주입 '+(st.inject*1.8).toFixed(1)+' / 1.8 mL',HUD.x+160,HUD.y+78);
 }
 function drawMouth(){
-  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
   const cx=MC.x,cy=MC.y;
   ctx.fillStyle='#e9cfb6';ctx.beginPath();ctx.ellipse(cx,cy,350,265,0,0,7);ctx.fill();
   ctx.fillStyle='#5a1e24';ctx.beginPath();ctx.ellipse(cx,cy,300,210,0,0,7);ctx.fill();
@@ -687,7 +1035,7 @@ function drawMouth(){
 }
 function drawTooth(angle,lift,widen,fractured,seat){
   const cx=440,base=520;
-  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
   ctx.fillStyle='#d9c9a8';rr(180,base-10,520,200,18);ctx.fill();
   ctx.fillStyle='#c4b28c';for(let i=0;i<40;i++){ctx.beginPath();ctx.arc(200+((i*97)%480),base+20+((i*53)%160),3,0,7);ctx.fill()}
   ctx.fillStyle='#6e1f25';ctx.beginPath();ctx.moveTo(cx-78-widen,base);ctx.lineTo(cx-60-widen*0.6,base+150);ctx.lineTo(cx+60+widen*0.6,base+150);ctx.lineTo(cx+78+widen,base);ctx.fill();
@@ -704,7 +1052,7 @@ function drawTooth(angle,lift,widen,fractured,seat){
 }
 
 function drawSocket(){
-  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
   ctx.fillStyle='#e48b8f';rr(150,160,580,500,40);ctx.fill();
   ctx.fillStyle='#f0a7aa';rr(150,230,580,120,10);ctx.fill();rr(150,470,580,140,10);ctx.fill();
   // 인접치 교합면
@@ -722,7 +1070,7 @@ function drawSocket(){
   drawSutures();
 }
 function drawNeedleView(){
-  ctx.fillStyle='#2b5f55';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#2b5378';ctx.fillRect(0,104,890,616);
   ctx.strokeStyle='#dfe6e8';ctx.lineWidth=9;ctx.lineCap='round';ctx.beginPath();ctx.arc(440,440,170,Math.PI,0);ctx.stroke();
   ctx.fillStyle='#dfe6e8';ctx.beginPath();ctx.moveTo(262,440);ctx.lineTo(278,440);ctx.lineTo(270,462);ctx.fill();
   ctx.fillStyle='#aab4b7';rr(598,428,26,22,4);ctx.fill();
@@ -732,14 +1080,14 @@ function drawNeedleView(){
   ctx.font='500 14px '+FONT;ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText((NAME[st.sutId]||'')+' · 3/8 circle reverse cutting',440,560);
 }
 function drawCaseView(){
-  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
-  const info=[['IANB + #46 발치','감염 관리, 마취 주사기 조립, IANB, 탐침 치은 박리, 포셉 발치.'],
-    ['#46 발치 + 8자 봉합','마취 완료 가정. 마스크·장갑부터 발치, 발치와 8자 봉합까지.'],
-    ['발치와 8자 봉합만','발치가 끝난 상태에서 8자 봉합만 집중 연습.'],
-    ['상악 전치부 치은 열상','#21–#23 협측 치은 열상. 세척 후 단순 단속 봉합 4바늘.']];
-  info.forEach(([t,d],i)=>{const x=25+i*212;rr(x,190,200,380,16);ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fill();
-    ctx.font='600 15px '+FONT;ctx.fillStyle='#7fe0c9';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('케이스 '+(i+1),x+18,212);
-    wrap(t,x+18,240,168,30,'700 22px '+FONT,'#fff');wrap(d,x+18,340,168,25,'500 16px '+FONT,'#cfe0db')});
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  const TAGC={'구강외과':'#8fd3ff','보존':'#ffd36b','소아치과':'#ffb3cf','치주':'#b7f0a0'};
+  CASE_KEYS.forEach((k,i)=>{const c=CASES[k],x=25+(i%4)*212,y=170+Math.floor(i/4)*172;
+    rr(x,y,200,160,14);ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fill();
+    ctx.font='600 12px '+FONT;ctx.fillStyle=TAGC[c.tag]||'#fff';ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText((i+1)+' · '+c.tag,x+14,y+12);
+    const hName=wrap(c.name,x+14,y+32,172,23,'700 17px '+FONT,'#fff');
+    wrap(c.desc,x+14,y+40+hName,172,19,'500 13px '+FONT,'#cfe0ea')});
 }
 function line(a,b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
 function dot(p,r){ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(p.x,p.y,r||3.5,0,7);ctx.fill()}
@@ -758,7 +1106,7 @@ function drawSutures(){
   if(st.entry&&!st.passes.some(p=>p.a===st.entry))dot(st.entry);
 }
 function drawLac(){
-  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
   ctx.fillStyle='#c9575f';rr(80,140,730,540,30);ctx.fill();            // 치조점막
   ctx.fillStyle='#ef9fa3';ctx.beginPath();ctx.moveTo(80,140);ctx.lineTo(810,140);ctx.lineTo(810,400);
   for(let x=810;x>=80;x-=10)ctx.lineTo(x,400+Math.sin(x/23)*4);ctx.closePath();ctx.fill();   // 부착치은
@@ -779,57 +1127,68 @@ function drawLac(){
   if(st.gauze){ctx.globalAlpha=0.9;drawItem('gauze',440,420,2.2);ctx.globalAlpha=1}
 }
 function drawModeView(){
-  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
   const box=(x,title,lines)=>{rr(x,190,310,340,16);ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fill();
     ctx.font='700 26px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(title,x+26,216);
-    lines.forEach((l,i)=>wrap(l,x+26,268+i*58,260,24,'500 17px '+FONT,'#cfe0db'))};
+    lines.forEach((l,i)=>wrap(l,x+26,268+i*58,260,24,'500 17px '+FONT,'#cfe0ea'))};
   box(110,'연습 모드',['단계마다 할 일을 문장으로 안내합니다.','틀리면 바로 이유를 알려주고 다시 하게 합니다.','점수가 실시간으로 보입니다.','장갑 오염 시 장갑을 다시 낍니다.']);
   box(470,'실전 모드',['단계 이름만 보여주고 방법은 알려주지 않습니다.','틀려도 그대로 진행되고, 일부 과정은 건너뛸 수도 있습니다.','결과와 해설은 끝나고 한 번에 봅니다.','실수는 모두 기록됩니다.']);
 }
 function drawTray(){
-  ctx.fillStyle='rgba(12,30,26,0.92)';rr(896,108,376,604,14);ctx.fill();
+  ctx.fillStyle='rgba(12,24,36,0.92)';rr(896,108,376,604,14);ctx.fill();
   for(const id of curTray()){const name=NAME[id],r=slot(id);
     const avail=!st.gone.has(id)&&held!==id;
     const hov=avail&&zonesNow.some(z=>z.tray&&z.key.endsWith('tray:'+id))&&inZone({rect:r},cur.x,cur.y);
-    rr(r.x,r.y,r.w,r.h,10);ctx.fillStyle=hov?'rgba(127,224,201,0.25)':'rgba(255,255,255,0.06)';ctx.fill();
-    if(hov){ctx.strokeStyle='#7fe0c9';ctx.lineWidth=2.5;ctx.stroke();
-      if(dwellP>0&&dw.key&&dw.key.endsWith('tray:'+id)){ctx.fillStyle='rgba(127,224,201,0.3)';rr(r.x,r.y,r.w*Math.min(1,dwellP),r.h,10);ctx.fill()}}
+    rr(r.x,r.y,r.w,r.h,10);ctx.fillStyle=hov?'rgba(143,211,255,0.25)':'rgba(255,255,255,0.06)';ctx.fill();
+    if(hov){ctx.strokeStyle='#8fd3ff';ctx.lineWidth=2.5;ctx.stroke();
+      if(dwellP>0&&dw.key&&dw.key.endsWith('tray:'+id)){ctx.fillStyle='rgba(143,211,255,0.3)';rr(r.x,r.y,r.w*Math.min(1,dwellP),r.h,10);ctx.fill()}}
     if(avail)drawItem(id,r.x+r.w/2,r.y+38,0.82,{assembled:id==='syringe'&&st.needle,flip:st.cartFlip});
-    ctx.font='500 13px '+FONT;ctx.fillStyle=avail?'#e3ece9':'rgba(227,236,233,0.3)';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.font='500 13px '+FONT;ctx.fillStyle=avail?'#e3ecf3':'rgba(227,236,233,0.3)';ctx.textAlign='center';ctx.textBaseline='top';
     ctx.fillText(name,r.x+r.w/2,r.y+70)}
 }
 const HAND_LINKS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 function drawPip(){
-  ctx.save();rr(PIP.x,PIP.y,PIP.w,PIP.h,10);ctx.clip();
-  if(camOn&&showCamEl.checked&&video.readyState>=2){const c=camCrop();ctx.save();ctx.translate(PIP.x+PIP.w,PIP.y);ctx.scale(-1,1);
-    ctx.drawImage(video,c.sx,c.sy,c.sw,c.sh,0,0,PIP.w,PIP.h);ctx.restore()}
-  else{ctx.fillStyle='#24332f';ctx.fillRect(PIP.x,PIP.y,PIP.w,PIP.h);ctx.font='500 14px '+FONT;ctx.fillStyle='#8fa6a0';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(camOn?'내 화면 숨김':'카메라 꺼짐',PIP.x+PIP.w/2,PIP.y+PIP.h/2)}
-  if(st.masked){ctx.fillStyle='rgba(140,195,234,0.55)';rr(PIP.x+78,PIP.y+70,100,52,16);ctx.fill()}
-  if(lastLm&&camOn){const P=lastLm.map(p=>{const n=lmNorm(p);return{x:PIP.x+n.x*PIP.w,y:PIP.y+n.y*PIP.h}});
-    ctx.strokeStyle=pinch?'#ffd36b':'#7fe0c9';ctx.lineWidth=1.5;
-    HAND_LINKS.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(P[a].x,P[a].y);ctx.lineTo(P[b].x,P[b].y);ctx.stroke()});
-    ctx.fillStyle=ctx.strokeStyle;P.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,2,0,7);ctx.fill()})}
-  ctx.restore();
+  layoutPip();const mn=pipIsMin();
+  const tags=[];if(st.masked)tags.push('마스크');if(st.sanit)tags.push('손 소독');if(st.gloved)tags.push(gloveType()==='exam'?'장갑':'멸균 장갑');
+  if(!mn){
+    ctx.save();rr(PIP.x,PIP.y,PIP.w,PIP.h,10);ctx.clip();
+    if(camOn&&showCamEl.checked&&video.readyState>=2){const c=camCrop();ctx.save();ctx.translate(PIP.x+PIP.w,PIP.y);ctx.scale(-1,1);
+      ctx.drawImage(video,c.sx,c.sy,c.sw,c.sh,0,0,PIP.w,PIP.h);ctx.restore()}
+    else{ctx.fillStyle='#243341';ctx.fillRect(PIP.x,PIP.y,PIP.w,PIP.h);ctx.font='500 14px '+FONT;ctx.fillStyle='#8fa6b6';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(camOn?'내 화면 숨김':'카메라 꺼짐',PIP.x+PIP.w/2,PIP.y+PIP.h/2)}
+    if(st.masked){ctx.fillStyle='rgba(140,195,234,0.55)';rr(PIP.x+78,PIP.y+70,100,52,16);ctx.fill()}
+    if(lastLm&&camOn){const P=lastLm.map(p=>{const n=lmNorm(p);return{x:PIP.x+n.x*PIP.w,y:PIP.y+n.y*PIP.h}});
+      ctx.strokeStyle=pinch?'#ffd36b':'#8fd3ff';ctx.lineWidth=1.5;
+      HAND_LINKS.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(P[a].x,P[a].y);ctx.lineTo(P[b].x,P[b].y);ctx.stroke()});
+      ctx.fillStyle=ctx.strokeStyle;P.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,2,0,7);ctx.fill()})}
+    ctx.restore();
+  }else{
+    rr(PIP.x,PIP.y,PIP.w,PIP.h,18);ctx.fillStyle='rgba(36,51,65,0.95)';ctx.fill();
+    ctx.font='600 13px '+FONT;ctx.fillStyle='#cfe0ea';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText((camOn?'📷 ':'')+'내 화면 (접힘)',PIP.x+12,PIP.y+PIP.h/2);
+  }
   const hz=zonesNow.some(z=>z.rect===PIP)&&inZone({rect:PIP},cur.x,cur.y);
   const flash=performance.now()-flashT<1200;
-  rr(PIP.x,PIP.y,PIP.w,PIP.h,10);ctx.lineWidth=hz||flash?4:2;ctx.strokeStyle=hz?'#7fe0c9':((st.gloved&&contamT>0)||flash?'#ff6b6b':'rgba(255,255,255,0.6)');ctx.stroke();
-  const tags=[];if(st.masked)tags.push('마스크');if(st.sanit)tags.push('손 소독');if(st.gloved)tags.push('멸균 장갑');
-  ctx.font='600 12px '+FONT;ctx.textAlign='left';ctx.textBaseline='middle';let x=PIP.x+6;
-  tags.forEach(t=>{const w=ctx.measureText(t).width+12;rr(x,PIP.y-22,w,18,9);ctx.fillStyle='#2f6f62';ctx.fill();ctx.fillStyle='#fff';ctx.fillText(t,x+6,PIP.y-13);x+=w+4});
+  rr(PIP.x,PIP.y,PIP.w,PIP.h,mn?18:10);ctx.lineWidth=hz||flash?4:2;ctx.strokeStyle=hz?'#8fd3ff':((st.gloved&&contamT>0)||flash?'#ff6b6b':'rgba(255,255,255,0.6)');ctx.stroke();
+  const b=pipBar(),overBar=inR(b,cur.x,cur.y);
+  rr(b.x,b.y,b.w,b.h,8);ctx.fillStyle=overBar||pipDrag?'rgba(47,106,150,0.95)':'rgba(20,34,46,0.85)';ctx.fill();
+  ctx.font='600 12px '+FONT;ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillStyle='#fff';ctx.fillText('⠿',b.x+7,b.y+12);
+  let x=b.x+22;tags.forEach(t=>{const w=ctx.measureText(t).width+10;if(x+w>b.x+b.w-34)return;rr(x,b.y+3,w,18,9);ctx.fillStyle='#2f6a96';ctx.fill();ctx.fillStyle='#fff';ctx.fillText(t,x+5,b.y+12);x+=w+3});
+  if(!tags.length){ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText('끌어서 이동',x,b.y+12)}
+  ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='700 14px '+FONT;ctx.fillText(pipMin?'□':'–',b.x+b.w-15,b.y+12);
 }
 function wrap(text,x,y,maxW,lh,font,color){ctx.font=font;ctx.fillStyle=color;ctx.textAlign='left';ctx.textBaseline='top';
   const lines=[];let line='';for(const ch of text){const t=line+ch;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=ch}else line=t}
   if(line)lines.push(line);lines.forEach((l,i)=>ctx.fillText(l,x,y+i*lh));return lines.length*lh}
 function drawHeader(){
-  ctx.fillStyle='rgba(12,30,26,0.96)';ctx.fillRect(0,0,W,104);
+  ctx.fillStyle='rgba(12,24,36,0.96)';ctx.fillRect(0,0,W,104);
   const s=S[si],phases=CASES[caseId].phases,curPh=s.grp==='post'?phases[phases.length-1]:s.phase;
   ctx.font='600 16px '+FONT;ctx.textBaseline='middle';let x=24;
   if(s.grp!=='start'){
-    ctx.fillStyle=EXAM()?'#ffb547':'#7fe0c9';ctx.textAlign='left';const ml=EXAM()?'실전':'연습';ctx.fillText(ml,x,22);x+=ctx.measureText(ml).width+28;
+    ctx.fillStyle=EXAM()?'#ffb547':'#8fd3ff';ctx.textAlign='left';const ml=EXAM()?'실전':'연습';ctx.fillText(ml,x,22);x+=ctx.measureText(ml).width+28;
     phases.forEach((p,i)=>{const act=curPh===p,done=phases.indexOf(curPh)>i||s.grp==='end';
-      ctx.fillStyle=act?'#e3ece9':done?'rgba(227,236,233,0.55)':'rgba(255,255,255,0.3)';
-      const l=(i+1)+'. '+p;ctx.fillText(l,x,22);const w=ctx.measureText(l).width;if(act){ctx.fillStyle='#7fe0c9';ctx.fillRect(x,34,w,3)}x+=w+28});
+      ctx.fillStyle=act?'#e3ecf3':done?'rgba(227,236,233,0.55)':'rgba(255,255,255,0.3)';
+      const l=(i+1)+'. '+p;ctx.fillText(l,x,22);const w=ctx.measureText(l).width;if(act){ctx.fillStyle='#8fd3ff';ctx.fillRect(x,34,w,3)}x+=w+28});
     if(!EXAM()){ctx.textAlign='right';ctx.fillStyle='#fff';ctx.font='700 18px '+FONT;ctx.fillText('점수 '+score,W-24,22)}
   }
   let txt=s.text;
@@ -840,26 +1199,26 @@ function drawHeader(){
 function drawZoneMarks(){
   for(const z of zonesNow){if(z.tray||z.rect)continue;
     const hov=inZone(z,cur.x,cur.y)&&!blocked();
-    ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,7);ctx.fillStyle=hov?'rgba(127,224,201,0.35)':'rgba(255,255,255,0.12)';ctx.fill();
-    ctx.setLineDash(hov?[]:[6,5]);ctx.lineWidth=hov?3:2;ctx.strokeStyle=hov?'#7fe0c9':'rgba(255,255,255,0.75)';ctx.stroke();ctx.setLineDash([]);
-    if(hov&&dw.key===z.key&&dwellP>0){ctx.beginPath();ctx.arc(z.x,z.y,z.r+8,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,dwellP));ctx.strokeStyle='#7fe0c9';ctx.lineWidth=5;ctx.stroke()}}
+    ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,7);ctx.fillStyle=hov?'rgba(143,211,255,0.35)':'rgba(255,255,255,0.12)';ctx.fill();
+    ctx.setLineDash(hov?[]:[6,5]);ctx.lineWidth=hov?3:2;ctx.strokeStyle=hov?'#8fd3ff':'rgba(255,255,255,0.75)';ctx.stroke();ctx.setLineDash([]);
+    if(hov&&dw.key===z.key&&dwellP>0){ctx.beginPath();ctx.arc(z.x,z.y,z.r+8,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,dwellP));ctx.strokeStyle='#8fd3ff';ctx.lineWidth=5;ctx.stroke()}}
   for(const z of zonesNow){if(!z.rect||z.tray||z.rect===PIP)continue;
     const hov=inZone(z,cur.x,cur.y);rr(z.rect.x,z.rect.y,z.rect.w,z.rect.h,12);
-    if(z.label){ctx.fillStyle=hov?'rgba(127,224,201,0.3)':'rgba(255,255,255,0.1)';ctx.fill()}
+    if(z.label){ctx.fillStyle=hov?'rgba(40,90,130,0.95)':'rgba(12,24,36,0.88)';ctx.fill()}
     ctx.lineWidth=hov?4:2;ctx.setLineDash(hov||z.label?[]:[8,6]);
-    ctx.strokeStyle=hov?'#7fe0c9':'rgba(255,255,255,0.5)';ctx.stroke();ctx.setLineDash([]);
-    if(hov&&dw.key===z.key&&dwellP>0){ctx.fillStyle='rgba(127,224,201,0.35)';rr(z.rect.x,z.rect.y,z.rect.w*Math.min(1,dwellP),z.rect.h,12);ctx.fill()}
+    ctx.strokeStyle=hov?'#8fd3ff':'rgba(255,255,255,0.5)';ctx.stroke();ctx.setLineDash([]);
+    if(hov&&dw.key===z.key&&dwellP>0){ctx.fillStyle='rgba(143,211,255,0.35)';rr(z.rect.x,z.rect.y,z.rect.w*Math.min(1,dwellP),z.rect.h,12);ctx.fill()}
     if(z.label){ctx.font='600 17px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(z.label,z.rect.x+z.rect.w/2,z.rect.y+z.rect.h/2)}}
 }
 function drawToast(){if(!toastO)return;if(performance.now()>toastO.until){toastO=null;return}
-  rr(290,H-112,590,96,12);ctx.fillStyle=toastO.ok?'rgba(47,111,98,0.97)':'rgba(179,38,30,0.97)';ctx.fill();
+  rr(290,H-112,590,96,12);ctx.fillStyle=toastO.ok?'rgba(47,106,150,0.97)':'rgba(179,38,30,0.97)';ctx.fill();
   wrap((toastO.ok?'✓ ':'✗ ')+toastO.text,308,H-98,556,26,'500 18px '+FONT,'#fff')}
 function drawCursor(){
   if(held)drawItem(held,cur.x,cur.y,1.15,{assembled:held==='syringe'&&st.needle,flip:st.cartFlip});
   else if(st.driver&&['sutprep','sut8','lac'].includes(S[si].grp)&&!st.sutured)drawItem(st.driver,cur.x+30,cur.y+18,1.1);
   const grab=handMode&&camOn?pinch:mouseDown;
-  ctx.beginPath();ctx.arc(cur.x,cur.y,grab?11:8,0,7);ctx.fillStyle=grab?'#ffd36b':'#7fe0c9';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
-  if(dwellP>0){ctx.beginPath();ctx.arc(cur.x,cur.y,18,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,dwellP));ctx.strokeStyle='#7fe0c9';ctx.lineWidth=4;ctx.stroke()}
+  ctx.beginPath();ctx.arc(cur.x,cur.y,grab?11:8,0,7);ctx.fillStyle=grab?'#ffd36b':'#8fd3ff';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
+  if(dwellP>0){ctx.beginPath();ctx.arc(cur.x,cur.y,18,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,dwellP));ctx.strokeStyle='#8fd3ff';ctx.lineWidth=4;ctx.stroke()}
   if(handMode&&camOn&&!handSeen){ctx.font='600 16px '+FONT;ctx.fillStyle='#ffb547';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('손이 안 보여요',cur.x,cur.y+16)}
 }
 function grabHint(){return handMode&&camOn?'집어서 잡기':(inputSrc==='mouse'?'눌러서 끌기':'멈춰서 잡기')}
@@ -883,15 +1242,15 @@ function updDrag(s,dt,t){
   if(EXAM()&&s.alt&&s.alt.opposite&&rawSigned<-28){penalize(10,s.alt.why,'alt',s.alt.fb);jumpTo(s.alt.to);return}
   let raw=Math.max(0,Math.min(s.amount,rawSigned)),p=raw;
   if(s.rate&&!EXAM()){p=Math.min(raw,drag.p+s.rate*dt);if(raw-p>40){drag.ahead+=dt;
-      ctx.font='700 20px '+FONT;ctx.fillStyle='#ffb547';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText('천천히! 빠른 주입은 통증과 독성 위험을 키웁니다',440,h.y+90);
-      if(drag.ahead>1500)penalize(5,'주입 속도 과다','fast','1.8mL는 60초 이상에 걸쳐 천천히 주입합니다.')}}
+      ctx.font='700 20px '+FONT;ctx.fillStyle='#ffb547';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText('천천히! '+(s.slowMsg||'빠른 주입은 통증과 독성 위험을 키웁니다'),440,h.y+90);
+      if(drag.ahead>1500)penalize(5,s.fastWhy||'주입 속도 과다','fast',s.fastFb||'1.8mL는 60초 이상에 걸쳐 천천히 주입합니다.')}}
   if(s.maxSpeed&&Math.abs(s.axis==='x'?cur.vx:cur.vy)>s.maxSpeed&&p>4){
     penalize(5,s.speedWhy||s.speedFb,'speed',s.speedFb);
     if(!EXAM()){toast(s.speedFb,0,3000);drag=null;if(s.apply)s.apply(0);return}}
   drag.p=p;if(s.apply)s.apply(p);
-  const hp=s.handle();ctx.fillStyle='rgba(255,255,255,0.2)';rr(hp.x-60,hp.y+44,120,10,5);ctx.fill();ctx.fillStyle='#7fe0c9';rr(hp.x-60,hp.y+44,120*p/s.amount,10,5);ctx.fill();
+  const hp=s.handle();ctx.fillStyle='rgba(255,255,255,0.2)';rr(hp.x-60,hp.y+44,120,10,5);ctx.fill();ctx.fillStyle='#8fd3ff';rr(hp.x-60,hp.y+44,120*p/s.amount,10,5);ctx.fill();
   if(p>=s.amount){
-    if(s.minDur&&EXAM()&&performance.now()-drag.t0<s.minDur)penalize(5,'주입 속도 과다','fast','1.8mL는 60초 이상에 걸쳐 천천히 주입합니다.');
+    if(s.minDur&&EXAM()&&performance.now()-drag.t0<s.minDur)penalize(5,s.fastWhy||'주입 속도 과다','fast',s.fastFb||'1.8mL는 60초 이상에 걸쳐 천천히 주입합니다.');
     let jumped=false;if(s.onDone)jumped=s.onDone();if(s.okfb)toast(s.okfb,1);if(!jumped)next()}
 }
 function updDepth(s,dt,t){
@@ -931,7 +1290,7 @@ function drawShake(){
   const s=sh,dx=Math.max(-1,Math.min(1,(cur.x-440)/320)),p=s.prog/100;
   let lift=0;if(s.stage==='pull'&&s.grip)lift=Math.max(0,Math.min(200,s.pullY-cur.y));if(s.stage==='done')lift=230;
   drawTooth(s.stage==='luxate'&&s.grip?dx*(0.04+0.22*p):0,lift,p*14,st.fracture,1);
-  rr(180,130,520,16,8);ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fill();rr(180,130,520*p,16,8);ctx.fillStyle='#7fe0c9';ctx.fill();
+  rr(180,130,520,16,8);ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fill();rr(180,130,520*p,16,8);ctx.fillStyle='#8fd3ff';ctx.fill();
   ctx.font='500 15px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';
   ctx.fillText(EXAM()?'탈구 진행도 '+Math.round(s.prog)+'%':'탈구 진행도 '+Math.round(s.prog)+'%   과도한 힘 '+s.violent+'/3',440,152);
   if(!s.grip&&s.stage!=='done'){ctx.font='700 20px '+FONT;ctx.fillStyle='#ffd36b';ctx.fillText(handMode&&camOn?'포셉을 쥐세요 (엄지-검지 집기 유지)':'포셉을 쥐세요',440,190)}
@@ -939,21 +1298,236 @@ function drawShake(){
     ctx.fillText(st.fracture?'근단 파절! 힘을 줄이세요':'너무 빠르고 거칩니다. 치근 파절 위험',440,205)}
 }
 function drawEnd(){
-  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
   ctx.font='700 30px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='top';
   ctx.fillText((EXAM()?'실전 모드':'연습 모드')+' · '+CASES[caseId].name+'  '+score+'점',50,130);
   const seen=new Set(),u=mistakes.filter(m=>seen.has(m.why)?false:(seen.add(m.why),true));
   const sv=saved?{saving:'기록 저장 중…',ok:'기록 저장 완료',fail:'서버 저장 실패 · 이 기기에만 저장됨',local:'이 기기에 저장됨',guest:'게스트 모드 · 기록 저장 안 됨'}[saved.status]:'';
-  ctx.font='500 15px '+FONT;ctx.fillStyle='#8fa6a0';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.font='500 15px '+FONT;ctx.fillStyle='#8fa6b6';ctx.textAlign='left';ctx.textBaseline='top';
   ctx.fillText('소요 시간 '+fmtTime((saved&&saved.dur)||0)+'   '+sv,50,170);
-  if(!u.length){wrap('실수 없이 완주했어요.',50,206,780,28,'500 20px '+FONT,'#e3ece9');return}
+  if(!u.length){wrap('실수 없이 완주했어요.',50,206,780,28,'500 20px '+FONT,'#e3ecf3');return}
   let y=204;
-  for(const m of u){if(y>590){wrap('…외 '+(u.length-u.indexOf(m))+'건',50,y,780,24,'500 16px '+FONT,'#8fa6a0');break}
+  for(const m of u){if(y>590){wrap('…외 '+(u.length-u.indexOf(m))+'건',50,y,780,24,'500 16px '+FONT,'#8fa6b6');break}
     y+=wrap('· '+m.why,50,y,800,24,'700 17px '+FONT,'#ffb4ad');
-    if(m.fb)y+=wrap(m.fb,68,y,780,22,'500 15px '+FONT,'#cfe0db');
+    if(m.fb)y+=wrap(m.fb,68,y,780,22,'500 15px '+FONT,'#cfe0ea');
     y+=8}
 }
 
+function drawToothCrown(cx,top,w,h,col){ctx.fillStyle=col||'#f6f1e6';rr(cx-w/2,top,w,h,34);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.06)';ctx.beginPath();ctx.ellipse(cx-w/4,top+6,w/5,10,0,0,7);ctx.ellipse(cx+w/4,top+6,w/5,10,0,0,7);ctx.fill()}
+function drawEptView(){
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  const panel=(cx,lab,rest,cot)=>{
+    ctx.fillStyle='#c9575f';rr(cx-180,180,360,390,24);ctx.fill();
+    ctx.fillStyle='#ef9fa3';rr(cx-180,420,360,130,14);ctx.fill();
+    drawToothCrown(cx-145,262,60,180,'#e9e2d2');drawToothCrown(cx+145,262,60,180,'#e9e2d2');
+    drawToothCrown(cx,250,140,200);
+    ctx.fillStyle='#ef9fa3';ctx.beginPath();ctx.moveTo(cx-76,452);ctx.quadraticCurveTo(cx,420,cx+76,452);ctx.lineTo(cx+76,460);ctx.lineTo(cx-76,460);ctx.fill();
+    if(rest){ctx.fillStyle='#8f989c';rr(cx-62,252,50,60,12);ctx.fill()}
+    if(cot){ctx.fillStyle='#fbfbf6';rr(cx-90,515,180,28,14);ctx.fill();ctx.strokeStyle='#dcdccf';ctx.lineWidth=1;ctx.stroke()}
+    ctx.font='600 15px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(lab,cx,196)};
+  panel(240,'#46 (환자 우측)',true,st.cot46);panel(640,'#36 (환자 좌측)',false,st.cot36);
+  ctx.fillStyle='#d4747c';rr(300,600,280,40,20);ctx.fill();
+  ctx.font='500 13px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('하순',440,632);
+  if(st.clip){ctx.strokeStyle='#cfd8da';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(440,560);ctx.lineTo(440,610);ctx.arc(448,610,8,Math.PI,0,true);ctx.stroke()}
+  if(st.eptOn){ctx.fillStyle='#e6edf2';rr(740,118,140,92,12);ctx.fill();
+    ctx.fillStyle='#203040';rr(750,128,120,42,6);ctx.fill();
+    ctx.font='700 26px '+FONT;ctx.fillStyle='#8fd3ff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(st.eptVal||0),810,150);
+    ctx.font='500 11px '+FONT;ctx.fillStyle='#46607a';ctx.fillText('PULP TESTER',810,190);
+    const tip=st.contact||{x:705,y:222};
+    ctx.strokeStyle='#9fb3c4';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(760,205);ctx.quadraticCurveTo(720,260,tip.x+18,tip.y-18);ctx.stroke();
+    ctx.strokeStyle='#dfe6e8';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(tip.x+18,tip.y-18);ctx.lineTo(tip.x,tip.y);ctx.stroke();
+    if(st.paste){ctx.fillStyle='#e9f3ff';ctx.beginPath();ctx.arc(tip.x,tip.y,5,0,7);ctx.fill()}}
+  else{ctx.setLineDash([6,5]);ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;rr(740,118,140,92,12);ctx.stroke();ctx.setLineDash([])}
+  if(S[si].eSlider){ctx.fillStyle='rgba(255,255,255,0.15)';rr(330,145,200,10,5);ctx.fill();
+    ctx.fillStyle='#8fd3ff';rr(330,145,(st.eptVal||0)/80*200,10,5);ctx.fill();
+    ctx.font='600 14px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('전류 '+(st.eptVal||0)+' / 80',545,150)}
+}
+function drawDamView(){
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#e48b8f';rr(150,170,580,480,40);ctx.fill();
+  ctx.fillStyle='#f0a7aa';rr(150,250,580,80,10);ctx.fill();rr(150,490,580,80,10);ctx.fill();
+  const crown=(x,w,lab)=>{ctx.fillStyle='#f4efe4';rr(x-w/2,345,w,130,30);ctx.fill();ctx.strokeStyle='#d4cbb8';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x-w/4,410);ctx.lineTo(x+w/4,410);ctx.stroke();
+    ctx.font='600 14px '+FONT;ctx.fillStyle='#5a2a2e';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(lab,x,482)};
+  crown(290,100,'#45');crown(440,140,'#46');crown(590,130,'#47');
+  ctx.font='600 15px '+FONT;ctx.fillStyle='#5a2a2e';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('설측',440,195);ctx.fillText('협측',440,630);
+  if(st.sheet){ctx.save();ctx.beginPath();ctx.rect(120,150,640,520);ctx.ellipse(440,410,78,70,0,0,Math.PI*2,true);
+    ctx.fillStyle=st.inverted?'rgba(56,150,110,0.92)':'rgba(70,170,125,0.85)';ctx.fill('evenodd');ctx.restore();
+    ctx.strokeStyle=st.inverted?'#24614a':'rgba(255,255,255,0.4)';ctx.lineWidth=st.inverted?5:2;ctx.beginPath();ctx.ellipse(440,410,78,70,0,0,7);ctx.stroke();
+    if(st.flossed){ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(365,350);ctx.lineTo(365,470);ctx.stroke()}}
+  if(st.clampOn){const sd=(st.clampSeat||0)*8;ctx.strokeStyle='#c9d3d8';ctx.lineWidth=7;ctx.beginPath();
+    ctx.moveTo(440,338-sd*0.2);ctx.quadraticCurveTo(560,410,440,482+sd*0.2);ctx.stroke();
+    ctx.fillStyle='#c9d3d8';rr(415,330-sd*0.2,50,12,4);ctx.fill();rr(415,476+sd*0.2,50,12,4);ctx.fill();
+    if(st.ligated){ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(530,410);ctx.quadraticCurveTo(700,380,760,300);ctx.stroke()}}
+  if(st.frame){ctx.strokeStyle='#3b6fb0';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(150,170);ctx.lineTo(150,650);ctx.lineTo(730,650);ctx.lineTo(730,170);ctx.stroke();
+    ctx.fillStyle='#3b6fb0';[[150,250],[150,400],[150,550],[730,250],[730,400],[730,550]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill()})}
+}
+function drawSheetView(){
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='rgba(70,170,125,0.92)';rr(220,150,440,420,8);ctx.fill();
+  ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(255,255,255,0.45)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(440,150);ctx.lineTo(440,570);ctx.moveTo(220,360);ctx.lineTo(660,360);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.85)';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('↑ 코 쪽',440,170);
+  if(!EXAM()){ctx.fillText('환자 얼굴에 댄 방향 그대로',440,590);ctx.fillText('위 = 상악 · 화면 왼쪽 = 환자 우측',440,612)}
+  if(st.punchAt){ctx.fillStyle='#1b2733';ctx.beginPath();ctx.arc(st.punchAt.x,st.punchAt.y,4+(st.holeSize||3)*2,0,7);ctx.fill()}
+  ctx.fillStyle='rgba(255,255,255,0.08)';rr(745,190,90,380,16);ctx.fill();
+  [1,2,3,4,5].forEach(n=>{const y=150+n*70,r=3+n*2.2;ctx.fillStyle='#cfd8da';ctx.beginPath();ctx.arc(790,y,r,0,7);ctx.fill();
+    ctx.font='600 13px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.fillText(String(n),815,y)});
+  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.7)';ctx.textAlign='center';ctx.fillText('펀치 휠',790,175);
+}
+function drawSealView(){
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#ef9fa3';ctx.beginPath();ctx.ellipse(440,405,270,215,0,0,7);ctx.fill();
+  ctx.fillStyle='#f6f1e6';ctx.beginPath();ctx.ellipse(440,400,215,160,0,0,7);ctx.fill();
+  ctx.strokeStyle='#ddd3be';ctx.lineWidth=2;
+  [[330,330],[440,315],[550,330],[360,480],[520,480]].forEach(([x,y])=>{ctx.beginPath();ctx.ellipse(x,y,70,52,0,0,7);ctx.stroke()});
+  if(!st.clean){ctx.fillStyle='rgba(200,170,90,0.55)';[[350,398],[470,404],[555,392],[438,470],[452,330]].forEach(([x,y])=>{ctx.beginPath();ctx.ellipse(x,y,22,9,0.2,0,7);ctx.fill()})}
+  const grooves=()=>{ctx.beginPath();ctx.moveTo(310,400);ctx.quadraticCurveTo(440,412,570,398);ctx.moveTo(440,404);ctx.lineTo(432,520);ctx.moveTo(445,404);ctx.lineTo(452,290);};
+  ctx.strokeStyle='#7a6a55';ctx.lineWidth=4;grooves();ctx.stroke();
+  [[320,400],[440,405],[560,398]].forEach(([x,y])=>{ctx.fillStyle='#5f4f3c';ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill()});
+  if(st.etched&&st.frosty&&!st.sealP){ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=26;ctx.lineCap='round';grooves();ctx.stroke()}
+  else if(st.etched&&!st.sealP){ctx.strokeStyle='rgba(120,180,255,0.7)';ctx.lineWidth=24;ctx.lineCap='round';grooves();ctx.stroke()}
+  if(st.sealP){ctx.save();ctx.beginPath();ctx.rect(300,250,20+st.sealP*260,300);ctx.clip();
+    ctx.strokeStyle=st.cured?'rgba(255,248,225,0.98)':'rgba(255,250,235,0.85)';ctx.lineWidth=22;ctx.lineCap='round';grooves();ctx.stroke();ctx.restore()}
+  if(st.cotB){ctx.fillStyle='#fbfbf6';rr(330,588,220,28,14);ctx.fill()}
+  if(st.cotL){ctx.fillStyle='#fbfbf6';rr(330,198,220,28,14);ctx.fill()}
+  ctx.font='600 15px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('#36 교합면 · 설측',440,150);ctx.fillText('협측',440,650);
+}
+function updHold(s,dt,t){
+  const a=s.at();zonesNow=[];dwellP=0;
+  const inside=Math.hypot(cur.x-a.x,cur.y-a.y)<=a.r+14&&holding();
+  if(inside&&!blocked())st.holdT=(st.holdT||0)+dt;
+  const p=Math.min(1,(st.holdT||0)/s.dur);
+  ctx.setLineDash(inside?[]:[6,5]);ctx.strokeStyle='#ffd36b';ctx.lineWidth=3;ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle='#8fd3ff';ctx.lineWidth=7;ctx.beginPath();ctx.arc(a.x,a.y,a.r+9,-Math.PI/2,-Math.PI/2+Math.PI*2*p);ctx.stroke();
+  ctx.font='600 14px '+FONT;ctx.fillStyle='#ffd36b';ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText(s.label+(inside?'':' · 여기에 대고 유지'),a.x,a.y-a.r-14);
+  if(p>=1){st.holdT=0;if(s.onDone)s.onDone();if(s.okfb)toast(s.okfb,1);next()}
+}
+function updCircle(s,dt,t){
+  const c=s.center(),dx=cur.x-c.x,dy=cur.y-c.y,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);zonesNow=[];dwellP=0;
+  if(d>35&&d<240&&holding()){if(st.cPrev!=null){let da=a-st.cPrev;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;st.cAcc+=da}st.cPrev=a}else st.cPrev=null;
+  const turns=Math.abs(st.cAcc)/(2*Math.PI);
+  ctx.setLineDash([5,6]);ctx.strokeStyle='rgba(255,255,255,0.45)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(c.x,c.y,120,0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle='#8fd3ff';ctx.lineWidth=6;ctx.beginPath();ctx.arc(c.x,c.y,132,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,turns/s.turns));ctx.stroke();
+  ctx.font='600 16px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(Math.min(s.turns,turns).toFixed(1)+' / '+s.turns+' 바퀴',c.x,c.y+140);
+  if(turns>=s.turns){if(s.onDone)s.onDone();if(s.okfb)toast(s.okfb,1);next()}
+}
+const TH=k=>Math.PI*(0.97-0.94*k/13);
+const NUM14=['#17','#16','#15','#14','#13','#12','#11','#21','#22','#23','#24','#25','#26','#27'];
+function UPT(k){const t=TH(k);return{x:440+300*Math.cos(t),y:470-285*Math.sin(t)}}
+const ARCH_MARKS=[2,3,4,5,6,7,8,9,10,11].map(k=>{const t=TH(k);return{x:440+170*Math.cos(t),y:470-230*Math.sin(t)}});
+function CONTACTS14(){const o=[];for(let k=2;k<=10;k++){const a=UPT(k),b=UPT(k+1);o.push({x:(a.x+b.x)/2,y:(a.y+b.y)/2})}return o}
+function drawDam14View(){
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#e48b8f';ctx.beginPath();ctx.ellipse(440,470,350,340,0,Math.PI,0);ctx.lineTo(790,560);ctx.lineTo(90,560);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#d77e84';ctx.beginPath();ctx.ellipse(440,470,230,215,0,Math.PI,0);ctx.lineTo(670,560);ctx.lineTo(210,560);ctx.closePath();ctx.fill();
+  for(let k=0;k<14;k++){const p=UPT(k),post=k<3||k>10,w=post?(k<2||k>11?52:40):(k===6||k===7?36:30);
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.PI/2-TH(k));ctx.fillStyle='#f4efe4';rr(-w/2,-20,w,40,12);ctx.fill();ctx.restore();
+    ctx.font='500 12px '+FONT;ctx.fillStyle='#5a2a2e';ctx.textAlign='center';ctx.textBaseline='middle';
+    const q={x:440+(300-58)*Math.cos(TH(k)),y:470-(285-58)*Math.sin(TH(k))};ctx.fillText(NUM14[k],q.x,q.y)}
+  if(st.sheet14){ctx.save();ctx.beginPath();ctx.rect(110,120,660,500);
+    for(let k=3;k<=10;k++){const p=UPT(k);ctx.moveTo(p.x+24,p.y);ctx.ellipse(p.x,p.y,24,24,0,0,Math.PI*2,true)}
+    ctx.fillStyle=st.inverted?'rgba(56,150,110,0.92)':'rgba(70,170,125,0.85)';ctx.fill('evenodd');ctx.restore();
+    ctx.fillStyle='#ffffff';[...st.cts].forEach(i=>{const p=CONTACTS14()[i];if(p){ctx.beginPath();ctx.arc(p.x,p.y,3,0,7);ctx.fill()}})}
+  const clamp=(k)=>{const p=UPT(k);ctx.strokeStyle='#c9d3d8';ctx.lineWidth=5;ctx.beginPath();ctx.arc(p.x,p.y,26,0,Math.PI*2);ctx.stroke()};
+  if(st.cl14)clamp(3);if(st.cl24)clamp(10);
+  if(st.frame){ctx.strokeStyle='#3b6fb0';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(110,620);ctx.lineTo(110,130);ctx.lineTo(770,130);ctx.lineTo(770,620);ctx.stroke()}
+  ctx.font='600 14px '+FONT;ctx.fillStyle='rgba(255,255,255,0.8)';ctx.textAlign='center';ctx.fillText('상악 교합면 · 화면 왼쪽 = 환자 우측',440,600);
+}
+function drawSheet14View(){
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='rgba(70,170,125,0.92)';rr(220,140,440,440,8);ctx.fill();
+  ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(440,140);ctx.lineTo(440,580);ctx.moveTo(220,360);ctx.lineTo(660,360);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.85)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('↑ 코 쪽',440,158);
+  if(!EXAM())ctx.fillText('위 = 상악 · 화면 왼쪽 = 환자 우측',440,560);
+  ARCH_MARKS.forEach((m,i)=>{const on=st.holes.has(i);ctx.fillStyle=on?'#1b2733':'rgba(255,255,255,0.75)';ctx.beginPath();ctx.arc(m.x,m.y,on?8:3.5,0,7);ctx.fill()});
+}
+function archTooth(p,w,col){ctx.fillStyle=col||'#f4efe4';ctx.beginPath();ctx.ellipse(p.x,p.y,w,w*0.82,0,0,7);ctx.fill()}
+function drawFluorView(){
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#e48b8f';rr(170,160,540,440,60);ctx.fill();
+  for(let k=0;k<12;k++){const t=Math.PI*(0.95-0.9*k/11),w=k<2||k>9?22:15;
+    archTooth({x:440+200*Math.cos(t),y:320-125*Math.sin(t)},w);archTooth({x:440+200*Math.cos(t),y:400+125*Math.sin(t)},w)}
+  if(!st.fclean){ctx.fillStyle='rgba(205,180,95,0.6)';[[300,270],[420,200],[560,250],[300,450],[450,520],[590,460]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill()})}
+  const tray=(y0,up)=>{ctx.strokeStyle='rgba(120,200,255,0.75)';ctx.lineWidth=22;ctx.beginPath();ctx.ellipse(440,y0,200,125,0,up?Math.PI*1.04:-0.04*Math.PI,up?-0.04*Math.PI:Math.PI*1.04,!up);ctx.stroke()};
+  if(st.trayU)tray(320,true);if(st.trayL)tray(400,false);
+  if(st.ej){ctx.strokeStyle='#e6edf2';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(440,365);ctx.quadraticCurveTo(560,350,640,600);ctx.stroke()}
+  ctx.font='600 14px '+FONT;ctx.fillStyle='rgba(255,255,255,0.8)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('상악',440,175);ctx.fillText('하악',440,585);
+}
+function drawTrayFill(){
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#bfe0f7';rr(230,300,420,240,20);ctx.fill();ctx.fillStyle='#eef7fd';rr(250,300,380,220,14);ctx.fill();
+  const lv=Math.min(1,(st.gel||0)/150);ctx.fillStyle='rgba(255,170,90,0.85)';rr(250,520-220*lv,380,220*lv,10);ctx.fill();
+  if(!EXAM()){ctx.setLineDash([6,5]);ctx.strokeStyle='#ff8a3d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(240,520-220/3);ctx.lineTo(640,520-220/3);ctx.stroke();ctx.setLineDash([]);
+    ctx.font='600 13px '+FONT;ctx.fillStyle='#ffb27a';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('1/3',648,520-220/3)}
+  ctx.font='600 15px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText('불소 트레이 단면 · 겔 '+Math.round(lv*100)+'%',440,270);
+  ctx.fillStyle='#f2a65a';rr(722,560,36,90,8);ctx.fill();ctx.fillStyle='#e6edf2';rr(728,540,24,22,4);ctx.fill();
+}
+function LPT(k){const t=TH(k);return{x:440+260*Math.cos(t),y:380+180*Math.sin(t)}}
+function UPP(k){const t=TH(k);return{x:440+260*Math.cos(t),y:320-180*Math.sin(t)}}
+function offs(p,c,d){const vx=p.x-c.x,vy=p.y-c.y,l=Math.hypot(vx,vy)||1;return{x:p.x+vx/l*d,y:p.y+vy/l*d}}
+function perioSite(){const s=st.pSite,mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+  if(s===0)return{p:offs(mid(LPT(6),LPT(7)),{x:440,y:380},-30),sub:0};
+  if(s===1)return{p:offs(UPP(12),{x:440,y:320},30),sub:0};
+  if(s===10)return{p:mid(LPT(0),LPT(1)),sub:1};
+  if(s===11)return{p:mid(UPP(11),UPP(12)),sub:1};
+  if(s===12)return{p:offs(LPT(7),{x:440,y:380},30),sub:1};
+  return null}
+function drawPerioView(){
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#e48b8f';rr(150,120,580,480,60);ctx.fill();
+  for(let k=0;k<14;k++){const post=k<3||k>10,w=post?(k<2||k>11?21:17):13;archTooth(UPP(k),w);archTooth(LPT(k),w)}
+  const s=perioSite();
+  if(s){const pul=1+0.15*Math.sin(performance.now()/220);
+    ctx.fillStyle=s.sub?'rgba(90,60,40,0.9)':'rgba(205,170,80,0.95)';ctx.beginPath();ctx.ellipse(s.p.x,s.p.y,9,6,0,0,7);ctx.fill();
+    ctx.strokeStyle='#ffd36b';ctx.lineWidth=3;ctx.beginPath();ctx.arc(s.p.x,s.p.y,20*pul,0,7);ctx.stroke();
+    if(s.sub){ctx.font='700 12px '+FONT;ctx.fillStyle='#ffd36b';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText('PD 6mm',s.p.x,s.p.y-24)}}
+  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.75)';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('위: 상악 · 아래: 하악 · 화면 왼쪽 = 환자 우측 (치식 숨김)',440,620);
+}
+function drawPz(){
+  const sub=S[si].sub;
+  ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#f4efe4';ctx.beginPath();ctx.moveTo(360,190);ctx.quadraticCurveTo(440,150,540,190);ctx.lineTo(560,390);ctx.quadraticCurveTo(540,600,470,640);ctx.lineTo(420,640);ctx.quadraticCurveTo(360,600,350,390);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#e9dcc0';ctx.fillRect(352,392,206,250);
+  const gm=sub?410:410;ctx.fillStyle='rgba(228,139,143,0.92)';
+  ctx.beginPath();ctx.moveTo(560,gm);ctx.quadraticCurveTo(600,gm-8,720,gm-4);ctx.lineTo(720,660);ctx.lineTo(560+(sub?14:0),660);ctx.lineTo(560+(sub?14:0),sub?530:gm+4);ctx.closePath();ctx.fill();
+  if(sub){ctx.fillStyle='#3a1418';ctx.fillRect(560,gm,14,120)}
+  const dep=Math.max(0,st.pDep);ctx.fillStyle='rgba('+(sub?'90,60,40,':'205,170,80,')+(0.95*dep)+')';
+  if(sub)rr(552,445,18,70,6);else rr(548,350,20,52,6);ctx.fill();
+  ctx.font='600 14px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(sub?'치은연하 치근면 (치주낭)':'치은연상 치석',600,170);ctx.fillText('치은',660,gm+30);
+}
+function updStrokes(s,dt,t){
+  const a=s.at();zonesNow=[];dwellP=0;
+  const inside=Math.hypot(cur.x-a.x,cur.y-a.y)<=a.r+40;
+  ctx.setLineDash([6,5]);ctx.strokeStyle='#ffd36b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='600 16px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('스트로크 '+st.sCount+' / '+s.n,a.x,a.y+a.r+12);
+  st.warnT=Math.max(0,(st.warnT||0)-dt);
+  if(st.warnT>0&&!EXAM()){ctx.font='700 18px '+FONT;ctx.fillStyle='#ffb547';ctx.fillText(s.sub?'힘 빼고 가볍고 길게!':'너무 빨라요. 짧고 조절된 스트로크로!',a.x,a.y-a.r-40)}
+  if(!holding()||!inside){st.sPrev=null;ctx.font='600 14px '+FONT;ctx.fillStyle='#ffd36b';ctx.fillText(handMode&&camOn?'기구를 쥔 채(집기) 여기서 위로':'여기서 위로 끌어올리기',a.x,a.y-a.r-18);return}
+  if(st.sPrev==null){st.sPrev=cur.y;st.sStart=cur.y}
+  const dy=cur.y-st.sPrev;st.sPrev=cur.y;
+  if(cur.y>st.sStart)st.sStart=cur.y;
+  if(s.maxSpeed&&-dy>s.maxSpeed){st.warnT=1200;penalize(5,(s.sub?'RP':'SC')+': 과도한 힘·속도','speed',s.sub?'RP는 가볍고 길게 겹치는 스트로크로. 과하면 치근면을 과도하게 깎습니다.':'조절 안 된 빠른 스트로크는 기구가 미끄러져 연조직을 다치게 해요.')}
+  if(st.sStart-cur.y>=s.len){st.sCount++;st.sStart=cur.y;st.pDep=1-st.sCount/s.n}
+  if(st.sCount>=s.n){if(s.onDone)s.onDone();if(s.okfb)toast(s.okfb,1);next()}
+}
+function updGauge(s,dt,t){
+  const h=s.handle();
+  if(!drag){zonesNow=[{key:'handle',x:h.x,y:h.y,r:h.r,act:()=>{drag={ox:cur.x-(s.axis==='x'?st.gaugeRaw*s.dir:0),oy:cur.y-(s.axis==='y'?st.gaugeRaw*s.dir:0),by:inputSrc,band:0};return{stay:1}}}];
+    runZones(dt);handleRing(h,t);return}
+  zonesNow=[];dwellP=0;
+  if(!holding()){drag=null;return}
+  const raw=Math.max(0,(s.axis==='x'?cur.x-drag.ox:cur.y-drag.oy)*s.dir);st.gaugeRaw=raw;if(s.apply)s.apply(raw);
+  if(raw>s.over){penalize(5,s.overWhy,'over',s.overFb);
+    if(!EXAM()){toast(s.overFb,0,3200);drag=null;st.gaugeRaw=0;if(s.apply)s.apply(0);return}
+    next();return}
+  if(raw>=s.lo&&raw<=s.hi){drag.band+=dt;if(drag.band>700){if(s.okfb)toast(s.okfb,1);next()}}else drag.band=0;
+}
 /* ================= suture logic ================= */
 function arcGeo(){const a=st.entry,b=st.exit,cx=(a.x+b.x)/2,cy=(a.y+b.y)/2,R=Math.hypot(a.x-b.x,a.y-b.y)/2,ux=(b.x-a.x)/(2*R),uy=(b.y-a.y)/(2*R);
   return{cx,cy,R,ux,uy,px:-uy,py:ux,pt:t=>({x:cx-ux*R*Math.cos(Math.PI*t)-uy*R*Math.sin(Math.PI*t),y:cy-uy*R*Math.cos(Math.PI*t)+ux*R*Math.sin(Math.PI*t)})}}
@@ -1008,7 +1582,7 @@ function updTension(s,dt,t){
   if(!holding()){drag=null;st.tension=0;return}
   const raw=(cur.x-drag.ox)*s.dir;st.tension=raw;
   const bx=290,by=140,bw=300;ctx.fillStyle='rgba(255,255,255,0.15)';rr(bx,by,bw,14,7);ctx.fill();
-  ctx.fillStyle='rgba(127,224,201,0.45)';ctx.fillRect(bx+bw*70/150,by,bw*45/150,14);
+  ctx.fillStyle='rgba(143,211,255,0.45)';ctx.fillRect(bx+bw*70/150,by,bw*45/150,14);
   ctx.fillStyle=raw>120?'#ff6b6b':'#fff';ctx.fillRect(bx+bw*Math.max(0,Math.min(150,raw))/150-2,by-4,4,22);
   ctx.font='500 14px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('장력',bx-44,by+7);
   if(raw>130){penalize(5,'매듭 과도한 장력','tight','조직이 하얗게 질릴 정도로 조이면 혈류가 막혀 판막 괴사와 봉합사 탈락이 생깁니다. 판막이 맞닿을 정도로만.');
@@ -1021,16 +1595,20 @@ function updTension(s,dt,t){
 
 
 /* ================= 앱 셸: 홈 · 기록 · 리더보드 ================= */
+const APP_VERSION='v1.2';
+const PATCH_DATE='10월 1일';
 let screen='home',user=null;
 function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 user=lsGet('dds_user',null);
-const ov=document.getElementById('ov');
+const ov=document.getElementById('homePage');
+const gamePage=document.getElementById('gamePage');
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const API_BASE=SUPABASE_URL.replace(/\/rest\/v1\/?$/,'').replace(/\/+$/,'');
 async function rpc(fn,args){
   const h={'Content-Type':'application/json',apikey:SUPABASE_ANON_KEY};
   if(SUPABASE_ANON_KEY.startsWith('eyJ'))h.Authorization='Bearer '+SUPABASE_ANON_KEY;
-  const r=await fetch(SUPABASE_URL.replace(/\/+$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(args)});
+  const r=await fetch(API_BASE+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(args)});
   if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 async function api(params,body){
   if(!API_ON)throw new Error('no api');
@@ -1046,69 +1624,151 @@ async function api(params,body){
 function fmtTime(sec){sec=Math.round(sec||0);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
 function fmtDate(iso){const d=new Date(iso);if(isNaN(d))return'';return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 const MODE_NAME={practice:'연습',exam:'실전'};
-function showScreen(n,arg){screen=n;if(n==='game'){ov.hidden=true;return}ov.hidden=false;
+
+/* ---- 라이트/다크 (두근두근과 같은 키를 써서 설정 공유) ---- */
+const THEME_KEY='dental-sp-theme';
+function getThemePref(){try{return localStorage.getItem(THEME_KEY)||''}catch(e){return''}}
+function applyTheme(p){if(p==='dark'||p==='light')document.documentElement.setAttribute('data-theme',p);else document.documentElement.removeAttribute('data-theme')}
+function isDarkNow(){const p=getThemePref();if(p)return p==='dark';return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)}
+function toggleTheme(){const n=isDarkNow()?'light':'dark';try{localStorage.setItem(THEME_KEY,n)}catch(e){}applyTheme(n);syncThemeBtns();if(screen!=='game')showScreen(screen)}
+function themeLabel(){return isDarkNow()?'☀️ 라이트 모드로 보기':'🌙 다크 모드로 보기'}
+function syncThemeBtns(){document.querySelectorAll('.themeBtn').forEach(b=>b.textContent=themeLabel())}
+applyTheme(getThemePref());
+
+function brandBlock(small){
+  if(small)return '<div class="brand-mini"><span class="tw" style="animation-delay:.3s">✦</span> 두근두근 치의학부 <b class="mini-ban">B반</b> <span class="tw">✦</span></div>';
+  return `<div class="brand-block brand-enter">
+    <div class="brand-shape" style="top:-26px;right:-26px;width:100px;height:100px;border-radius:50%;background:var(--accent-soft);"></div>
+    <div class="brand-shape" style="bottom:-14px;left:38%;width:46px;height:46px;border-radius:50%;background:var(--accent);opacity:.18;"></div>
+    <div class="brand-shape" style="top:18px;right:64px;width:22px;height:22px;border-radius:6px;background:var(--accent);opacity:.5;transform:rotate(45deg);"></div>
+    <div class="brand-shape" style="top:34px;left:14px;width:14px;height:14px;border-radius:50%;background:var(--sparkle);opacity:.6;"></div>
+    <div class="brand-shape tw" style="font-size:22px;color:var(--sparkle);top:-6px;left:6%;">✦</div>
+    <div class="brand-shape tw" style="font-size:14px;color:var(--sparkle);bottom:10px;right:12%;animation-delay:.8s">✦</div>
+    <div class="brand-shape tw" style="font-size:18px;color:var(--sparkle);top:52%;left:3%;animation-delay:1.4s">✦</div>
+    <div class="brand-shape tw" style="font-size:12px;color:var(--sparkle);top:30%;right:4%;animation-delay:2s">✦</div>
+    <div class="brand-shape bob" style="font-size:16px;top:10px;right:16%;">💙</div>
+    <div class="brand-shape tw" style="font-size:13px;bottom:14px;left:10%;animation-delay:.5s">✨</div>
+    <div class="brand-shape bob" style="font-size:16px;top:14px;left:16%;animation-delay:.6s">🦷</div>
+    <div class="brand-shape bob" style="font-size:15px;bottom:-8px;right:22%;animation-delay:1.1s">🩵</div>
+    <div class="brand-shape tw" style="font-size:12px;top:44px;right:6%;animation-delay:1.7s">⭐</div>
+    <div class="brand-text">
+      <h1 class="brand-title">✦ 두근두근 치의학부 ✦<span class="brand-ban"><span class="tw ban-star">✦</span><span class="ban-text">B반</span><span class="tw ban-star" style="animation-delay:1.2s">✦</span></span></h1>
+      <div class="brand-sub">~실기 떨어지는 건 싫으니까<br>과평에 올인하려고 합니다~</div>
+      <div class="brand-line">✦ 경희치대 79회 국시 전원 합격 기원 ✦</div>
+    </div></div>`}
+function notices(){return `
+  <div class="intro-note chalkboard">
+    <div class="notice-head"><span>📢 B반 공지사항</span></div>
+    <p><b>노트북 카메라 + 크롬</b>으로 접속하면 내 손이 그대로 기구가 돼요. <b>엄지·검지 사이</b>가 커서예요.</p>
+    <p><b>엄지-검지를 집으면 잡기, 떼면 놓기</b>. 노란 고리가 뜨면 집은 채로 안내 방향으로 움직이면 돼요.</p>
+    <p>멸균 장갑을 낀 뒤 <b>얼굴(내 화면)이나 무영등을 만지면 오염</b>이에요. 실제 술식처럼 조심!</p>
+    <p><b>두근두근 코드 그대로</b> 로그인돼요. <b>실전 모드</b> 점수가 리더보드에 올라가요.</p>
+    <p>외과 술식에 이어 <b>보존·소아치과·치주</b> 술식도 추가됐어요. 치주 케이스는 <b>치식이 숨겨져</b> 있으니 부위를 보고 판단해요!</p>
+    <p>휴대폰은 <b>가로로 돌리고 손가락 터치</b>로 하는 게 편해요.</p>
+    <p class="chalk-cta">🦷 이제 술식하러 가볼까요! ✨</p>
+  </div>`}
+function patchNotes(){return `
+  <details class="intro-note">
+    <summary class="notice-head"><span>🛠 패치 내역</span><span class="notice-meta">${PATCH_DATE} · ${APP_VERSION}</span></summary>
+    <ul class="patch">
+      <li class="new"><b>새 케이스 4종</b>: #14–24 러버댐 장착 · 불소 트레이 도포(치면세마부터) · 치은연상 스케일링 · 치근활택술(RP). 치주 케이스는 <b>치식을 숨겨서</b> 부위를 보고 기구를 골라야 해요</li>
+      <li class="new"><b>내 화면 창 이동·접기</b>: 창 위 막대를 끌어서 옮기거나 – 버튼으로 접기, 아래 버튼으로 모서리 이동. 케이스·모드 선택 화면에선 자동으로 접혀요</li>
+      <li class="new"><b>모바일 대응</b>: 터치로 진행 가능, 전체 화면 버튼, 세로 화면일 때 가로 회전 안내</li>
+      <li><b>새 케이스 3종</b>: #46 전기치수검사(EPT) · #46 러버댐 장착 · #36 실란트 (진료용 장갑 착용 흐름 별도 적용)</li>
+      <li class="new"><b>하늘색 테마</b>로 전체 색감 변경, 타이틀을 "두근두근 치의학부 / B반"으로 정리</li>
+      <li class="new">케이스 선택 화면을 <b>2줄 카드</b>로 바꾸고 과목 태그(구강외과·보존·소아치과) 표시</li>
+      <li><b>케이스 4종</b>: IANB + #46 발치 / #46 발치 + 8자 봉합 / 발치와 8자 봉합만 / 상악 전치부(#21–#23) 치은 열상 단순 단속 봉합 4바늘</li>
+      <li><b>MediaPipe 손 추적</b>: 집기 동작으로 기구 잡기·놓기, 집은 채로 움직이는 동작(피스톤, 페달, seat, 탈구, 봉합 바늘 통과) 인식</li>
+      <li><b>연습 모드 / 실전 모드</b>: 연습은 단계별 안내와 즉시 해설, 실전은 목표만 보여주고 틀려도 진행·생략 가능, 끝나고 해설 한 번에</li>
+      <li><b>봉합 매듭을 2 throw surgeon's knot</b>으로 변경(2회 감기 → 반대 방향 1회), 같은 방향이면 granny knot으로 기록</li>
+      <li><b>멸균 장갑 착용 수정</b>: 두 번째 장갑은 접힌 커프 틈 안쪽으로 손가락을 넣어 잡도록 판정 위치 변경</li>
+      <li><b>두근두근 코드 로그인 + 내 기록 + 리더보드</b>(케이스·모드별 학생당 최고점, 같은 점수면 짧은 시간 우선)</li>
+      <li>케이스·모드 선택이 <b>너무 빨리 넘어가던 문제 수정</b>, 화면 안 <b>뒤로가기 버튼</b> 추가</li>
+      <li><b>라이트/다크 모드</b> 추가(두근두근과 설정 공유)</li>
+    </ul>
+  </details>`}
+function themeBox(){return '<div class="intro-note center"><button class="themeBtn btn-soft">'+themeLabel()+'</button></div>'}
+function bindTheme(){ov.querySelectorAll('.themeBtn').forEach(b=>b.onclick=toggleTheme)}
+
+function showScreen(n,arg){screen=n;
+  if(n==='game'){ov.hidden=true;gamePage.hidden=false;window.scrollTo(0,0);return}
+  ov.hidden=false;gamePage.hidden=true;
   if(n==='home')renderHome();else if(n==='records')renderRecords();else if(n==='board')renderBoard(arg||{c:'ext',m:'exam'})}
-function serverNote(){return API_ON?'':'<p class="ovnote">기록 서버가 아직 연결되지 않았어요. 기록은 이 기기에만 저장되고 리더보드도 이 기기 기록만 보여요.</p>'}
+
 function renderHome(msg){
+  let action;
   if(!user){
-    ov.innerHTML='<div class="ovcard"><p class="ovsub">치과 술식 시뮬레이터</p><h2>'+esc(CLASS_NAME)+'</h2>'+
-      '<label class="ovfield">'+(API_ON?'발급받은 개인 코드':'이름')+'<input id="codeIn" autocomplete="off" spellcheck="false" placeholder="'+(API_ON?'예: B-7KQ2M':'이름 입력')+'"></label>'+
-      '<div class="ovrow"><button class="primary" id="loginBtn">입장</button><button id="guestBtn">코드 없이 체험</button></div>'+
-      '<p class="ovmsg" id="ovmsg">'+esc(msg||'')+'</p>'+serverNote()+'</div>';
+    action=`<div class="intro-note action">
+      <div class="notice-head"><span>🔑 입장하기</span></div>
+      <label class="field">${API_ON?'두근두근 코드':'이름'}<input id="codeIn" autocomplete="off" spellcheck="false" placeholder="${API_ON?'6자리 코드 입력':'이름 입력'}"></label>
+      <button class="next-btn" id="loginBtn">입장하기 ✨</button>
+      <button class="link-btn" id="guestBtn">코드 없이 체험해볼래요</button>
+      <p class="msg" id="ovmsg">${esc(msg||'')}</p>
+      ${API_ON?'<p class="hint">코드가 없으면 두근두근 치의학부에서 먼저 발급받아 주세요.</p>':'<p class="hint">기록 서버가 아직 연결되지 않아 기록은 이 기기에만 저장돼요.</p>'}
+    </div>`;
+  }else{
+    action=`<div class="intro-note action">
+      <div class="notice-head"><span>🙋 ${esc(user.name)}${user.guest?' (체험 중 · 기록 저장 안 됨)':'님 어서 와요'}</span>
+        <button class="link-btn small" id="outBtn">${user.guest?'코드 입력하기':'로그아웃'}</button></div>
+      <button class="next-btn" id="startBtn">술식 시작하기 🦷</button>
+      <div class="btn-row"><button class="btn-soft" id="recBtn"${user.guest?' disabled':''}>📒 내 기록</button><button class="btn-soft" id="boardBtn">🏆 리더보드</button></div>
+    </div>`;
+  }
+  ov.innerHTML=brandBlock()+notices()+patchNotes()+action+themeBox();
+  bindTheme();
+  if(!user){
     const go=async()=>{const v=document.getElementById('codeIn').value.trim();if(!v)return;const m=document.getElementById('ovmsg');
       if(!API_ON){user={code:'LOCAL:'+v,name:v,local:1};lsSet('dds_user',user);renderHome();return}
       m.textContent='확인 중…';
       try{const j=await api({action:'login',code:v});user={code:j.user.code,name:j.user.name};lsSet('dds_user',user);renderHome()}
-      catch(e){m.textContent='코드를 확인할 수 없어요. 발급받은 코드를 다시 확인해 주세요.'}};
+      catch(e){m.textContent=String(e.message).startsWith('HTTP')?'서버 연결에 실패했어요. 잠시 후 다시 시도해 주세요.':'코드를 찾을 수 없어요. 두근두근 코드를 다시 확인해 주세요.'}};
     document.getElementById('loginBtn').onclick=go;
     document.getElementById('codeIn').onkeydown=e=>{if(e.key==='Enter')go()};
     document.getElementById('guestBtn').onclick=()=>{user={guest:1,name:'게스트'};renderHome()};
     return}
-  ov.innerHTML='<div class="ovcard"><p class="ovsub">치과 술식 시뮬레이터</p><h2>'+esc(CLASS_NAME)+'</h2>'+
-    '<p class="ovhello">'+esc(user.name)+(user.guest?' · 기록이 저장되지 않아요':'님, 안녕하세요')+'</p>'+
-    '<div class="ovcol"><button class="primary big" id="startBtn">시작하기</button>'+
-    '<button id="recBtn"'+(user.guest?' disabled':'')+'>내 기록</button><button id="boardBtn">리더보드</button>'+
-    '<button class="ghost" id="outBtn">'+(user.guest?'코드 입력하기':'로그아웃')+'</button></div>'+serverNote()+'</div>';
   document.getElementById('startBtn').onclick=()=>{resetAll();showScreen('game')};
   document.getElementById('recBtn').onclick=()=>showScreen('records');
   document.getElementById('boardBtn').onclick=()=>showScreen('board');
   document.getElementById('outBtn').onclick=()=>{user=null;try{localStorage.removeItem('dds_user')}catch(e){}renderHome()};
 }
+function pageHead(title){return brandBlock(true)+'<div class="page-head"><h2>'+title+'</h2><button class="btn-soft" id="ovBack">← 홈으로</button></div>'}
 function normRec(r){return{time:r.time,case:r.case,mode:r.mode,score:Number(r.score)||0,durationSec:Number(r.durationSec)||0,
   mistakes:Array.isArray(r.mistakes)?r.mistakes:String(r.mistakes||'').split(' | ').filter(Boolean),name:r.name,code:r.code}}
 async function renderRecords(){
-  ov.innerHTML='<div class="ovcard wide"><div class="ovhead"><h3>내 기록</h3><button id="ovBack">← 뒤로</button></div><div id="recBody" class="ovscroll">불러오는 중…</div></div>';
-  document.getElementById('ovBack').onclick=()=>showScreen('home');
+  ov.innerHTML=pageHead('📒 내 기록')+'<div class="intro-note" id="recBody">불러오는 중…</div>'+themeBox();
+  bindTheme();document.getElementById('ovBack').onclick=()=>showScreen('home');
   let recs,src='';
   try{if(!API_ON||user.local)throw 0;recs=(await api({action:'history',code:user.code})).records}
-  catch(e){recs=lsGet('dds_records',[]).filter(r=>r.code===user.code).reverse();src=API_ON&&!user.local?'<p class="ovnote">서버에 연결하지 못해 이 기기 기록만 보여요.</p>':''}
+  catch(e){recs=lsGet('dds_records',[]).filter(r=>r.code===user.code).reverse();src=API_ON&&!user.local?'<p class="hint">서버에 연결하지 못해 이 기기 기록만 보여요.</p>':''}
   recs=recs.map(normRec);
   const body=document.getElementById('recBody');if(!body)return;
-  if(!recs.length){body.innerHTML='<p class="ovmsg">아직 기록이 없어요. 한 번 완주하면 여기에 쌓입니다.</p>'+src;return}
-  const best={};recs.forEach(r=>{const k=r.case+'|'+r.mode;if(!best[k]||r.score>best[k])best[k]=r.score});
-  body.innerHTML=src+'<table class="ovtable"><thead><tr><th>날짜</th><th>케이스</th><th>모드</th><th>점수</th><th>시간</th><th>실수</th></tr></thead><tbody>'+
-    recs.map((r,i)=>'<tr class="rrow" data-i="'+i+'"><td>'+fmtDate(r.time)+'</td><td>'+esc((CASES[r.case]||{}).name||r.case)+'</td><td>'+(MODE_NAME[r.mode]||r.mode)+'</td><td><b>'+r.score+'</b>'+(best[r.case+'|'+r.mode]===r.score?' ★':'')+'</td><td>'+fmtTime(r.durationSec)+'</td><td>'+r.mistakes.length+'건</td></tr>'+
-      '<tr class="rdet" id="det'+i+'" hidden><td colspan="6">'+(r.mistakes.length?r.mistakes.map(m=>'· '+esc(m)).join('<br>'):'실수 없음')+'</td></tr>').join('')+'</tbody></table>';
+  if(!recs.length){body.innerHTML=src+'<p class="msg">아직 기록이 없어요. 한 번 완주하면 여기에 차곡차곡 쌓여요 ✨</p>';return}
+  const best={};recs.forEach(r=>{const k=r.case+'|'+r.mode;if(best[k]==null||r.score>best[k])best[k]=r.score});
+  const tried=new Set(recs.map(r=>r.case)).size,avg=Math.round(recs.reduce((a,r)=>a+r.score,0)/recs.length);
+  body.innerHTML=src+`<div class="stats"><div><b>${recs.length}</b><span>총 도전</span></div><div><b>${tried}/${CASE_KEYS.length}</b><span>해본 케이스</span></div><div><b>${avg}</b><span>평균 점수</span></div></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>날짜</th><th>케이스</th><th>모드</th><th>점수</th><th>시간</th><th>실수</th></tr></thead><tbody>`+
+    recs.map((r,i)=>'<tr class="rrow" data-i="'+i+'"><td>'+fmtDate(r.time)+'</td><td>'+esc((CASES[r.case]||{}).name||r.case)+'</td><td><span class="pill '+r.mode+'">'+(MODE_NAME[r.mode]||r.mode)+'</span></td><td><b>'+r.score+'</b>'+(best[r.case+'|'+r.mode]===r.score?' <span class="star">★</span>':'')+'</td><td>'+fmtTime(r.durationSec)+'</td><td>'+r.mistakes.length+'건 ▾</td></tr>'+
+      '<tr class="rdet" id="det'+i+'" hidden><td colspan="6">'+(r.mistakes.length?r.mistakes.map(m=>'· '+esc(m)).join('<br>'):'실수 없이 완주! 🎉')+'</td></tr>').join('')+'</tbody></table></div>';
   body.querySelectorAll('.rrow').forEach(tr=>tr.onclick=()=>{const d=document.getElementById('det'+tr.dataset.i);d.hidden=!d.hidden});
 }
 async function renderBoard(sel){
-  const tabs=CASE_KEYS.map(k=>'<button class="tab'+(k===sel.c?' on':'')+'" data-c="'+k+'">'+esc(CASES[k].name)+'</button>').join('');
-  const mt=['exam','practice'].map(m=>'<button class="tab'+(m===sel.m?' on':'')+'" data-m="'+m+'">'+MODE_NAME[m]+' 모드</button>').join('');
-  ov.innerHTML='<div class="ovcard wide"><div class="ovhead"><h3>리더보드</h3><button id="ovBack">← 뒤로</button></div>'+
-    '<div class="tabs">'+tabs+'</div><div class="tabs">'+mt+'</div><div id="bBody" class="ovscroll">불러오는 중…</div></div>';
-  document.getElementById('ovBack').onclick=()=>showScreen('home');
+  const tabs=CASE_KEYS.map(k=>'<button class="sort-btn'+(k===sel.c?' active':'')+'" data-c="'+k+'">'+esc(CASES[k].name)+'</button>').join('');
+  const mt=['exam','practice'].map(m=>'<button class="sort-btn'+(m===sel.m?' active':'')+'" data-m="'+m+'">'+MODE_NAME[m]+' 모드</button>').join('');
+  ov.innerHTML=pageHead('🏆 리더보드')+'<div class="intro-note"><div class="sort-row">'+tabs+'</div><div class="sort-row">'+mt+'</div><div id="bBody">불러오는 중…</div></div>'+themeBox();
+  bindTheme();document.getElementById('ovBack').onclick=()=>showScreen('home');
   ov.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>renderBoard({c:b.dataset.c,m:sel.m}));
   ov.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>renderBoard({c:sel.c,m:b.dataset.m}));
   let list,note='';
   try{if(!API_ON)throw 0;list=(await api({action:'board',case:sel.c,mode:sel.m})).board}
-  catch(e){note='<p class="ovnote">'+(API_ON?'서버에 연결하지 못해 ':'')+'이 기기에 저장된 기록만 보여요.</p>';
+  catch(e){note='<p class="hint">'+(API_ON?'서버에 연결하지 못해 ':'')+'이 기기에 저장된 기록만 보여요.</p>';
     const bestBy={};lsGet('dds_records',[]).map(normRec).filter(r=>r.case===sel.c&&r.mode===sel.m).forEach(r=>{const b=bestBy[r.code];
       if(!b||r.score>b.score||(r.score===b.score&&r.durationSec<b.durationSec))bestBy[r.code]=r});
     list=Object.values(bestBy).sort((a,b)=>b.score-a.score||a.durationSec-b.durationSec)}
   const body=document.getElementById('bBody');if(!body)return;
-  if(!list.length){body.innerHTML=note+'<p class="ovmsg">아직 기록이 없어요.</p>';return}
-  body.innerHTML=note+'<table class="ovtable"><thead><tr><th>순위</th><th>이름</th><th>최고 점수</th><th>시간</th><th>날짜</th></tr></thead><tbody>'+
-    list.map((r,i)=>'<tr'+(user&&r.name===user.name?' class="me"':'')+'><td>'+(i+1)+'</td><td>'+esc(r.name)+'</td><td><b>'+r.score+'</b></td><td>'+fmtTime(r.durationSec)+'</td><td>'+fmtDate(r.time)+'</td></tr>').join('')+'</tbody></table>';
+  if(!list.length){body.innerHTML=note+'<p class="msg">아직 아무도 도전하지 않았어요. 첫 번째 주인공이 되어볼까요? ✨</p>';return}
+  const medal=i=>['🥇','🥈','🥉'][i]||(i+1);
+  body.innerHTML=note+'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>순위</th><th>닉네임</th><th>최고 점수</th><th>시간</th><th>날짜</th></tr></thead><tbody>'+
+    list.map((r,i)=>'<tr'+(user&&r.name===user.name?' class="me"':'')+'><td class="rank">'+medal(i)+'</td><td>'+esc(r.name)+'</td><td><b>'+r.score+'</b></td><td>'+fmtTime(r.durationSec)+'</td><td>'+fmtDate(r.time)+'</td></tr>').join('')+'</tbody></table></div>';
 }
 async function saveRecord(){
   const dur=Math.round((performance.now()-runStart)/1000);
@@ -1131,6 +1791,15 @@ document.getElementById('backBtn').onclick=()=>{
   if(s.id==='mode'){resetAll();return}
   if(confirm('진행 중인 기록이 사라집니다. 모드 선택으로 돌아갈까요?')){resetAll(caseId)}};
 document.getElementById('homeBtn').onclick=()=>{if(inRun()&&!confirm('진행 중인 기록이 사라집니다. 처음 화면으로 갈까요?'))return;showScreen('home')};
+document.querySelectorAll('#gamePage .themeBtn').forEach(b=>{b.textContent=themeLabel();b.onclick=toggleTheme});
+function syncPipBtn(){const b=document.getElementById('pipMinBtn');if(b)b.textContent=pipMin?'내 화면 펼치기':'내 화면 접기'}
+document.getElementById('pipMinBtn').onclick=()=>{pipMin=!pipMin;syncPipBtn()};
+document.getElementById('pipMoveBtn').onclick=()=>{pipCorner=(pipCorner+1)%PIP_CORNERS.length;pipPos.x=PIP_CORNERS[pipCorner].x;pipPos.y=PIP_CORNERS[pipCorner].y};
+(()=>{const fb=document.getElementById('fsBtn'),box=document.querySelector('.stagebox');
+  const can=box&&(box.requestFullscreen||box.webkitRequestFullscreen);
+  if(!can||!(document.fullscreenEnabled||document.webkitFullscreenEnabled)){if(fb)fb.hidden=true;return}
+  fb.onclick=()=>{if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}
+    else{(box.requestFullscreen||box.webkitRequestFullscreen).call(box);try{const o=window.screen&&window.screen.orientation;if(o&&o.lock)o.lock('landscape').catch(()=>{})}catch(e){}}}})();
 
 /* ================= main loop ================= */
 let last=performance.now();
@@ -1138,16 +1807,27 @@ function loop(t){
   const dt=Math.min(50,t-last);last=t;
   if(camOn&&video.readyState>=2){if(handMode&&landmarker)trackHands();else trackMotion()}
   const px=cur.x,py=cur.y,k=handMode&&camOn?0.5:0.35;cur.x+=(cur.tx-cur.x)*k;cur.y+=(cur.ty-cur.y)*k;cur.vx=cur.x-px;cur.vy=cur.y-py;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0c1412';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1620';ctx.fillRect(0,0,W,H);
   if(screen!=='game'){zonesNow=[];requestAnimationFrame(loop);return}
+  if(pipDrag){const mn=pipIsMin();pipPos.x=cur.x-pipDrag.dx;pipPos.y=cur.y-pipDrag.dy-(mn?108:0)}
   const s=S[si],view=typeof s.view==='function'?s.view():s.view;
-  if(s.kind==='zones'){zonesNow=stepZones(s)}else if(s.kind==='end'){zonesNow=endZones()}else if(!['drag','depth','arc','wrap','tension'].includes(s.kind)){zonesNow=[]}
+  if(s.kind==='zones'){zonesNow=stepZones(s)}else if(s.kind==='end'){zonesNow=endZones()}else if(!['drag','depth','arc','wrap','tension','hold','circle','strokes','gauge'].includes(s.kind)){zonesNow=[]}
   if(s.kind==='shake'){updShake(dt,t);if(S[si]===s)drawShake()}
   else if(view==='case')drawCaseView();
   else if(view==='mode')drawModeView();
   else if(view==='socket')drawSocket();
   else if(view==='needle')drawNeedleView();
   else if(view==='lac')drawLac();
+  else if(view==='ept')drawEptView();
+  else if(view==='dam')drawDamView();
+  else if(view==='sheet')drawSheetView();
+  else if(view==='seal')drawSealView();
+  else if(view==='dam14')drawDam14View();
+  else if(view==='sheet14')drawSheet14View();
+  else if(view==='fluor')drawFluorView();
+  else if(view==='trayfill')drawTrayFill();
+  else if(view==='perio')drawPerioView();
+  else if(view==='pz')drawPz();
   else if(view==='room')drawRoom();
   else if(view==='glove')drawGloveView();
   else if(view==='bench')drawBench(false);
@@ -1161,9 +1841,13 @@ function loop(t){
     else if(s.kind==='arc')updArc(s,dt,t);
     else if(s.kind==='wrap')updWrap(s,dt,t);
     else if(s.kind==='tension')updTension(s,dt,t);
+    else if(s.kind==='hold')updHold(s,dt,t);
+    else if(s.kind==='circle')updCircle(s,dt,t);
+    else if(s.kind==='strokes')updStrokes(s,dt,t);
+    else if(s.kind==='gauge')updGauge(s,dt,t);
     else if(s.kind==='wait'){const p=Math.min(1,(t-stepT0)/s.dur);
-      rr(180,260,520,16,8);ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fill();rr(180,260,520*p,16,8);ctx.fillStyle='#7fe0c9';ctx.fill();
-      ctx.font='500 18px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('환자: "아랫입술이 두꺼워진 것 같아요… 혀도 저려요."',440,290);
+      rr(180,260,520,16,8);ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fill();rr(180,260,520*p,16,8);ctx.fillStyle='#8fd3ff';ctx.fill();
+      ctx.font='500 18px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(s.waitMsg||'환자: "아랫입술이 두꺼워진 것 같아요… 혀도 저려요."',440,290);
       if(p>=1)next()}
     if(S[si]===s)checkContam(dt);
   }
