@@ -247,9 +247,12 @@ function holding(){if(handMode&&camOn&&performance.now()-lastMouse>900)return pi
 const PIP={x:16,y:H-160,w:256,h:144};
 let pipMin=false,pipDrag=null;const pipPos={x:16,y:H-160};
 const PIP_CORNERS=[{x:16,y:H-160},{x:618,y:H-160},{x:618,y:150},{x:16,y:150}];let pipCorner=0;
-function pipIsMin(){return pipMin||(S&&S[si]&&S[si].grp==='start')}
+const pipPosStart={x:1004,y:H-200};
+function pipOnStart(){return S&&S[si]&&S[si].grp==='start'}
+function pipActivePos(){return pipOnStart()?pipPosStart:pipPos}
+function pipIsMin(){return pipMin}
 function layoutPip(){const mn=pipIsMin();PIP.w=mn?176:256;PIP.h=mn?36:144;
-  PIP.x=Math.max(4,Math.min(W-PIP.w-4,pipPos.x));PIP.y=Math.max(134,Math.min(H-PIP.h-4,pipPos.y+(mn?108:0)))}
+  const p=pipActivePos();PIP.x=Math.max(4,Math.min(W-PIP.w-4,p.x));PIP.y=Math.max(134,Math.min(H-PIP.h-4,p.y+(mn?108:0)))}
 function pipBar(){return{x:PIP.x,y:PIP.y-26,w:PIP.w,h:24}}
 function inR(r,x,y){return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h}
 const CF={x:560,y:150,w:300,h:170};
@@ -1672,7 +1675,7 @@ function patchNotes(){return `
     <summary class="notice-head"><span>🛠 패치 내역</span><span class="notice-meta">${PATCH_DATE} · ${APP_VERSION}</span></summary>
     <ul class="patch">
       <li class="new"><b>새 케이스 4종</b>: #14–24 러버댐 장착 · 불소 트레이 도포(치면세마부터) · 치은연상 스케일링 · 치근활택술(RP). 치주 케이스는 <b>치식을 숨겨서</b> 부위를 보고 기구를 골라야 해요</li>
-      <li class="new"><b>내 화면 창 이동·접기</b>: 창 위 막대를 끌어서 옮기거나 – 버튼으로 접기, 아래 버튼으로 모서리 이동. 케이스·모드 선택 화면에선 자동으로 접혀요</li>
+      <li class="new"><b>내 화면 창 이동·접기</b>: 창 위 막대를 끌어서 옮기거나 – 버튼으로 접기, 아래 버튼으로 모서리 이동. 케이스·모드 선택 화면에선 카드를 가리지 않게 오른쪽 빈 공간에 떠요</li>
       <li class="new"><b>모바일 대응</b>: 터치로 진행 가능, 전체 화면 버튼, 세로 화면일 때 가로 회전 안내</li>
       <li><b>새 케이스 3종</b>: #46 전기치수검사(EPT) · #46 러버댐 장착 · #36 실란트 (진료용 장갑 착용 흐름 별도 적용)</li>
       <li class="new"><b>하늘색 테마</b>로 전체 색감 변경, 타이틀을 "두근두근 치의학부 / B반"으로 정리</li>
@@ -1794,7 +1797,7 @@ document.getElementById('homeBtn').onclick=()=>{if(inRun()&&!confirm('진행 중
 document.querySelectorAll('#gamePage .themeBtn').forEach(b=>{b.textContent=themeLabel();b.onclick=toggleTheme});
 function syncPipBtn(){const b=document.getElementById('pipMinBtn');if(b)b.textContent=pipMin?'내 화면 펼치기':'내 화면 접기'}
 document.getElementById('pipMinBtn').onclick=()=>{pipMin=!pipMin;syncPipBtn()};
-document.getElementById('pipMoveBtn').onclick=()=>{pipCorner=(pipCorner+1)%PIP_CORNERS.length;pipPos.x=PIP_CORNERS[pipCorner].x;pipPos.y=PIP_CORNERS[pipCorner].y};
+document.getElementById('pipMoveBtn').onclick=()=>{pipCorner=(pipCorner+1)%PIP_CORNERS.length;const p=pipActivePos();p.x=PIP_CORNERS[pipCorner].x;p.y=PIP_CORNERS[pipCorner].y};
 (()=>{const fb=document.getElementById('fsBtn'),box=document.querySelector('.stagebox');
   const can=box&&(box.requestFullscreen||box.webkitRequestFullscreen);
   if(!can||!(document.fullscreenEnabled||document.webkitFullscreenEnabled)){if(fb)fb.hidden=true;return}
@@ -1809,7 +1812,7 @@ function loop(t){
   const px=cur.x,py=cur.y,k=handMode&&camOn?0.5:0.35;cur.x+=(cur.tx-cur.x)*k;cur.y+=(cur.ty-cur.y)*k;cur.vx=cur.x-px;cur.vy=cur.y-py;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1620';ctx.fillRect(0,0,W,H);
   if(screen!=='game'){zonesNow=[];requestAnimationFrame(loop);return}
-  if(pipDrag){const mn=pipIsMin();pipPos.x=cur.x-pipDrag.dx;pipPos.y=cur.y-pipDrag.dy-(mn?108:0)}
+  if(pipDrag){const mn=pipIsMin(),p=pipActivePos();p.x=cur.x-pipDrag.dx;p.y=cur.y-pipDrag.dy-(mn?108:0)}
   const s=S[si],view=typeof s.view==='function'?s.view():s.view;
   if(s.kind==='zones'){zonesNow=stepZones(s)}else if(s.kind==='end'){zonesNow=endZones()}else if(!['drag','depth','arc','wrap','tension','hold','circle','strokes','gauge'].includes(s.kind)){zonesNow=[]}
   if(s.kind==='shake'){updShake(dt,t);if(S[si]===s)drawShake()}
