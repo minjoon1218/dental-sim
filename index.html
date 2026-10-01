@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>치과 술식 시뮬레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap">
+<style>
+:root{
+  --bg:#eef2f1; --surface:#ffffff; --ink:#15302b; --muted:#5d746f;
+  --scrub:#2f6f62; --steel:#c9d1d3; --line:#d5dedb; --blood:#b3261e;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1715; --surface:#16211e; --ink:#e3ece9; --muted:#8fa6a0;
+    --scrub:#5cb3a0; --steel:#3a4744; --line:#26332f; --blood:#ff7a70;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1715; --surface:#16211e; --ink:#e3ece9; --muted:#8fa6a0;
+  --scrub:#5cb3a0; --steel:#3a4744; --line:#26332f; --blood:#ff7a70;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:1.35rem;margin:4px 0 2px;font-weight:700;letter-spacing:-0.01em}
+.sub{color:var(--muted);margin:0 0 12px;font-size:.92rem;line-height:1.6;max-width:72ch}
+.stagebox{position:relative;border-radius:14px;overflow:hidden;background:#0c1412;border:1px solid var(--line)}
+canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+button{font:inherit;font-weight:600;font-size:.9rem;padding:9px 14px;border-radius:8px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);cursor:pointer}
+button.primary{background:var(--scrub);color:#fff;border-color:var(--scrub)}
+button:focus-visible{outline:3px solid var(--scrub);outline-offset:2px}
+label{font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+#status{font-size:.88rem;color:var(--muted);margin-left:auto}
+.help{margin-top:14px;font-size:.88rem;color:var(--muted);line-height:1.7;max-width:80ch}
+video{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>치과 술식 시뮬레이터: 발치 · 8자 봉합 · 치은 열상 봉합</h1>
+  <p class="sub">카메라를 켜면 MediaPipe 손 추적이 켜집니다. 엄지와 검지 사이가 커서이고, 엄지-검지를 집으면 잡기, 떼면 놓기입니다. 노란 고리는 집은 채로 안내된 방향으로 움직이는 동작이에요. 장갑을 낀 뒤 얼굴(내 화면)이나 라이트를 만지면 오염으로 기록됩니다.</p>
+  <div class="stagebox"><canvas id="stage" aria-label="시뮬레이션 화면"></canvas></div>
+  <div class="bar">
+    <button class="primary" id="camBtn">카메라 켜기</button>
+    <button id="restartBtn">처음부터(모드 선택)</button>
+    <label>움직임 추적 감도 <input id="sens" type="range" min="10" max="60" value="28"></label>
+    <label><input id="showCam" type="checkbox" checked> 내 화면 표시</label>
+    <span id="status">마우스 모드</span>
+  </div>
+  <p class="help">손 추적 모델은 인터넷에서 내려받기 때문에 로컬에서 열어야 동작합니다(처음 몇 초 로딩). 불러오지 못하면 자동으로 움직임 추적 + 멈춰서 선택 방식으로 바뀌어요. 손 전체가 화면에 들어오게, 카메라에서 50–70cm 거리에서 손바닥을 카메라 쪽으로 향하면 가장 안정적입니다. 마우스로도 진행할 수 있어요.</p>
+  <video id="vid" playsinline muted></video>
+</div>
+
+<script>
+(function(){
+if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h){this.rect(x,y,w,h)}}
+const W=1280,H=720,DW=750;
+const cv=document.getElementById('stage'),ctx=cv.getContext('2d');
+cv.width=W;cv.height=H;
+const video=document.getElementById('vid');
+const statusEl=document.getElementById('status');
+const sensEl=document.getElementById('sens');
+const showCamEl=document.getElementById('showCam');
+const FONT='"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
+const clamp01=v=>Math.max(0,Math.min(1,v));
+
+/* ================= input ================= */
+let camOn=false,prevGray=null,lastMouse=-9999,mouseDown=false,inputSrc='mouse';
+let handMode=false,landmarker=null,handTried=false,pinch=false,handSeen=false,lastLm=null,lastVT=-1;
+const SW=96,SH=54;
+const sm=document.createElement('canvas');sm.width=SW;sm.height=SH;
+const smx=sm.getContext('2d',{willReadFrequently:true});
+const cur={x:440,y:400,tx:440,ty:400,vx:0,vy:0};
+function setStatus(t){statusEl.textContent=t}
+async function startCam(){
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'},audio:false});
+    video.srcObject=s;await video.play();camOn=true;
+    document.getElementById('camBtn').textContent='카메라 끄기';
+    if(!handTried)initHands();else setStatus(handMode?'손 추적 ON':'움직임 추적 모드');
+  }catch(e){setStatus('카메라를 열 수 없음('+e.name+') · 마우스로 진행하세요')}
+}
+async function initHands(){
+  handTried=true;setStatus('손 추적 모델 불러오는 중…');
+  const base='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+  const model='https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+  try{
+    const vision=await import(base+'/vision_bundle.mjs');
+    const fs=await vision.FilesetResolver.forVisionTasks(base+'/wasm');
+    const mk=d=>vision.HandLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:model,delegate:d},runningMode:'VIDEO',numHands:1,
+      minHandDetectionConfidence:0.5,minTrackingConfidence:0.5});
+    try{landmarker=await mk('GPU')}catch(e){landmarker=await mk('CPU')}
+    handMode=true;setStatus('손 추적 ON · 엄지·검지 사이가 커서, 엄지-검지 집기 = 잡기');
+  }catch(e){handMode=false;setStatus('손 추적 모델을 못 불러와 움직임 추적으로 대체합니다 ('+(e.message||e.name)+')')}
+}
+function stopCam(){const s=video.srcObject;if(s)s.getTracks().forEach(t=>t.stop());video.srcObject=null;camOn=false;prevGray=null;lastLm=null;
+  if(pinch){pinch=false;onRelease('pinch')}
+  document.getElementById('camBtn').textContent='카메라 켜기';setStatus('마우스 모드')}
+document.getElementById('camBtn').onclick=()=>camOn?stopCam():startCam();
+function camCrop(){const vw=video.videoWidth||640,vh=video.videoHeight||480,ch=vw*9/16;
+  return ch<=vh?{sx:0,sy:(vh-ch)/2,sw:vw,sh:ch}:{sx:(vw-vh*16/9)/2,sy:0,sw:vh*16/9,sh:vh}}
+function trackMotion(){
+  const c=camCrop();
+  smx.save();smx.translate(SW,0);smx.scale(-1,1);smx.drawImage(video,c.sx,c.sy,c.sw,c.sh,0,0,SW,SH);smx.restore();
+  const d=smx.getImageData(0,0,SW,SH).data,n=SW*SH,g=new Uint8Array(n),th=+sensEl.value;
+  let sx=0,sy=0,cnt=0;
+  for(let i=0;i<n;i++){const v=(d[i*4]*0.3+d[i*4+1]*0.59+d[i*4+2]*0.11)|0;g[i]=v;
+    if(prevGray&&Math.abs(v-prevGray[i])>th){sx+=i%SW;sy+=(i/SW)|0;cnt++}}
+  prevGray=g;
+  if(cnt>14&&performance.now()-lastMouse>900){cur.tx=(sx/cnt+0.5)/SW*W;cur.ty=(sy/cnt+0.5)/SH*H}
+}
+function lmNorm(p){const c=camCrop(),vw=video.videoWidth||640,vh=video.videoHeight||480;
+  return{x:1-(p.x*vw-c.sx)/c.sw,y:(p.y*vh-c.sy)/c.sh}}
+function trackHands(){
+  if(video.currentTime===lastVT)return;lastVT=video.currentTime;
+  let r;try{r=landmarker.detectForVideo(video,performance.now())}catch(e){return}
+  const lm=r&&r.landmarks&&r.landmarks[0];lastLm=lm||null;
+  if(!lm){handSeen=false;if(pinch){pinch=false;onRelease('pinch')}return}
+  handSeen=true;
+  if(performance.now()-lastMouse>900){
+    const a=lmNorm(lm[8]),b=lmNorm(lm[4]),gain=0.74,off=(1-gain)/2;
+    cur.tx=clamp01(((a.x+b.x)/2-off)/gain)*W;cur.ty=clamp01(((a.y+b.y)/2-off)/gain)*H;
+  }
+  const size=Math.hypot(lm[0].x-lm[9].x,lm[0].y-lm[9].y)||0.1;
+  const dp=Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y)/size;
+  if(!pinch&&dp<0.33){pinch=true;onPress('pinch')}
+  else if(pinch&&dp>0.5){pinch=false;onRelease('pinch')}
+}
+function toStage(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
+cv.addEventListener('pointermove',e=>{const p=toStage(e);cur.tx=p.x;cur.ty=p.y;lastMouse=performance.now()});
+cv.addEventListener('pointerdown',e=>{const p=toStage(e);cur.tx=cur.x=p.x;cur.ty=cur.y=p.y;lastMouse=performance.now();mouseDown=true;onPress('mouse')});
+window.addEventListener('pointerup',()=>{if(mouseDown){mouseDown=false;onRelease('mouse')}});
+function onPress(src){inputSrc=src;if(blocked())return;for(const z of zonesNow){if(inZone(z,cur.x,cur.y)){fire(z);return}}}
+function onRelease(src){if(drag&&drag.by===src){const s=S[si];
+  if(s.kind==='drag'){drag=null;if(s.apply)s.apply(0)}else if(s.kind==='depth'){drag=null}}}
+function holding(){if(handMode&&camOn&&performance.now()-lastMouse>900)return pinch;return true}
+
+/* ================= layout ================= */
+const PIP={x:16,y:H-160,w:256,h:144};
+const CF={x:560,y:150,w:300,h:170};
+const ITEMS=[['mask','마스크'],['sanit','손소독제'],['gloves','멸균 장갑'],['syringe','흡인형 주사기'],['cart','리도카인 카트리지'],['n27','27G long'],
+ ['n30','30G short'],['explorer','탐침'],['gauze','거즈'],['f17','#17'],['f23','#23 Cowhorn'],['f151','#151'],
+ ['f222','#222'],['f150','#150'],['f53','#53R'],['f18','#18R'],['f210','#210'],
+ ['saline','생리식염수 시린지'],['nh','지침기'],['hemo','모스키토 겸자'],['adson','Adson 조직겸자'],['s4','4-0 silk'],['s2','2-0 silk'],['s6','6-0 nylon'],['sc','봉합 가위']];
+const NAME=Object.fromEntries(ITEMS);
+const SUTTRAY=['nh','hemo','adson','s4','s2','s6','sc','gauze','explorer'];
+const TRAY={start:[],prep:['mask','sanit','gloves','gauze','explorer'],ane:['syringe','cart','n27','n30','explorer','gauze'],
+  ext:['explorer','gauze','f17','f23','f151','f222','f150','f53','f18','f210'],sutprep:SUTTRAY,sut8:SUTTRAY,
+  lacpre:['saline','gauze','explorer','nh'],lac:['saline'].concat(SUTTRAY),post:['gauze','explorer','sc'],end:[]};
+function curTray(){const s=S[si];let t=TRAY[s.grp]||[];
+  if(EXAM()&&s.skip){const g=S[idx(skipTo(s))].grp;if(g!==s.grp)t=t.concat((TRAY[g]||[]).filter(x=>!t.includes(x)))}
+  return t.slice(0,18)}
+function slot(id){const i=curTray().indexOf(id),c=i%3,r=(i/3)|0;return{x:906+c*120,y:116+r*98,w:112,h:92}}
+const NEEDLE_PT=f=>{const a=Math.PI-Math.PI*f;return{x:440+170*Math.cos(a),y:440-170*Math.sin(a)}};
+const CASES={ext:{name:'IANB + #46 발치',grps:['prep','ane','ext','post'],phases:['준비','기구 조립','IANB','발치']},
+  ext8:{name:'#46 발치 + 8자 봉합',grps:['prep','ext','sutprep','sut8','post'],phases:['준비','발치','봉합']},
+  s8:{name:'발치와 8자 봉합만',grps:['sutprep','sut8','post'],phases:['봉합']},
+  lac:{name:'상악 전치부 치은 열상 봉합',grps:['prep','lacpre','sutprep','lac'],phases:['준비','세척','봉합']}};
+const CASE_KEYS=['ext','ext8','s8','lac'];
+const P8={BM:{x:395,y:515},BM1:{x:368,y:488},BM8:{x:420,y:590},LM:{x:395,y:305},LM1:{x:368,y:334},BD:{x:485,y:515},BD1:{x:512,y:488},LD:{x:485,y:305},LD1:{x:512,y:334}};
+const SUTVIEW=()=>caseId==='lac'?'lac':'socket';
+function skipTo(s){return typeof s.skip.to==='function'?s.skip.to():s.skip.to}
+function finishStitch(k){st.overs.push({a:st.exit,b:k});st.knots.push({x:k.x,y:k.y,tl:60,cut:0,throws:st.throws});st.tieA=null;st.pulled=0;st.throws=0}
+function CUT_STEP(){return{g:'봉합 마무리',text:'매듭에서 꼬리를 얼마나 남기고 자를까요?',zones:()=>{const k=st.knots[st.knots.length-1];
+  const ok=tl=>()=>{k.cut=1;k.tl=tl;held=null;if(caseId!=='lac')st.sutured=2};return[
+  C('c1',{x:k.x+18,y:k.y},12,()=>BAD('너무 짧게 자르면 실크 매듭이 풀립니다.',5,'꼬리 길이: 1mm',ok(18))),
+  C('c3',{x:k.x+44,y:k.y},12,()=>{ok(44)();return OK('3–4mm. 풀리지 않으면서 혀·볼 자극이 적은 길이입니다. 실밥은 보통 5–7일 후 제거합니다.')}),
+  C('c10',{x:k.x+120,y:k.y},12,()=>BAD('너무 길면 혀·볼을 자극하고 플라크가 끼며 환자가 잡아당기기 쉽습니다.',5,'꼬리 길이: 1cm 이상',ok(120)))]}}}
+function LAC_STEPS(){const out=[],WY=420;
+  for(let i=0;i<4;i++){
+    const set=p=>()=>{st.entry=p;st.exit={x:p.x,y:2*WY-p.y};st.tieA=p;st.wrapC={x:p.x,y:WY};st.lastX=p.x;st.pulled=0};
+    const G='단순 단속 봉합 '+(i+1)+'/4';
+    if(i===0)out.push({id:'lac0',grp:'lac',phase:'봉합',view:'lac',g:G,text:'첫 번째 봉합의 자입점을 고르세요. 어느 쪽 조직에서, 가장자리에서 얼마나 떨어져 들어갈까요?',zones:()=>[
+      C('la',{x:300,y:470},14,()=>{set({x:300,y:470})();return OK('가동 조직(치조점막 쪽)에서 고정 조직(부착치은 쪽)으로, 가장자리에서 약 2–3mm.')}),
+      C('lb',{x:300,y:370},14,()=>BAD('고정 조직에서 가동 조직 방향으로 꿰면 가동 조직이 끌려 찢어지기 쉽습니다. 가동 → 고정 방향으로 봉합합니다.',5,'열상: 고정→가동 방향으로 자입',set({x:300,y:370}))),
+      C('lc',{x:262,y:446},14,()=>BAD('가장자리에서 너무 가까우면 조일 때 찢어집니다(tear-through).',5,'열상: bite 1mm',set({x:262,y:446})))]});
+    else out.push({id:'lac'+i,g:G,text:(i+1)+'번째 봉합의 자입점을 고르세요. 앞 봉합과의 간격이 중요합니다.',zones:()=>{const px=st.lastX,z=[
+      C('ok'+i,{x:px+80,y:470},14,()=>{set({x:px+80,y:470})();return OK('간격 약 3–4mm. 상처 가장자리가 고르게 맞붙습니다.')}),
+      C('near'+i,{x:px+32,y:470},14,()=>BAD('간격이 너무 좁으면 봉합사 사이 조직의 혈류가 떨어지고 이물 반응이 늘어납니다.',5,'열상: 봉합 간격 과소',set({x:px+32,y:470})))];
+      if(px+150<=600)z.push(C('far'+i,{x:px+150,y:470},14,()=>BAD('간격이 너무 넓으면 사이가 벌어져 치유가 늦어집니다.',5,'열상: 봉합 간격 과대',set({x:px+150,y:470}))));return z}});
+    out.push({kind:'arc',autoPull:i>0,g:G,text:'집은 채로 곡률을 따라 손목을 돌려 상처를 가로질러 통과시키세요.'});
+    if(i===0)out.push({kind:'drag',g:G,text:'실을 당겨 짧은 꼬리(2–3cm)를 남기세요.',handle:()=>({x:st.exit.x,y:st.exit.y,r:30}),axis:'y',dir:-1,amount:70,onDone:()=>{st.pulled=1}});
+    for(let k=1;k<=3;k++){
+      out.push({kind:'wrap',throwN:k,g:'매듭 '+(i+1)+'/4',text:k+'번째 throw: 긴 실을 지침기에 감고(상처 주위로 원 그리기) 짧은 꼬리를 집으세요.'+(k===1?' 첫 throw는 2회 감습니다.':'')});
+      out.push({kind:'tension',throwN:k,dir:k===2?-1:1,g:'매듭 '+(i+1)+'/4',text:(k===2?'왼쪽':'오른쪽')+'으로 당겨 조이세요. 상처 가장자리가 맞닿을 정도로만.',
+        after:(k===3&&i>0)?()=>finishStitch({x:st.entry.x+20,y:st.entry.y+22}):null});
+    }
+    if(i===0){
+      out.push({g:'매듭 1/4',text:'매듭을 어디에 둘지 정리하세요.',zones:()=>[
+        C('kp',{x:320,y:492},14,()=>{finishStitch({x:320,y:492});return OK('매듭은 상처 선 위가 아니라 한쪽 옆에 둡니다. 나머지도 같은 쪽에 맞춥니다.')}),
+        C('kw',{x:300,y:420},14,()=>BAD('상처 선 바로 위의 매듭은 가장자리를 눌러 치유를 방해하고 플라크가 낍니다.',5,'열상: 매듭이 상처 선 위',()=>finishStitch({x:300,y:420})))]});
+      out.push({g:'매듭 1/4',text:'실을 자를 기구를 집으세요.',zones:()=>pickZ(['sc'])});
+      out.push(CUT_STEP());
+    }
+  }
+  out.push({g:'봉합 마무리',text:'나머지 매듭 꼬리를 자릅니다. 가위를 집으세요.',zones:()=>pickZ(['sc'])});
+  out.push({g:'봉합 마무리',text:'나머지 꼬리를 같은 길이로 자르세요(마지막 매듭 옆).',zones:()=>{const k=st.knots[st.knots.length-1];
+    return[C('cutall',{x:k.x+44,y:k.y},14,()=>{st.knots.forEach(q=>{if(!q.cut){q.cut=1;q.tl=44}});held=null;st.sutured=1;return OK('4바늘 단순 단속 봉합 완료.')})]}});
+  out.push({g:'마무리',text:'지혈과 보호에 필요한 것을 집으세요.',zones:()=>pickZ(['gauze'])});
+  out.push({g:'마무리',text:'봉합 부위에 거즈를 대고 가볍게 압박하세요.',zones:()=>[C('lgz',{x:440,y:420},40,()=>{st.gauze=1;held=null;return OK('압박 지혈. 실밥은 보통 5–7일 후 제거합니다.')})]});
+  return out}
+let caseId='ext';
+function setCase(c){caseId=c;
+  if(c==='s8'){Object.assign(st,{masked:1,sanit:1,gloved:1,gR:1,gL:1,lightOn:1,chair:1,extracted:1,thumb:0});st.gone.add('mask');st.gone.add('gloves');
+    const t=lightTarget();st.lamp={x:t.x,y:t.y-30}}}
+const MC={x:440,y:420};
+const LOWER=[[-198,20],[-176,62],[-146,98],[-118,120],[-86,135],[-52,143],[-18,145]];
+const T46={x:264,y:462};
+const Z={notch:{x:150,y:350},site:{x:192,y:350},medial:{x:258,y:350},tub:{x:215,y:245},mental:{x:302,y:568},
+  contra:{x:572,y:510},sameMol:{x:264,y:418},inc:{x:440,y:560},test:{x:226,y:500},buc:{x:238,y:474},lin:{x:294,y:446}};
+
+/* ================= state ================= */
+let mode='practice',st,held,score,mistakes,toastO,si,stepT0,drag,sh,penSet,returnTo,savedHeld,contamT,contamCool=0,flashT=0,
+  zonesNow=[],dw={key:null,t:0,lock:null},dwellP=0;
+const EXAM=()=>mode==='exam';
+function headPos(){const a=0.35+st.chair*0.6,L=230,ex=310-Math.cos(a)*L,ey=540-Math.sin(a)*L;
+  return{x:ex-Math.cos(a)*30+Math.sin(a)*28,y:ey-Math.sin(a)*30-Math.cos(a)*28,a}}
+function lightTarget(){const h=headPos();return{x:h.x+70,y:h.y-140}}
+function ringX(){return 220+st.ringOff}
+function toast(text,ok,dur){if(EXAM()&&S[si].kind!=='end')return;toastO={text,ok,until:performance.now()+(dur||(ok?2600:3400))}}
+function blocked(){return toastO&&!toastO.ok&&performance.now()<toastO.until}
+function penalize(n,why,key,fb){if(key){if(penSet.has(key))return;penSet.add(key)}score=Math.max(0,score-n);mistakes.push({why,fb:fb||''})}
+const OK=(fb)=>({ok:1,fb});
+const BAD=(fb,pen,why,accept)=>({ok:0,fb,pen,why,accept});
+function C(key,p,r,act){return{key,x:p.x,y:p.y,r,act}}
+function inZone(z,x,y){if(z.rect){const r=z.rect;return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h}return Math.hypot(x-z.x,y-z.y)<=z.r+10}
+function pickZ(ids,wrong,onPick){wrong=wrong||{};onPick=onPick||(id=>{held=id});
+  return curTray().filter(id=>!st.gone.has(id)&&held!==id).map(id=>{const name=NAME[id],w=wrong[id];return{key:'tray:'+id,rect:slot(id),tray:1,
+    good:ids.includes(id),acceptable:!!(w&&w[1]),act:()=>{
+    if(ids.includes(id)){onPick(id);return OK()}
+    return BAD(w?w[0]:name+'은(는) 지금 단계에 필요한 기구가 아니에요.',w?w[1]:0,w?(w[2]||'잘못된 기구 선택: '+name):'',w&&w[1]?()=>onPick(id):null)}}})}
+function idx(id){return S.findIndex(s=>s.id===id)}
+
+/* ================= scenario ================= */
+const FORCEPS_WRONG={
+  f151:['#151은 하악 universal로 주로 소구치·전치용입니다. 대구치 분지부를 잡기엔 #17이나 #23이 맞아요.',3,'포셉 선택: #151'],
+  f222:['#222는 하악 제3대구치용입니다.',5,'포셉 선택: #222'],
+  f150:['#150은 상악 universal 포셉입니다.',5,'포셉 선택: #150'],
+  f53:['#53R은 상악 우측 대구치용입니다.',5,'포셉 선택: #53R'],
+  f18:['#18R은 상악 우측 대구치용입니다.',5,'포셉 선택: #18R'],
+  f210:['#210은 상악 제3대구치용입니다.',5,'포셉 선택: #210']};
+const S=[
+ {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>CASE_KEYS.map((c,i)=>({key:'case'+i,rect:{x:25+i*212,y:190,w:200,h:380},act:()=>{setCase(c);return{ok:1}}}))},
+ {grp:'start',id:'mode',phase:'모드',view:'mode',g:'모드 선택',text:'모드를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[
+   {key:'m1',rect:{x:110,y:190,w:310,h:340},act:()=>{mode='practice';return{ok:1}}},
+   {key:'m2',rect:{x:470,y:190,w:310,h:340},act:()=>{mode='exam';return{ok:1}}}]},
+ {grp:'prep',id:'mask',phase:'준비',view:'room',g:'술자 준비',text:'술자 준비부터 시작합니다. 트레이에서 마스크를 집으세요.',
+   skip:{to:'sanit',why:'마스크 미착용',fb:'마스크는 비말·에어로졸 차단의 기본입니다.'},zones:()=>pickZ(['mask'])},
+ {grp:'prep',g:'술자 준비',text:'마스크를 쓰세요. 집은 마스크를 왼쪽 아래 내 화면(얼굴)으로 가져가세요.',zones:()=>[{key:'pip',rect:PIP,act:()=>{st.masked=1;held=null;st.gone.add('mask');return OK('착용 완료. 코 철사를 눌러 밀착시키는 것까지가 착용이에요.')}}]},
+ {grp:'prep',id:'sanit',g:'술자 준비',text:'손 위생: 손소독제를 집으세요.',skip:{to:'lamp',why:'손 위생 생략',fb:'장갑 착용 전 손 위생은 필수입니다.'},zones:()=>pickZ(['sanit'])},
+ {grp:'prep',g:'술자 준비',text:'손소독제를 내 화면(손)으로 가져가 소독하세요.',zones:()=>[{key:'pip',rect:PIP,act:()=>{st.sanit=1;held=null;return OK('손 소독 완료. 마를 때까지 문질러요.')}}]},
+ {grp:'prep',id:'lamp',g:'술자 준비',text:'장갑을 끼기 전에 무영등부터 맞춥니다. 라이트 손잡이를 잡으세요.',skip:{to:'gloveStart',why:'무영등 미조정',fb:'장갑을 낀 뒤에는 라이트를 만질 수 없어 시야 확보가 어려워집니다.'},
+   zones:()=>[C('lamp',{x:st.lamp.x,y:st.lamp.y+30},32,()=>{held='lamp';return OK()})]},
+ {grp:'prep',g:'술자 준비',text:'라이트를 환자 입 위쪽으로 옮기세요.',zones:()=>[C('lt',lightTarget(),46,()=>{const t=lightTarget();st.lamp={x:t.x,y:t.y-30};st.lightOn=1;held=null;return OK('라이트 조정 완료. 장갑을 낀 뒤에는 라이트가 비멸균 물체입니다.')})]},
+ {grp:'prep',gl:1,id:'gloveStart',g:'멸균 장갑 착용',text:'멸균 장갑 포장을 집으세요.',zones:()=>pickZ(['gloves'])},
+ {grp:'prep',gl:1,g:'멸균 장갑 착용',text:'장갑 포장을 멸균 작업대 위에 펼치세요.',zones:()=>[{key:'cf',rect:CF,act:()=>{held=null;st.gone.add('gloves');st.gR=0;st.gL=0;return OK()}}]},
+ {grp:'prep',gl:1,view:'glove',g:'멸균 장갑 착용',text:'맨손으로 오른쪽 장갑을 집으세요. 맨손이 닿아도 되는 부분만 잡아야 합니다.',zones:()=>[
+   C('g1ok',{x:585,y:458},26,()=>{held='gloveR';return OK('맞아요. 접혀서 겉으로 나온 커프는 피부에 닿을 안쪽 면이라 맨손으로 잡아도 됩니다.')}),
+   C('g1bad',{x:585,y:330},30,()=>BAD('장갑 외면(손바닥·손가락)을 맨손으로 잡으면 오염입니다.',10,'장갑 착용: 맨손으로 외면 접촉',()=>{held='gloveR'}))]},
+ {grp:'prep',gl:1,g:'멸균 장갑 착용',text:'오른손에 끼우세요.',zones:()=>[C('rh',{x:640,y:620},46,()=>{held=null;st.gR=1;return OK()})]},
+ {grp:'prep',gl:1,g:'멸균 장갑 착용',text:'장갑 낀 오른손으로 왼쪽 장갑을 집으세요. 장갑 낀 손은 장갑 외면에만 닿아야 합니다.',zones:()=>[
+   C('g2ok',{x:295,y:403},22,()=>{held='gloveL';return OK('맞아요. 접힌 커프 틈 안쪽(외면끼리 맞닿는 곳)으로 손가락을 넣어 잡습니다.')}),
+   C('g2bad',{x:295,y:466},24,()=>BAD('접혀서 겉으로 나온 커프 면은 피부에 닿을 안쪽 면이에요. 장갑 낀 손이 닿으면 오염입니다.',10,'장갑 착용: 장갑 낀 손으로 커프 안쪽 면 접촉',()=>{held='gloveL'}))]},
+ {grp:'prep',gl:1,g:'멸균 장갑 착용',text:'왼손에 끼우세요.',zones:()=>[C('lh',{x:360,y:620},46,()=>{held=null;st.gL=1;return OK()})]},
+ {grp:'prep',gl:1,kind:'drag',g:'멸균 장갑 착용',text:'커프를 펴세요. 장갑 낀 손가락을 반대쪽 접힌 커프 틈에 넣은 채 위로 밀어 올리세요.',handle:()=>({x:500,y:620,r:38}),axis:'y',dir:-1,amount:90,
+   onDone:()=>{st.gloved=1;toast('착용 완료. 손은 허리 위·가슴 아래로. 라이트, 얼굴, 마스크는 이제 만지면 안 됩니다.',1,3600);
+     if(returnTo!==null){si=returnTo;returnTo=null;held=savedHeld;savedHeld=null;enterStep();return true}}},
+
+ {grp:'ane',phase:'기구 조립',view:'room',g:'마취 주사기 조립',text:'트레이에서 흡인형 주사기를 집으세요.',zones:()=>pickZ(['syringe'])},
+ {grp:'ane',g:'마취 주사기 조립',text:'주사기를 멸균 작업대에 놓으세요.',zones:()=>[{key:'cf',rect:CF,act:()=>{held=null;st.gone.add('syringe');st.onBench=1;return OK()}}]},
+ {grp:'ane',view:'bench',kind:'drag',g:'마취 주사기 조립',text:'피스톤을 끝까지 후퇴시키세요. 엄지 링을 잡고 왼쪽으로 당기세요.',handle:()=>({x:ringX(),y:380,r:34}),axis:'x',dir:-1,amount:140,apply:p=>st.ringOff=-p},
+ {grp:'ane',g:'마취 주사기 조립',text:'카트리지를 집으세요.',zones:()=>pickZ(['cart'])},
+ {grp:'ane',flipPad:1,g:'마취 주사기 조립',text:'카트리지를 배럴 창에 넣으세요. 고무마개가 피스톤 쪽을 향해야 합니다. 방향이 반대면 아래 회전 패드에 올려 돌리세요.',zones:()=>[
+   C('flip',{x:440,y:560},48,()=>{st.cartFlip=!st.cartFlip;return{stay:1}}),
+   C('barrel',{x:445,y:380},62,()=>{if(st.cartFlip)return BAD('금속 캡(격막) 쪽이 피스톤을 향하고 있어요. 고무마개가 피스톤 쪽이어야 합니다.',5,'카트리지 방향 반대',()=>{held=null;st.cart=1;st.gone.add('cart')});
+     held=null;st.cart=1;st.gone.add('cart');return OK('카트리지 장착.')})]},
+ {grp:'ane',kind:'drag',g:'마취 주사기 조립',text:'하푼 체결: 엄지 링을 앞(오른쪽)으로 가볍게 밀어 하푼을 고무마개에 박으세요. 세게 치지 마세요.',handle:()=>({x:ringX(),y:380,r:34}),
+   axis:'x',dir:1,amount:65,maxSpeed:22,speedFb:'너무 세게 밀었어요. 충격으로 카트리지 유리가 깨질 수 있습니다.',speedWhy:'하푼 체결 시 과도한 힘',apply:p=>st.ringOff=-140+p,okfb:'하푼 체결 완료.'},
+ {grp:'ane',g:'마취 주사기 조립',text:'IANB용 바늘을 집으세요.',zones:()=>pickZ(['n27'],{n30:['30G short는 IANB 자입 깊이(20–25mm)에 부족하고, 가늘어 휘기 쉽고 흡인 신뢰도가 낮아요.',5,'IANB에 30G short 선택']})},
+ {grp:'ane',g:'마취 주사기 조립',text:'바늘을 주사기 끝(허브)에 장착하세요.',zones:()=>[C('tip',{x:668,y:380},40,()=>{st.needleId=held;held=null;st.needle=1;st.gone.add(st.needleId);return OK('바늘 장착. 바늘 뒤쪽이 격막을 뚫고 카트리지에 연결됐습니다.')})]},
+ {grp:'ane',kind:'drag',g:'마취 주사기 조립',text:'작동 확인: 엄지 링을 살짝 밀어 바늘 끝으로 소량 분출시키세요.',handle:()=>({x:ringX(),y:380,r:34}),axis:'x',dir:1,amount:22,
+   apply:p=>st.ringOff=-75+p*0.55,onDone:()=>{st.drop=1},okfb:'흐름 확인 완료. 조립 끝.'},
+
+ {grp:'ane',phase:'IANB',view:'room',kind:'drag',g:'환자 자세',text:'체어 조정: 풋 페달을 밟아(아래로) 등받이를 세우세요. 크게 벌렸을 때 하악 교합평면이 바닥과 평행해야 합니다.',
+   handle:()=>({x:600,y:612,r:36}),axis:'y',dir:1,amount:70,apply:p=>st.chair=p/70,okfb:'교합평면이 바닥과 평행. 환자에게 크게 벌리게 합니다.'},
+ {grp:'ane',view:'mouth',g:'IANB 시행',text:'왼손 엄지로 자입 높이의 기준이 되는 랜드마크를 촉지하고, 조직을 외측으로 당기세요.',zones:()=>[
+   C('notch',Z.notch,26,()=>{st.thumb=1;return OK('관상돌기 절흔. 이 높이가 자입 높이이고, 조직을 당기면 자입점이 드러납니다.')}),
+   C('mental',Z.mental,26,()=>BAD('이공 부위예요. 이신경 블록의 랜드마크입니다.',5,'IANB 랜드마크: 이공 촉지',()=>{st.thumb=1})),
+   C('tub',Z.tub,26,()=>BAD('상악결절이에요. PSA 블록의 랜드마크입니다.',5,'IANB 랜드마크: 상악결절 촉지',()=>{st.thumb=1}))]},
+ {grp:'ane',g:'IANB 시행',text:'조립한 주사기를 집으세요.',enter:()=>{st.gone.delete('syringe')},zones:()=>pickZ(['syringe'])},
+ {grp:'ane',g:'IANB 시행',text:'주사기 배럴을 어디에 두고 접근할지 정하세요.',zones:()=>[
+   C('contra',Z.contra,30,()=>{st.anchor=1;return OK('반대편 소구치 위에서 교합평면과 평행하게 접근합니다.')}),
+   C('same',Z.sameMol,28,()=>BAD('같은 쪽 대구치 위에서는 하악지 내면이 벌어져 있어 골 접촉 없이 너무 깊이 빠지기 쉬워요.',5,'IANB 접근 방향: 동측 대구치',()=>{st.anchor=1})),
+   C('inc',Z.inc,28,()=>BAD('전치부에서는 각도가 부족해 하악지 내면에 너무 일찍 닿습니다.',5,'IANB 접근 방향: 전치부',()=>{st.anchor=1}))]},
+ {grp:'ane',g:'IANB 시행',text:'바늘 끝을 자입점에 대세요.',zones:()=>{const ok=()=>{st.site=1;held=null;st.gone.add('syringe')};return[
+   C('site',Z.site,24,()=>{ok();return OK('익돌하악 봉선 외측, 관상돌기 절흔 높이. 정확합니다.')}),
+   C('medial',Z.medial,24,()=>BAD('봉선 내측이에요. 인두 쪽·내측익돌근으로 들어가 마취 실패나 개구장애가 생길 수 있어요.',5,'IANB 자입점: 봉선 내측',ok)),
+   C('tub2',Z.tub,24,()=>BAD('상악결절 후방, PSA 자입점입니다.',5,'IANB 자입점: PSA 위치',ok)),
+   C('ment2',Z.mental,24,()=>BAD('하악 소구치 전정부, 이신경 블록 위치예요.',5,'IANB 자입점: 이공 부위',ok))]}},
+ {grp:'ane',kind:'depth',hud:1,g:'IANB 시행',text:'손을 천천히 아래로 내려 바늘을 진행시키세요. 골에 닿으면 멈추고 1mm 후퇴(살짝 위로)하세요.',handle:()=>({x:Z.site.x,y:Z.site.y,r:30})},
+ {grp:'ane',id:'asp',kind:'drag',hud:1,g:'IANB 시행',text:'흡인: 엄지 링을 살짝 당기세요(왼쪽으로). 카트리지를 지켜봅니다.',handle:()=>({x:hudRing().x,y:hudRing().y,r:30}),axis:'x',dir:-1,amount:35,
+   alt:{opposite:1,to:'inject',why:'흡인 생략',fb:'주입 전 흡인으로 혈관 내 주입 여부를 확인해야 합니다.'},
+   onDone:()=>{st.aspPos=Math.random()<0.3?1:0;if(st.aspPos)toast('흡인 양성! 카트리지에 혈액이 들어왔습니다. 이대로 주입하면 혈관 내 주입입니다.',0,3200);else toast('흡인 음성. 주입해도 됩니다.',1)}},
+ {grp:'ane',cond:()=>st.aspPos,kind:'drag',hud:1,g:'IANB 시행',text:'바늘을 1–2mm 빼서 재위치하세요(살짝 위로).',handle:()=>({x:Z.site.x,y:Z.site.y,r:30}),axis:'y',dir:-1,amount:24,
+   alt:{handle:()=>({x:hudRing().x,y:hudRing().y,r:30}),to:'inject',why:'흡인 양성인데 그대로 주입',fb:'혈관 내 주입 위험. 바늘을 빼 재위치하고 재흡인해야 합니다.'},
+   apply:p=>st.depth=Math.max(18,21-p/12),onDone:()=>{st.aspPos=0;st.reasp=1}},
+ {grp:'ane',cond:()=>st.reasp,kind:'drag',hud:1,g:'IANB 시행',text:'다시 흡인하세요(엄지 링을 살짝 당기기).',handle:()=>({x:hudRing().x,y:hudRing().y,r:30}),axis:'x',dir:-1,amount:35,
+   alt:{opposite:1,to:'inject',why:'재위치 후 재흡인 생략',fb:'재위치 후에도 흡인으로 다시 확인해야 합니다.'},
+   onDone:()=>{st.reasp=0},okfb:'재흡인 음성. 주입해도 됩니다.'},
+ {grp:'ane',id:'inject',kind:'drag',hud:1,g:'IANB 시행',text:'1.8mL를 천천히 주입하세요. 엄지 링을 오른쪽으로 아주 천천히 밀어요(실제 60초 이상).',handle:()=>({x:hudRing().x,y:hudRing().y,r:30}),
+   axis:'x',dir:1,amount:200,rate:0.025,minDur:6000,apply:p=>{st.inject=p/200;st.ringOff=-63+p*1.2},okfb:'주입 완료. 바늘을 천천히 빼고 리캡은 한 손 스쿱 기법으로.'},
+ {grp:'ane',kind:'wait',dur:3200,g:'마취 발현 대기',text:'마취 발현을 기다리는 중…'},
+ {grp:'ane',g:'마취 확인',text:'마취 확인: 탐침을 집으세요.',enter:()=>{st.anchor=0;st.site=0},zones:()=>pickZ(['explorer'])},
+ {grp:'ane',g:'마취 확인',text:'#46 협측 부착치은을 탐침으로 찔러 보세요.',skip:{to:'forceps',why:'마취 확인 생략',fb:'객관적 확인 없이 시작하면 술중 통증으로 이어지기 쉬워요.'},
+   zones:()=>[C('test',Z.test,24,()=>OK('환자: "하나도 안 아파요. 입술이랑 혀가 두꺼워진 느낌이에요." 마취 확인 완료.'))]},
+
+ {grp:'ext',phase:'발치',view:'mouth',cond:()=>held!=='explorer',g:'#46 발치',text:'치은 박리에 쓸 기구를 집으세요.',zones:()=>pickZ(['explorer'])},
+ {g:'#46 발치',text:'탐침 끝으로 #46 협측 치경부의 치은 부착을 분리하세요.',skip:{to:'forceps',why:'치은 박리 생략',fb:'치은 부착이 남은 채 탈구하면 치은이 찢어집니다.'},
+   zones:()=>[C('sb',Z.buc,22,()=>{st.sep=1;return OK()})]},
+ {grp:'ext',g:'#46 발치',text:'설측 치은 부착도 분리하세요.',skip:{to:'forceps',why:'설측 치은 박리 생략',fb:'설측 치은 부착이 남으면 탈구 시 설측 치은이 찢어집니다.'},
+   zones:()=>[C('sl',Z.lin,22,()=>{st.sep=2;held=null;return OK('협·설측 치은 박리 완료.')})]},
+ {grp:'ext',id:'forceps',g:'#46 발치',text:'포셉을 고르세요.',zones:()=>pickZ(['f17','f23'],FORCEPS_WRONG)},
+ {grp:'ext',g:'#46 발치',text:'포셉을 #46에 가져가세요.',zones:()=>[C('ft',T46,30,()=>{st.forceps=held;held=null;
+   return OK(st.forceps==='f23'?'Cowhorn: beak가 분지부로 파고들어 들어 올리는 효과가 있어요.':st.forceps==='f17'?'#17: beak가 근·원심 치근 분지부에 들어갑니다.':'')})]},
+ {grp:'ext',view:'tooth',kind:'drag',g:'#46 발치',text:'포셉을 치근 방향으로 최대한 깊이 seat하세요(아래로).',handle:()=>({x:440,y:470,r:34}),axis:'y',dir:1,amount:60,apply:p=>st.seated=p/60,okfb:'치근 쪽 깊이 seat. 치관 파절 위험이 줄었습니다.'},
+ {grp:'ext',kind:'shake',g:'#46 발치',text:''},
+ {id:'lacIrr',phase:'세척',grp:'lacpre',view:'lac',g:'상처 세척',text:'봉합 전 상처를 세척합니다. 세척에 쓸 것을 집으세요.',zones:()=>pickZ(['saline'])},
+ {g:'상처 세척',text:'열상 부위를 세척해 혈병과 이물을 제거하세요.',zones:()=>[C('irr',{x:440,y:420},46,()=>{st.irrigated=1;held=null;return OK('세척 완료. 이물이 남으면 감염과 창상 치유 지연의 원인이 됩니다.')})]},
+ {phase:'봉합',grp:'sutprep',view:SUTVIEW,g:'봉합 준비',text:'봉합을 시작합니다. 바늘을 잡을 기구를 집으세요.',
+   zones:()=>pickZ(['nh'],{hemo:['모스키토 지혈겸자는 바늘을 단단히 고정하지 못하고 jaw도 상합니다. 봉합 바늘은 지침기로 잡습니다.',5,'봉합: 지혈겸자로 바늘 파지']},id=>{st.driver=id;held=null})},
+ {g:'봉합 준비',text:'봉합사를 고르세요. 구강 점막 봉합입니다.',
+   zones:()=>pickZ(['s4'],{s2:['2-0는 너무 굵어 조직 손상과 불편감이 큽니다. 구강 점막은 보통 3-0~4-0을 씁니다.',5,'봉합사 선택: 2-0'],
+     s6:['6-0 나일론은 미세수술용이라 구강 점막의 장력을 견디기 어렵습니다.',5,'봉합사 선택: 6-0 nylon']},id=>{st.sutId=id;held=id})},
+ {view:'needle',g:'봉합 준비',text:'바늘을 지침기에 물리세요. 바늘의 어느 지점을 잡을까요? (왼쪽이 바늘 끝, 오른쪽이 실이 연결된 스웨이지)',zones:()=>{const ok=()=>{st.loaded=1;held=null};return[
+   C('nt',NEEDLE_PT(0.08),22,()=>BAD('바늘 끝을 잡으면 끝이 무뎌지고 휘어 조직을 제대로 뚫지 못합니다.',5,'바늘 파지: 바늘 끝',ok)),
+   C('nm',NEEDLE_PT(0.67),22,()=>{ok();return OK('스웨이지에서 약 1/3 지점. 바늘이 가장 안정적으로 고정되고 회전력이 잘 전달됩니다.')}),
+   C('ns',NEEDLE_PT(0.97),22,()=>BAD('스웨이지(실 연결부)는 약해서 잡으면 바늘이 부러지거나 실이 빠집니다.',5,'바늘 파지: 스웨이지',ok))]}},
+ {view:SUTVIEW,g:'봉합 준비',text:'반대 손에 조직을 잡을 기구를 집으세요.',skip:{to:()=>caseId==='lac'?'lac0':'f8a',why:'조직 겸자 없이 봉합',fb:'조직을 고정하지 않으면 자입 각도가 흔들리고 조직이 찢어지기 쉽습니다.'},
+   zones:()=>pickZ(['adson'],{hemo:['지혈겸자로 조직을 잡으면 압궤 손상됩니다. 조직 겸자(Adson)로 가볍게 잡습니다.',5,'조직 파지: 지혈겸자']},id=>{st.adson=id})},
+
+ {id:'f8a',grp:'sut8',view:'socket',g:'8자 봉합',text:'8자 봉합 첫 자입점: 협측 판막 근심쪽, 가장자리에서 적절한 거리를 고르세요.',zones:()=>{const set=p=>()=>{st.entry=p;st.tieA=p;st.wrapC={x:440,y:410}};return[
+   C('bm3',P8.BM,15,()=>{set(P8.BM)();return OK('협측 근심, 가장자리에서 약 3mm. 바깥에서 안쪽으로 자입합니다.')}),
+   C('bm1',P8.BM1,15,()=>BAD('가장자리에 너무 가까우면 조일 때 봉합사가 판막을 찢고 빠집니다.',5,'8자: 첫 자입 가장자리 1mm',set(P8.BM1))),
+   C('bm8',P8.BM8,15,()=>BAD('너무 멀면 과도한 조직이 묶여 혈류 장애와 불편감이 생깁니다.',5,'8자: 첫 자입 가장자리 8mm',set(P8.BM8)))]}},
+ {g:'8자 봉합',text:'첫 bite가 나올 설측 지점을 고르세요.',zones:()=>{const set=p=>()=>{st.exit=p};return[
+   C('lm3',P8.LM,15,()=>{set(P8.LM)();return OK('같은 근심쪽 설측 판막으로 협→설 수평하게 통과합니다.')}),
+   C('lm1',P8.LM1,15,()=>BAD('설측도 가장자리에 너무 가까우면 찢어집니다. 협·설측 bite 거리를 맞춥니다.',5,'8자: 설측 근심 1mm',set(P8.LM1))),
+   C('ld3x',P8.LD,15,()=>BAD('첫 bite는 같은 쪽(근심)에서 협측에서 설측으로 건너갑니다. 대각선은 발치와 위로 실이 건너갈 때 생깁니다.',5,'8자: 첫 bite 대각선 통과',set(P8.LD)))]}},
+ {kind:'arc',g:'8자 봉합',text:'집은 채로 바늘 곡률을 따라 손목을 돌려 협측에서 설측으로 통과시키세요.'},
+ {kind:'drag',g:'8자 봉합',text:'실을 당겨 협측에 짧은 꼬리(2–3cm)를 남기세요.',handle:()=>({x:st.exit.x,y:st.exit.y,r:30}),axis:'y',dir:-1,amount:70,onDone:()=>{st.pulled=1}},
+ {g:'8자 봉합',text:'실을 발치와 위로 건너가게 해서 두 번째 자입점을 고르세요.',zones:()=>{const set=p=>()=>{st.overs.push({a:st.exit,b:p});st.entry=p};return[
+   C('bd3',P8.BD,15,()=>{set(P8.BD)();return OK('설측 근심에서 협측 원심으로 대각선으로 건너갑니다. 이 대각선이 X의 한 획이 됩니다.')}),
+   C('ld3',P8.LD,15,()=>BAD('설측 원심에서 다시 들어가면 실이 교차하지 않아 X가 생기지 않습니다. 협측 원심에서 들어갑니다.',5,'8자: 두 번째 자입 설측에서',set(P8.LD))),
+   C('bd1',P8.BD1,15,()=>BAD('가장자리에 너무 가깝습니다.',5,'8자: 두 번째 자입 1mm',set(P8.BD1)))]}},
+ {g:'8자 봉합',text:'두 번째 bite가 나올 지점을 고르세요.',zones:()=>{const set=p=>()=>{st.exit=p};
+   if(st.entry.y<400)return[C('bdx',P8.BD,15,()=>{set(P8.BD)();return OK()})];
+   return[
+   C('ld3b',P8.LD,15,()=>{set(P8.LD)();return OK('협측 원심에서 설측 원심으로 수평하게 통과합니다.')}),
+   C('ld1',P8.LD1,15,()=>BAD('가장자리에 너무 가깝습니다.',5,'8자: 설측 원심 1mm',set(P8.LD1)))]}},
+ {kind:'arc',g:'8자 봉합',text:'다시 곡률을 따라 통과시키세요.'},
+ {kind:'drag',g:'8자 봉합',text:'실을 당겨 늘어진 실을 정리하세요.',handle:()=>({x:st.exit.x,y:st.exit.y,r:30}),axis:'y',dir:-1,amount:50},
+ {kind:'wrap',throwN:1,g:'매듭',text:'1번째 throw: 긴 실을 지침기에 감으세요(발치와 주위로 원 그리기). 그다음 협측 근심의 짧은 꼬리를 집으세요.'},
+ {kind:'tension',throwN:1,dir:1,g:'매듭',text:'꼬리를 집은 채 오른쪽으로 당겨 조이세요. 판막이 발치와 위로 모이면 충분합니다.'},
+ {kind:'wrap',throwN:2,g:'매듭',text:'2번째 throw: 감고 짧은 꼬리를 집으세요.'},
+ {kind:'tension',throwN:2,dir:-1,g:'매듭',text:'왼쪽으로 당겨 조이세요.'},
+ {kind:'wrap',throwN:3,g:'매듭',text:'3번째 throw: 감고 짧은 꼬리를 집으세요.'},
+ {kind:'tension',throwN:3,dir:1,g:'매듭',text:'오른쪽으로 당겨 매듭을 완성하세요.'},
+ {g:'매듭',text:'매듭을 어디에 둘지 정리하세요.',zones:()=>[
+   C('kb',{x:420,y:545},18,()=>{finishStitch({x:420,y:545});st.sutured=2;return OK('매듭을 협측 판막 위에. 발치와 위를 피해야 플라크가 덜 끼고 혈병을 건드리지 않습니다.')}),
+   C('kc',{x:440,y:410},20,()=>BAD('발치와 바로 위의 매듭은 음식물·플라크가 끼고 혈병과 치유를 방해합니다.',5,'매듭 위치: 발치와 위',()=>{finishStitch({x:440,y:410});st.sutured=2}))]},
+ {g:'봉합 마무리',text:'실을 자를 기구를 집으세요.',zones:()=>pickZ(['sc'])},
+ CUT_STEP(),
+
+ ...LAC_STEPS(),
+ {grp:'post',view:'mouth',phase:'마무리',g:'발치 후 처치',text:'지혈에 필요한 것을 집으세요.',zones:()=>pickZ(['gauze'])},
+ {grp:'post',g:'발치 후 처치',text:'발치와에 거즈를 올리고 물게 하세요.',zones:()=>[C('gz',T46,30,()=>{st.gauze=1;held=null;return OK('거즈 교합 압박. 혈병 유지를 위해 강한 세척은 피합니다.')})]},
+ {grp:'end',phase:'완료',view:'end',kind:'end',g:'결과',text:'시뮬레이션 완료'}
+];
+for(let i=1;i<S.length;i++){for(const k of['phase','view','grp'])if(!S[i][k])S[i][k]=S[i-1][k]}
+S.forEach(s=>{if(!s.kind)s.kind='zones'});
+const GLOVE_START=idx('gloveStart');
+
+function resetAll(){
+  st={masked:0,sanit:0,lamp:{x:420,y:190},lightOn:0,gloved:0,gR:0,gL:0,gone:new Set(),onBench:0,ringOff:0,cart:0,cartFlip:true,needle:0,needleId:null,drop:0,
+    chair:0,thumb:0,anchor:0,site:0,depth:0,depthContact:0,aspPos:0,reasp:0,inject:0,sep:0,forceps:0,seated:0,extracted:0,fracture:0,gauze:0,
+    driver:null,sutId:null,loaded:0,adson:null,entry:null,exit:null,arcP:0,pulled:0,wAcc:0,wPrev:null,lastDir:0,throws:0,tension:0,knot:null,cut:0,tail:0,sutured:0,passes:[],overs:[],knots:[],tieA:null,wrapC:{x:440,y:410},lastX:0,irrigated:0};
+  held=null;score=100;mistakes=[];toastO=null;returnTo=null;savedHeld=null;contamT=0;si=0;mode='practice';caseId='ext';enterStep();
+}
+document.getElementById('restartBtn').onclick=resetAll;
+function enterStep(){dw={key:null,t:0,lock:null};drag=null;penSet=new Set();stepT0=performance.now();
+  const s=S[si];if(s.enter)s.enter();
+  if(s.kind==='shake')sh={prog:0,dir:0,ext:cur.x,lastExt:cur.x,violent:0,cool:0,warn:0,stage:'luxate',pullY:0,doneT:0};
+  if(s.kind==='depth'){st.depth=0;st.depthContact=0}
+  if(s.kind==='wrap'){st.wAcc=0;st.wPrev=null}
+  if(s.kind==='tension'){st.tension=0;drag=holding()?{ox:cur.x,oy:cur.y,by:inputSrc,band:0}:null}
+  if(s.kind==='arc'){st.arcP=0}}
+function stepOn(s){if(s.cond&&!s.cond())return false;if(s.grp==='start'||s.grp==='end')return true;
+  if(returnTo!==null&&s.gl)return true;return CASES[caseId].grps.includes(s.grp)}
+function next(){si++;while(si<S.length-1&&!stepOn(S[si]))si++;enterStep()}
+function jumpTo(id){si=idx(id);enterStep()}
+
+function fire(z){dw.lock=z.key;const r=z.act();if(!r||r.stay)return;
+  if(r.ok){if(r.fb)toast(r.fb,1);next();return}
+  if(EXAM()){if(r.accept){penalize(r.pen,r.why,z.key,r.fb);r.accept();next()}return}
+  toast(r.fb,0);if(r.pen)penalize(r.pen,r.why||r.fb,z.key,r.fb)}
+function runZones(dt){
+  dwellP=0;
+  if(blocked()){dw.key=null;return}
+  let over=null;for(const z of zonesNow)if(inZone(z,cur.x,cur.y)){over=z;break}
+  if(!over){dw.key=null;dw.lock=null;return}
+  if(handMode&&camOn)return; // 손 추적 모드: 집기로만 선택
+  if(dw.lock===over.key)return;
+  if(dw.key!==over.key){dw.key=over.key;dw.t=0}
+  dw.t+=dt;dwellP=dw.t/DW;
+  if(dw.t>=DW){dw.t=0;inputSrc='dwell';fire(over)}
+}
+function stepZones(s){
+  let zs=s.zones();
+  if(EXAM()&&s.skip){const ti=idx(skipTo(s));const sk=s.skip;
+    const extra=S[ti].zones().filter(z=>z.tray?(z.good||z.acceptable):true).map(z=>({...z,key:'skip:'+z.key,act:()=>{
+      penalize(10,sk.why,'skip',sk.fb);si=ti;enterStep();return z.act()}}));
+    zs=extra.concat(zs)}
+  return zs}
+
+/* contamination */
+function checkContam(dt){
+  const s=S[si];
+  if(!st.gloved||s.view==='glove'||s.kind==='end'){contamT=0;return}
+  const inPip=inZone({rect:PIP},cur.x,cur.y);
+  const inLamp=s.view==='room'&&Math.hypot(cur.x-st.lamp.x,cur.y-(st.lamp.y+10))<44;
+  contamCool=Math.max(0,contamCool-dt);
+  if((inPip||inLamp)&&contamCool===0){contamT+=dt;
+    if(contamT>1100){contamT=0;
+      const why=inPip?'장갑 오염: 얼굴·마스크 접촉':'장갑 오염: 라이트 접촉';
+      penalize(10,why,null,'멸균 장갑을 낀 손으로 비멸균 물체를 만지면 장갑을 교체해야 합니다.');
+      if(EXAM()){contamCool=5000;flashT=performance.now();return}
+      toast((inPip?'얼굴·마스크':'라이트 손잡이')+'를 만졌어요. 장갑이 오염됐습니다. 새 장갑으로 교체하세요.',0,3800);
+      savedHeld=held;held=null;returnTo=si;st.gloved=0;st.gR=0;st.gL=0;st.gone.delete('gloves');si=GLOVE_START;enterStep();}
+  }else contamT=0;
+}
+/* ================= drawing: items ================= */
+function cartridgeShape(flip,inject){ctx.save();if(flip)ctx.scale(-1,1);
+  ctx.fillStyle='rgba(225,236,245,0.95)';rr(-30,-8,60,16,4);ctx.fill();
+  ctx.fillStyle='#3a6fb5';ctx.fillRect(-4,-8,12,16);
+  ctx.fillStyle='#c0c7ca';rr(23,-9,9,18,2);ctx.fill();
+  const sx=-30+(inject||0)*50;ctx.fillStyle='rgba(30,40,45,0.6)';if(inject)ctx.fillRect(-30,-7,sx+30,14);
+  ctx.fillStyle='#6d7477';ctx.fillRect(sx,-7,9,14);ctx.restore()}
+function glove(cx,cy,s,mirror){ctx.save();ctx.translate(cx,cy);ctx.scale(s*(mirror?-1:1),s);
+  ctx.fillStyle='#efe2c6';ctx.strokeStyle='#c9b893';ctx.lineWidth=2/s;
+  [[-50,20],[-23,0],[4,4],[31,25]].forEach(([x,o])=>{rr(x,-150+o,22,95-o,11);ctx.fill();ctx.stroke()});
+  ctx.save();ctx.translate(-62,-40);ctx.rotate(-0.5);rr(-11,-45,22,70,11);ctx.fill();ctx.stroke();ctx.restore();
+  rr(-56,-78,112,112,18);ctx.fill();ctx.stroke();
+  // 접혀서 뒤집힌 커프(안쪽 면이 겉으로 나옴)
+  ctx.fillStyle='#e0cea8';rr(-60,30,120,90,6);ctx.fill();ctx.stroke();
+  // 접힌 커프의 자유단(위쪽 가장자리)과 그 아래 틈
+  ctx.fillStyle='rgba(90,70,40,0.35)';ctx.fillRect(-60,30,120,6);
+  ctx.strokeStyle='#a8946b';ctx.lineWidth=3/s;ctx.beginPath();ctx.moveTo(-60,30);ctx.lineTo(60,30);ctx.stroke();
+  ctx.restore()}
+function forcepsShape(kind){
+  ctx.strokeStyle='#d6dde0';ctx.fillStyle='#d6dde0';ctx.lineWidth=5;
+  const bend=(kind==='f150'||kind==='f210')?12:(kind==='f151'||kind==='f222')?-10:0;
+  ctx.beginPath();ctx.moveTo(-5,4);ctx.quadraticCurveTo(-14+bend,24,-12,42);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(5,4);ctx.quadraticCurveTo(14+bend,24,12,42);ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,5,0,7);ctx.fill();
+  ctx.lineWidth=4;
+  ctx.save();
+  if(kind==='f151'||kind==='f222')ctx.rotate(-0.9);
+  if(kind==='f210'){ctx.beginPath();ctx.moveTo(0,-3);ctx.lineTo(0,-12);ctx.lineTo(8,-18);ctx.lineTo(8,-26);ctx.stroke();ctx.translate(8,-22)}
+  const L=kind==='f222'?36:30;
+  if(kind==='f23'){ctx.beginPath();ctx.moveTo(-4,-3);ctx.quadraticCurveTo(-18,-20,-3,-34);ctx.moveTo(4,-3);ctx.quadraticCurveTo(18,-20,3,-34);ctx.stroke()}
+  else{ctx.beginPath();ctx.moveTo(-4,-3);ctx.lineTo(-8,-L+6);ctx.lineTo(-3,-L);ctx.moveTo(4,-3);ctx.lineTo(8,-L+6);ctx.lineTo(3,-L);ctx.stroke();
+    if(kind==='f53'||kind==='f18'){ctx.beginPath();ctx.moveTo(8,-L+6);ctx.lineTo(12,-L-4);ctx.stroke()}
+    if(kind==='f17'){ctx.beginPath();ctx.moveTo(-8,-L+6);ctx.lineTo(-1,-L-6);ctx.moveTo(8,-L+6);ctx.lineTo(1,-L-6);ctx.stroke()}}
+  ctx.restore()}
+function drawItem(id,x,y,s,o){o=o||{};ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.lineCap='round';ctx.lineJoin='round';
+  switch(id){
+  case 'mask':ctx.fillStyle='#8cc3ea';rr(-34,-20,68,40,10);ctx.fill();ctx.strokeStyle='#5f9dc9';ctx.lineWidth=2;
+    for(const yy of[-8,0,8]){ctx.beginPath();ctx.moveTo(-30,yy);ctx.lineTo(30,yy);ctx.stroke()}
+    ctx.strokeStyle='#e8eef0';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(-40,0,8,14,0,0,7);ctx.stroke();ctx.beginPath();ctx.ellipse(40,0,8,14,0,0,7);ctx.stroke();break;
+  case 'sanit':ctx.fillStyle='#e6f3ef';rr(-15,-10,30,40,6);ctx.fill();ctx.fillStyle='#2f6f62';ctx.fillRect(-15,2,30,14);
+    ctx.fillStyle='#bfc9c7';ctx.fillRect(-5,-20,10,10);ctx.fillRect(-5,-25,20,5);break;
+  case 'gloves':ctx.fillStyle='#fff';rr(-38,-28,76,56,6);ctx.fill();ctx.strokeStyle='#2f6f62';ctx.lineWidth=3;ctx.stroke();glove(0,8,0.2,false);break;
+  case 'syringe':ctx.strokeStyle='#cfd8da';ctx.lineWidth=3;ctx.beginPath();ctx.arc(-46,0,9,0,7);ctx.stroke();
+    ctx.fillStyle='#cfd8da';ctx.fillRect(-37,-2,14,4);rr(-24,-8,56,16,4);ctx.fill();ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(-16,-5,40,10);
+    if(o.assembled){ctx.fillStyle='#3a6fb5';ctx.fillRect(-12,-4,30,8);ctx.fillStyle='#e7c64a';ctx.fillRect(32,-4,8,8);
+      ctx.strokeStyle='#eef3f4';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(40,0);ctx.lineTo(78,0);ctx.stroke()}
+    else{ctx.fillStyle='#9aa7aa';ctx.fillRect(32,-3,8,6)}break;
+  case 'cart':ctx.scale(1.1,1.1);cartridgeShape(o.flip);break;
+  case 'n27':case 'n30':{const L=id==='n27'?36:14;ctx.fillStyle=id==='n27'?'#e7c64a':'#9a6fd1';rr(-L-16,-6,18,12,3);ctx.fill();
+    ctx.strokeStyle='#eef3f4';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(-L+2,0);ctx.lineTo(L+10,0);ctx.stroke();break}
+  case 'explorer':ctx.strokeStyle='#d6dde0';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-30,0);ctx.lineTo(18,0);ctx.stroke();
+    ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(18,0);ctx.lineTo(34,0);ctx.quadraticCurveTo(44,-2,40,-12);ctx.stroke();break;
+  case 'gauze':ctx.fillStyle='#fbfbf7';rr(-20,-20,40,40,4);ctx.fill();ctx.strokeStyle='#dcdccf';ctx.lineWidth=1;
+    for(let i=-14;i<=14;i+=7){ctx.beginPath();ctx.moveTo(i,-20);ctx.lineTo(i,20);ctx.moveTo(-20,i);ctx.lineTo(20,i);ctx.stroke()}break;
+  case 'lamp':drawLampShape(0,30);break;
+  case 'gloveR':glove(0,10,0.3,false);break;
+  case 'gloveL':glove(0,10,0.3,true);break;
+  case 'saline':ctx.fillStyle='rgba(225,240,250,0.95)';rr(-30,-9,52,18,4);ctx.fill();ctx.strokeStyle='#9fb0ab';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#bfc9c7';ctx.fillRect(-40,-3,10,6);ctx.fillRect(-44,-10,4,20);ctx.strokeStyle='#d6dde0';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(22,0);ctx.lineTo(40,4);ctx.stroke();
+    ctx.font='700 11px '+FONT;ctx.fillStyle='#2e5fa8';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('N/S',-4,0);break;
+  case 'nh':case 'hemo':{ctx.strokeStyle='#d6dde0';ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(-34,-10,8,0,7);ctx.stroke();ctx.beginPath();ctx.arc(-34,10,8,0,7);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-26,-8);ctx.lineTo(10,-2);ctx.moveTo(-26,8);ctx.lineTo(10,2);ctx.stroke();
+    ctx.lineWidth=id==='nh'?6:3;ctx.beginPath();ctx.moveTo(10,0);
+    if(id==='nh')ctx.lineTo(30,0);else ctx.quadraticCurveTo(28,0,36,-8);ctx.stroke();break}
+  case 'adson':ctx.strokeStyle='#d6dde0';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-34,-6);ctx.lineTo(30,-1);ctx.moveTo(-34,6);ctx.lineTo(30,1);ctx.stroke();
+    ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(30,-3);ctx.lineTo(36,0);ctx.lineTo(30,3);ctx.stroke();break;
+  case 's4':case 's2':case 's6':ctx.fillStyle='#f7f7f2';rr(-30,-22,60,44,5);ctx.fill();
+    ctx.fillStyle=id==='s6'?'#2e5fa8':'#222';ctx.fillRect(-30,-22,60,12);
+    ctx.font='700 15px '+FONT;ctx.fillStyle='#24443e';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id==='s4'?'4-0':id==='s2'?'2-0':'6-0',0,6);break;
+  case 'sc':ctx.strokeStyle='#d6dde0';ctx.lineWidth=4;ctx.beginPath();ctx.arc(-34,-10,8,0,7);ctx.stroke();ctx.beginPath();ctx.arc(-34,10,8,0,7);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-26,-8);ctx.lineTo(36,4);ctx.moveTo(-26,8);ctx.lineTo(36,-4);ctx.stroke();break;
+  default:if(id&&id[0]==='f'){ctx.scale(1.05,1.05);forcepsShape(id)}
+  }
+  ctx.restore()}
+function drawLampShape(x,y){ctx.fillStyle='#eef2f1';ctx.strokeStyle='#9fb0ab';ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(x,y-30,48,22,0,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=st.lightOn?'#fff3b0':'#cfd7d5';ctx.beginPath();ctx.ellipse(x,y-24,32,10,0,0,7);ctx.fill();
+  ctx.fillStyle='#7f8f8b';rr(x-7,y-12,14,24,5);ctx.fill()}
+
+/* ================= drawing: views ================= */
+function drawRoom(){
+  let g=ctx.createLinearGradient(0,104,0,620);g.addColorStop(0,'#dbe7e3');g.addColorStop(1,'#c3d4cf');ctx.fillStyle=g;ctx.fillRect(0,104,890,516);
+  ctx.fillStyle='#a6b8b2';ctx.fillRect(0,620,890,100);
+  // bracket table pole + CF
+  ctx.fillStyle='#8a9a96';ctx.fillRect(700,320,12,300);
+  ctx.fillStyle='#2f6f62';rr(CF.x,CF.y,CF.w,CF.h,10);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;for(let i=CF.x+20;i<CF.x+CF.w;i+=20){ctx.beginPath();ctx.moveTo(i,CF.y);ctx.lineTo(i,CF.y+CF.h);ctx.stroke()}
+  ctx.font='600 15px '+FONT;ctx.fillStyle='rgba(255,255,255,0.85)';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('멸균 작업대',CF.x+12,CF.y+10);
+  if(st.gone.has('gloves')&&!(st.gR&&st.gL))drawItem('gloves',CF.x+80,CF.y+95,1.2);
+  if(st.onBench&&st.gone.has('syringe'))drawItem('syringe',CF.x+200,CF.y+95,1.3,{assembled:st.needle});
+  // chair
+  ctx.fillStyle='#5b6967';rr(360,628,220,22,8);ctx.fill();rr(440,540,60,92,6);ctx.fill();
+  ctx.fillStyle='#2f6f62';rr(300,515,330,42,16);ctx.fill();
+  ctx.beginPath();ctx.moveTo(612,517);ctx.lineTo(772,577);ctx.lineTo(760,606);ctx.lineTo(602,556);ctx.closePath();ctx.fill();
+  const h=headPos();
+  ctx.save();ctx.translate(310,540);ctx.rotate(Math.PI+h.a);
+  ctx.fillStyle='#2f6f62';rr(-10,-22,240,44,18);ctx.fill();
+  ctx.fillStyle='#24574d';rr(232,-16,44,32,10);ctx.fill();
+  ctx.fillStyle='#a9c9dc';rr(20,18,180,30,12);ctx.fill();
+  ctx.restore();
+  // manikin head
+  ctx.fillStyle='#e6cdb2';ctx.strokeStyle='#c7a98a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(h.x,h.y,38,0,7);ctx.fill();ctx.stroke();
+  const nx=Math.sin(h.a),ny=-Math.cos(h.a);
+  const m={x:h.x+nx*30+Math.cos(h.a)*-8,y:h.y+ny*30};
+  ctx.fillStyle='#7a2e33';ctx.beginPath();ctx.ellipse(m.x,m.y,12,7,h.a-0.95,0,7);ctx.fill();
+  const oa=(h.a-0.95);ctx.strokeStyle=Math.abs(oa)<0.06?'#2fbf8f':'#e0a24a';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(m.x-Math.cos(oa)*40,m.y-Math.sin(oa)*40);ctx.lineTo(m.x+Math.cos(oa)*40,m.y+Math.sin(oa)*40);ctx.stroke();
+  ctx.font='500 13px '+FONT;ctx.fillStyle='#24443e';ctx.textAlign='left';ctx.fillText('교합평면',m.x+44,m.y-8);
+  // light
+  const L=held==='lamp'?{x:cur.x,y:cur.y-30}:st.lamp;
+  ctx.strokeStyle='#cfd8d5';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(300,104);ctx.lineTo(300,130);ctx.lineTo(L.x,L.y-52);ctx.stroke();
+  if(st.lightOn&&held!=='lamp'){ctx.fillStyle='rgba(255,240,170,0.22)';ctx.beginPath();ctx.moveTo(L.x-30,L.y-20);ctx.lineTo(L.x+30,L.y-20);ctx.lineTo(m.x+30,m.y);ctx.lineTo(m.x-30,m.y);ctx.closePath();ctx.fill()}
+  if(held!=='lamp')drawLampShape(L.x,L.y+30);
+  // pedal
+  const pd=st.chair*8;ctx.fillStyle='#3d4846';rr(566,600+pd,68,22,8);ctx.fill();
+  ctx.font='500 13px '+FONT;ctx.fillStyle='#24443e';ctx.textAlign='center';ctx.fillText('풋 페달',600,632+pd);
+}
+function drawGloveView(){
+  ctx.fillStyle='#2b5f55';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#fbfbf8';rr(110,170,660,360,8);ctx.fill();
+  ctx.strokeStyle='#e2e2da';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(440,170);ctx.lineTo(440,530);ctx.stroke();
+  ctx.font='500 14px '+FONT;ctx.fillStyle='#8a948f';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('LEFT',295,505);ctx.fillText('RIGHT',585,505);
+  if(!st.gL&&held!=='gloveL')glove(295,370,1,true);
+  if(!st.gR&&held!=='gloveR')glove(585,370,1,false);
+  ctx.font='600 16px '+FONT;ctx.fillStyle='rgba(255,255,255,0.8)';
+  ctx.fillText(st.gL?'왼손 ✓':'왼손',360,672);ctx.fillText(st.gR?'오른손 ✓':'오른손',640,672);
+}
+function drawBench(hudMode){
+  const y=380,rx=ringX();
+  if(!hudMode){ctx.fillStyle='#2b5f55';ctx.fillRect(0,104,890,616);
+    ctx.strokeStyle='rgba(255,255,255,0.08)';for(let i=0;i<890;i+=24){ctx.beginPath();ctx.moveTo(i,104);ctx.lineTo(i,720);ctx.stroke()}}
+  ctx.fillStyle='#cfd8da';rr(250,y-50,14,100,4);ctx.fill();
+  ctx.fillStyle='#cfd8da';rr(260,y-28,380,56,8);ctx.fill();
+  ctx.fillStyle='#1f2a28';rr(298,y-19,294,38,6);ctx.fill();
+  const rodEnd=rx+160;
+  if(st.cart){ctx.save();ctx.translate(445,y);ctx.scale(4.8,2);cartridgeShape(false,st.inject);ctx.restore();
+    if(st.aspPos){ctx.fillStyle='rgba(170,20,30,0.85)';ctx.beginPath();ctx.ellipse(555,y,26,10,0,0,7);ctx.fill()}}
+  ctx.fillStyle='#aeb8bb';ctx.fillRect(rx+20,y-5,Math.max(0,rodEnd-rx-20),10);
+  ctx.beginPath();ctx.moveTo(rodEnd,y-8);ctx.lineTo(rodEnd+12,y);ctx.lineTo(rodEnd,y+8);ctx.fill();
+  ctx.strokeStyle='#cfd8da';ctx.lineWidth=10;ctx.beginPath();ctx.arc(rx,y,22,0,7);ctx.stroke();
+  ctx.fillStyle='#9aa7aa';ctx.fillRect(640,y-10,24,20);
+  if(st.needle){ctx.fillStyle='#e7c64a';ctx.fillRect(664,y-9,22,18);ctx.strokeStyle='#eef3f4';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(686,y);ctx.lineTo(850,y);ctx.stroke()}
+  if(st.drop&&!hudMode){const k=(performance.now()/600)%1;ctx.fillStyle='rgba(200,230,255,0.9)';ctx.beginPath();ctx.arc(856,y+k*30,4,0,7);ctx.fill()}
+  if(!hudMode&&S[si].flipPad){ctx.font='600 15px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('↻ 회전 패드',440,615)}
+}
+const HUD={x:560,y:122,s:0.36};
+function hudRing(){return{x:HUD.x+(ringX()-60)*HUD.s,y:HUD.y+52}}
+function drawHud(){
+  ctx.fillStyle='rgba(10,24,21,0.82)';rr(HUD.x-10,HUD.y-8,320,110,10);ctx.fill();
+  ctx.save();ctx.translate(HUD.x-60*HUD.s,HUD.y+52-380*HUD.s);ctx.scale(HUD.s,HUD.s);drawBench(true);ctx.restore();
+  ctx.font='500 15px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText('자입 깊이 '+st.depth.toFixed(1)+' mm',HUD.x,HUD.y+78);
+  ctx.fillText('주입 '+(st.inject*1.8).toFixed(1)+' / 1.8 mL',HUD.x+160,HUD.y+78);
+}
+function drawMouth(){
+  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  const cx=MC.x,cy=MC.y;
+  ctx.fillStyle='#e9cfb6';ctx.beginPath();ctx.ellipse(cx,cy,350,265,0,0,7);ctx.fill();
+  ctx.fillStyle='#5a1e24';ctx.beginPath();ctx.ellipse(cx,cy,300,210,0,0,7);ctx.fill();
+  ctx.strokeStyle='#e8a3a0';ctx.lineWidth=14;ctx.stroke();
+  ctx.fillStyle='#c8656a';ctx.beginPath();ctx.ellipse(cx,cy+80,140,90,0,Math.PI,Math.PI*2);ctx.fill();
+  // raphe
+  ctx.strokeStyle='#f0b7b2';ctx.lineWidth=5;ctx.setLineDash([10,8]);
+  ctx.beginPath();ctx.moveTo(215,255);ctx.quadraticCurveTo(232,350,228,445);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(665,255);ctx.quadraticCurveTo(648,350,652,445);ctx.stroke();ctx.setLineDash([]);
+  // teeth
+  const tooth=(x,y,w,c)=>{ctx.fillStyle=c||'#f4efe4';rr(x-w/2,y-12,w,24,5);ctx.fill()};
+  const widths=[30,30,22,22,18,16,16];
+  LOWER.forEach(([dx,dy],i)=>{
+    const isT46=i===1;
+    if(isT46&&st.extracted){ctx.fillStyle='#7a1f26';ctx.beginPath();ctx.ellipse(cx+dx,400+dy,16,11,0,0,7);ctx.fill();
+      if(st.gauze)drawItem('gauze',cx+dx,400+dy,0.8);}
+    else tooth(cx+dx,400+dy,widths[i],isT46?'#ffe7a8':null);
+    tooth(cx-dx,400+dy,widths[i]);
+    tooth(cx+dx,300-dy*0.55,widths[i]);tooth(cx-dx,300-dy*0.55,widths[i]);
+  });
+  ctx.font='600 14px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+  if(!st.extracted)ctx.fillText('#46',T46.x-34,T46.y+18);
+  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText('환자 우측',150,140);ctx.fillText('환자 좌측',730,140);
+  // states
+  if(st.thumb&&st.inject<1){ctx.fillStyle='rgba(255,220,190,0.92)';ctx.beginPath();ctx.ellipse(Z.notch.x-16,Z.notch.y,26,40,-0.25,0,7);ctx.fill()}
+  if(st.sep){ctx.strokeStyle='#ffd36b';ctx.lineWidth=3;ctx.beginPath();ctx.arc(T46.x,T46.y,18,Math.PI*0.6,Math.PI*1.2);ctx.stroke();
+    if(st.sep>1){ctx.beginPath();ctx.arc(T46.x,T46.y,18,-0.4,0.2+Math.PI*0.1);ctx.stroke()}}
+  if(st.anchor){const tip=st.site?{x:Z.site.x+ (22-st.depth)*0.4,y:Z.site.y}:(held==='syringe'?{x:cur.x,y:cur.y}:Z.contra);
+    const a=Math.atan2(tip.y-Z.contra.y,tip.x-Z.contra.x);
+    const back={x:Z.contra.x-Math.cos(a)*160,y:Z.contra.y-Math.sin(a)*160};
+    ctx.strokeStyle='#cfd8da';ctx.lineWidth=14;ctx.beginPath();ctx.moveTo(back.x,back.y);ctx.lineTo(Z.contra.x,Z.contra.y);ctx.stroke();
+    ctx.strokeStyle='#eef3f4';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(Z.contra.x,Z.contra.y);ctx.lineTo(tip.x,tip.y);ctx.stroke()}
+  if(st.sutured){ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.5;ctx.beginPath();
+    ctx.moveTo(T46.x-9,T46.y-14);ctx.lineTo(T46.x+9,T46.y+14);ctx.moveTo(T46.x+9,T46.y-14);ctx.lineTo(T46.x-9,T46.y+14);ctx.stroke();
+    ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(T46.x-12,T46.y+18,3.5,0,7);ctx.fill()}
+  if(S[si].hud)drawHud();
+}
+function drawTooth(angle,lift,widen,fractured,seat){
+  const cx=440,base=520;
+  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#d9c9a8';rr(180,base-10,520,200,18);ctx.fill();
+  ctx.fillStyle='#c4b28c';for(let i=0;i<40;i++){ctx.beginPath();ctx.arc(200+((i*97)%480),base+20+((i*53)%160),3,0,7);ctx.fill()}
+  ctx.fillStyle='#6e1f25';ctx.beginPath();ctx.moveTo(cx-78-widen,base);ctx.lineTo(cx-60-widen*0.6,base+150);ctx.lineTo(cx+60+widen*0.6,base+150);ctx.lineTo(cx+78+widen,base);ctx.fill();
+  ctx.fillStyle='#e48b8f';rr(180,base-28,520,30,14);ctx.fill();
+  ctx.save();ctx.translate(cx,base+150-lift);ctx.rotate(angle);ctx.translate(0,-150);
+  ctx.fillStyle='#f6f1e6';ctx.strokeStyle='#bfb6a3';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(-72,-60);ctx.quadraticCurveTo(-40,-82,0,-70);ctx.quadraticCurveTo(40,-82,72,-60);ctx.lineTo(70,0);
+  ctx.quadraticCurveTo(66,fractured?90:130,48,fractured?100:145);ctx.quadraticCurveTo(28,fractured?90:120,14,30);
+  ctx.quadraticCurveTo(0,18,-14,30);ctx.quadraticCurveTo(-28,120,-48,145);ctx.quadraticCurveTo(-66,130,-70,0);ctx.closePath();ctx.fill();ctx.stroke();
+  if(seat!==null){const tipY=-50+seat*80;ctx.strokeStyle='#d6dde0';ctx.lineWidth=10;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(-90,-200);ctx.lineTo(-78,tipY);ctx.moveTo(90,-200);ctx.lineTo(78,tipY);ctx.stroke()}
+  ctx.restore();
+  if(fractured&&lift<5){ctx.fillStyle='#f6f1e6';ctx.beginPath();ctx.ellipse(cx+45,base+138,9,14,0,0,7);ctx.fill()}
+}
+
+function drawSocket(){
+  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#e48b8f';rr(150,160,580,500,40);ctx.fill();
+  ctx.fillStyle='#f0a7aa';rr(150,230,580,120,10);ctx.fill();rr(150,470,580,140,10);ctx.fill();
+  // 인접치 교합면
+  const crown=(x,lab)=>{ctx.fillStyle='#f4efe4';rr(x-60,345,120,130,30);ctx.fill();ctx.strokeStyle='#d4cbb8';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x-30,410);ctx.lineTo(x+30,410);ctx.moveTo(x,375);ctx.lineTo(x,445);ctx.stroke();
+    ctx.font='600 14px '+FONT;ctx.fillStyle='#5a2a2e';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(lab,x,480)};
+  crown(260,'#45');crown(620,'#47');
+  // 발치와 + 혈병
+  ctx.fillStyle='#7a1f26';ctx.beginPath();ctx.ellipse(440,410,80,58,0,0,7);ctx.fill();
+  ctx.fillStyle='rgba(150,30,40,0.7)';ctx.beginPath();ctx.ellipse(430,400,50,30,0.3,0,7);ctx.fill();
+  // 판막 가장자리
+  ctx.strokeStyle='#c45d63';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(360,470);ctx.lineTo(520,470);ctx.moveTo(360,350);ctx.lineTo(520,350);ctx.stroke();
+  ctx.font='600 15px '+FONT;ctx.fillStyle='#5a2a2e';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('설측',440,190);ctx.fillText('협측',440,640);
+  drawSutures();
+}
+function drawNeedleView(){
+  ctx.fillStyle='#2b5f55';ctx.fillRect(0,104,890,616);
+  ctx.strokeStyle='#dfe6e8';ctx.lineWidth=9;ctx.lineCap='round';ctx.beginPath();ctx.arc(440,440,170,Math.PI,0);ctx.stroke();
+  ctx.fillStyle='#dfe6e8';ctx.beginPath();ctx.moveTo(262,440);ctx.lineTo(278,440);ctx.lineTo(270,462);ctx.fill();
+  ctx.fillStyle='#aab4b7';rr(598,428,26,22,4);ctx.fill();
+  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(624,440);ctx.bezierCurveTo(700,460,720,560,820,600);ctx.stroke();
+  ctx.font='600 15px '+FONT;ctx.fillStyle='rgba(255,255,255,0.85)';ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.fillText('바늘 끝',270,470);ctx.fillText('스웨이지',611,460);
+  ctx.font='500 14px '+FONT;ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText((NAME[st.sutId]||'')+' · 3/8 circle reverse cutting',440,560);
+}
+function drawCaseView(){
+  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  const info=[['IANB + #46 발치','감염 관리, 마취 주사기 조립, IANB, 탐침 치은 박리, 포셉 발치.'],
+    ['#46 발치 + 8자 봉합','마취 완료 가정. 마스크·장갑부터 발치, 발치와 8자 봉합까지.'],
+    ['발치와 8자 봉합만','발치가 끝난 상태에서 8자 봉합만 집중 연습.'],
+    ['상악 전치부 치은 열상','#21–#23 협측 치은 열상. 세척 후 단순 단속 봉합 4바늘.']];
+  info.forEach(([t,d],i)=>{const x=25+i*212;rr(x,190,200,380,16);ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fill();
+    ctx.font='600 15px '+FONT;ctx.fillStyle='#7fe0c9';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('케이스 '+(i+1),x+18,212);
+    wrap(t,x+18,240,168,30,'700 22px '+FONT,'#fff');wrap(d,x+18,340,168,25,'500 16px '+FONT,'#cfe0db')});
+}
+function line(a,b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
+function dot(p,r){ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(p.x,p.y,r||3.5,0,7);ctx.fill()}
+function drawSutures(){
+  ctx.lineCap='round';
+  const bl=Math.max(0,Math.min(1,(st.tension-110)/40));
+  if(bl>0&&st.entry&&st.exit){ctx.fillStyle='rgba(255,255,255,'+(0.65*bl)+')';[st.entry,st.exit].forEach(p=>{ctx.beginPath();ctx.ellipse(p.x,p.y,30,12,0,0,7);ctx.fill()})}
+  for(const p of st.passes){ctx.strokeStyle='rgba(20,20,20,0.45)';ctx.setLineDash([4,4]);ctx.lineWidth=2;line(p.a,p.b);ctx.setLineDash([]);dot(p.a);dot(p.b)}
+  for(const o of st.overs){ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.5;line(o.a,o.b)}
+  for(const k of st.knots){dot(k,3+(k.throws||3));ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(k.x,k.y);ctx.lineTo(k.x+k.tl,k.y-5);ctx.moveTo(k.x,k.y);ctx.lineTo(k.x+k.tl*0.9,k.y+7);ctx.stroke()}
+  if(st.tieA&&st.pulled&&st.exit){ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.5;
+    if(st.throws>0){line(st.exit,st.tieA);dot(st.tieA,3+st.throws)}
+    else{ctx.beginPath();ctx.moveTo(st.exit.x,st.exit.y);ctx.quadraticCurveTo(st.exit.x+80,st.exit.y-60,st.exit.x+60,st.exit.y-110);ctx.stroke()}
+    const tp=tailPt();ctx.lineWidth=2;line(st.tieA,tp)}
+  if(st.entry&&!st.passes.some(p=>p.a===st.entry))dot(st.entry);
+}
+function drawLac(){
+  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.fillStyle='#c9575f';rr(80,140,730,540,30);ctx.fill();            // 치조점막
+  ctx.fillStyle='#ef9fa3';ctx.beginPath();ctx.moveTo(80,140);ctx.lineTo(810,140);ctx.lineTo(810,400);
+  for(let x=810;x>=80;x-=10)ctx.lineTo(x,400+Math.sin(x/23)*4);ctx.closePath();ctx.fill();   // 부착치은
+  ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(120,30,40,0.5)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(80,402);ctx.lineTo(810,402);ctx.stroke();ctx.setLineDash([]);
+  const teeth=[[120,'#11',150],[260,'#21',150],[410,'#22',120],[560,'#23',130],[700,'#24',110]];
+  teeth.forEach(([x,lab,w])=>{ctx.fillStyle='#f6f1e6';rr(x-w/2,110,w,150,26);ctx.fill();
+    ctx.fillStyle='#ef9fa3';ctx.beginPath();ctx.moveTo(x-w/2-6,262);ctx.quadraticCurveTo(x,215,x+w/2+6,262);ctx.lineTo(x+w/2+6,270);ctx.lineTo(x-w/2-6,270);ctx.fill();
+    ctx.font='600 14px '+FONT;ctx.fillStyle='#5a2a2e';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(lab,x,120)});
+  // 열상
+  ctx.strokeStyle='#6e1219';ctx.lineWidth=9;ctx.lineJoin='round';ctx.beginPath();
+  for(let x=250;x<=590;x+=17){const y=420+((x/17)%2?3:-3);x===250?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke();
+  if(!st.irrigated){ctx.fillStyle='rgba(120,10,20,0.85)';[[290,428],[360,414],[470,430],[540,412]].forEach(([x,y])=>{ctx.beginPath();ctx.ellipse(x,y,16,8,0,0,7);ctx.fill()});
+    ctx.fillStyle='#d8c9a2';[[330,424],[505,418]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fill()})}
+  if(!EXAM()){ctx.font='500 14px '+FONT;ctx.fillStyle='rgba(90,30,35,0.8)';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText('부착치은',700,330);ctx.fillText('치조점막',700,560)}
+  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.7)';ctx.textAlign='center';ctx.fillText('환자 정면 · 화면 왼쪽이 정중선',440,665);
+  drawSutures();
+  if(st.gauze){ctx.globalAlpha=0.9;drawItem('gauze',440,420,2.2);ctx.globalAlpha=1}
+}
+function drawModeView(){
+  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  const box=(x,title,lines)=>{rr(x,190,310,340,16);ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fill();
+    ctx.font='700 26px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(title,x+26,216);
+    lines.forEach((l,i)=>wrap(l,x+26,268+i*58,260,24,'500 17px '+FONT,'#cfe0db'))};
+  box(110,'연습 모드',['단계마다 할 일을 문장으로 안내합니다.','틀리면 바로 이유를 알려주고 다시 하게 합니다.','점수가 실시간으로 보입니다.','장갑 오염 시 장갑을 다시 낍니다.']);
+  box(470,'실전 모드',['단계 이름만 보여주고 방법은 알려주지 않습니다.','틀려도 그대로 진행되고, 일부 과정은 건너뛸 수도 있습니다.','결과와 해설은 끝나고 한 번에 봅니다.','실수는 모두 기록됩니다.']);
+}
+function drawTray(){
+  ctx.fillStyle='rgba(12,30,26,0.92)';rr(896,108,376,604,14);ctx.fill();
+  for(const id of curTray()){const name=NAME[id],r=slot(id);
+    const avail=!st.gone.has(id)&&held!==id;
+    const hov=avail&&zonesNow.some(z=>z.tray&&z.key.endsWith('tray:'+id))&&inZone({rect:r},cur.x,cur.y);
+    rr(r.x,r.y,r.w,r.h,10);ctx.fillStyle=hov?'rgba(127,224,201,0.25)':'rgba(255,255,255,0.06)';ctx.fill();
+    if(hov){ctx.strokeStyle='#7fe0c9';ctx.lineWidth=2.5;ctx.stroke();
+      if(dwellP>0&&dw.key&&dw.key.endsWith('tray:'+id)){ctx.fillStyle='rgba(127,224,201,0.3)';rr(r.x,r.y,r.w*Math.min(1,dwellP),r.h,10);ctx.fill()}}
+    if(avail)drawItem(id,r.x+r.w/2,r.y+38,0.82,{assembled:id==='syringe'&&st.needle,flip:st.cartFlip});
+    ctx.font='500 13px '+FONT;ctx.fillStyle=avail?'#e3ece9':'rgba(227,236,233,0.3)';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText(name,r.x+r.w/2,r.y+70)}
+}
+const HAND_LINKS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+function drawPip(){
+  ctx.save();rr(PIP.x,PIP.y,PIP.w,PIP.h,10);ctx.clip();
+  if(camOn&&showCamEl.checked&&video.readyState>=2){const c=camCrop();ctx.save();ctx.translate(PIP.x+PIP.w,PIP.y);ctx.scale(-1,1);
+    ctx.drawImage(video,c.sx,c.sy,c.sw,c.sh,0,0,PIP.w,PIP.h);ctx.restore()}
+  else{ctx.fillStyle='#24332f';ctx.fillRect(PIP.x,PIP.y,PIP.w,PIP.h);ctx.font='500 14px '+FONT;ctx.fillStyle='#8fa6a0';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(camOn?'내 화면 숨김':'카메라 꺼짐',PIP.x+PIP.w/2,PIP.y+PIP.h/2)}
+  if(st.masked){ctx.fillStyle='rgba(140,195,234,0.55)';rr(PIP.x+78,PIP.y+70,100,52,16);ctx.fill()}
+  if(lastLm&&camOn){const P=lastLm.map(p=>{const n=lmNorm(p);return{x:PIP.x+n.x*PIP.w,y:PIP.y+n.y*PIP.h}});
+    ctx.strokeStyle=pinch?'#ffd36b':'#7fe0c9';ctx.lineWidth=1.5;
+    HAND_LINKS.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(P[a].x,P[a].y);ctx.lineTo(P[b].x,P[b].y);ctx.stroke()});
+    ctx.fillStyle=ctx.strokeStyle;P.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,2,0,7);ctx.fill()})}
+  ctx.restore();
+  const hz=zonesNow.some(z=>z.rect===PIP)&&inZone({rect:PIP},cur.x,cur.y);
+  const flash=performance.now()-flashT<1200;
+  rr(PIP.x,PIP.y,PIP.w,PIP.h,10);ctx.lineWidth=hz||flash?4:2;ctx.strokeStyle=hz?'#7fe0c9':((st.gloved&&contamT>0)||flash?'#ff6b6b':'rgba(255,255,255,0.6)');ctx.stroke();
+  const tags=[];if(st.masked)tags.push('마스크');if(st.sanit)tags.push('손 소독');if(st.gloved)tags.push('멸균 장갑');
+  ctx.font='600 12px '+FONT;ctx.textAlign='left';ctx.textBaseline='middle';let x=PIP.x+6;
+  tags.forEach(t=>{const w=ctx.measureText(t).width+12;rr(x,PIP.y-22,w,18,9);ctx.fillStyle='#2f6f62';ctx.fill();ctx.fillStyle='#fff';ctx.fillText(t,x+6,PIP.y-13);x+=w+4});
+}
+function wrap(text,x,y,maxW,lh,font,color){ctx.font=font;ctx.fillStyle=color;ctx.textAlign='left';ctx.textBaseline='top';
+  const lines=[];let line='';for(const ch of text){const t=line+ch;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=ch}else line=t}
+  if(line)lines.push(line);lines.forEach((l,i)=>ctx.fillText(l,x,y+i*lh));return lines.length*lh}
+function drawHeader(){
+  ctx.fillStyle='rgba(12,30,26,0.96)';ctx.fillRect(0,0,W,104);
+  const s=S[si],phases=CASES[caseId].phases,curPh=s.grp==='post'?phases[phases.length-1]:s.phase;
+  ctx.font='600 16px '+FONT;ctx.textBaseline='middle';let x=24;
+  if(s.grp!=='start'){
+    ctx.fillStyle=EXAM()?'#ffb547':'#7fe0c9';ctx.textAlign='left';const ml=EXAM()?'실전':'연습';ctx.fillText(ml,x,22);x+=ctx.measureText(ml).width+28;
+    phases.forEach((p,i)=>{const act=curPh===p,done=phases.indexOf(curPh)>i||s.grp==='end';
+      ctx.fillStyle=act?'#e3ece9':done?'rgba(227,236,233,0.55)':'rgba(255,255,255,0.3)';
+      const l=(i+1)+'. '+p;ctx.fillText(l,x,22);const w=ctx.measureText(l).width;if(act){ctx.fillStyle='#7fe0c9';ctx.fillRect(x,34,w,3)}x+=w+28});
+    if(!EXAM()){ctx.textAlign='right';ctx.fillStyle='#fff';ctx.font='700 18px '+FONT;ctx.fillText('점수 '+score,W-24,22)}
+  }
+  let txt=s.text;
+  if(s.kind==='shake'){txt=sh.stage==='luxate'?'포셉을 쥔 채(집기 유지) 손을 좌우로 크게, 천천히 흔들어 협설측으로 탈구시키세요.':sh.stage==='pull'?'충분히 탈구됐습니다. 손을 위로 들어 교합면 방향으로 빼내세요.':'발치 완료'}
+  if(EXAM()&&s.kind!=='end')txt='목표: '+s.g;
+  wrap(txt,24,48,W-48,26,'600 20px '+FONT,'#fff');
+}
+function drawZoneMarks(){
+  for(const z of zonesNow){if(z.tray||z.rect)continue;
+    const hov=inZone(z,cur.x,cur.y)&&!blocked();
+    ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,7);ctx.fillStyle=hov?'rgba(127,224,201,0.35)':'rgba(255,255,255,0.12)';ctx.fill();
+    ctx.setLineDash(hov?[]:[6,5]);ctx.lineWidth=hov?3:2;ctx.strokeStyle=hov?'#7fe0c9':'rgba(255,255,255,0.75)';ctx.stroke();ctx.setLineDash([]);
+    if(hov&&dw.key===z.key&&dwellP>0){ctx.beginPath();ctx.arc(z.x,z.y,z.r+8,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,dwellP));ctx.strokeStyle='#7fe0c9';ctx.lineWidth=5;ctx.stroke()}}
+  for(const z of zonesNow){if(!z.rect||z.tray||z.rect===PIP)continue;
+    const hov=inZone(z,cur.x,cur.y);rr(z.rect.x,z.rect.y,z.rect.w,z.rect.h,12);ctx.lineWidth=hov?4:2;ctx.setLineDash(hov?[]:[8,6]);
+    ctx.strokeStyle=hov?'#7fe0c9':'rgba(255,255,255,0.5)';ctx.stroke();ctx.setLineDash([])}
+}
+function drawToast(){if(!toastO)return;if(performance.now()>toastO.until){toastO=null;return}
+  rr(290,H-112,590,96,12);ctx.fillStyle=toastO.ok?'rgba(47,111,98,0.97)':'rgba(179,38,30,0.97)';ctx.fill();
+  wrap((toastO.ok?'✓ ':'✗ ')+toastO.text,308,H-98,556,26,'500 18px '+FONT,'#fff')}
+function drawCursor(){
+  if(held)drawItem(held,cur.x,cur.y,1.15,{assembled:held==='syringe'&&st.needle,flip:st.cartFlip});
+  else if(st.driver&&['sutprep','sut8','lac'].includes(S[si].grp)&&!st.sutured)drawItem(st.driver,cur.x+30,cur.y+18,1.1);
+  const grab=handMode&&camOn?pinch:mouseDown;
+  ctx.beginPath();ctx.arc(cur.x,cur.y,grab?11:8,0,7);ctx.fillStyle=grab?'#ffd36b':'#7fe0c9';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
+  if(dwellP>0){ctx.beginPath();ctx.arc(cur.x,cur.y,18,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,dwellP));ctx.strokeStyle='#7fe0c9';ctx.lineWidth=4;ctx.stroke()}
+  if(handMode&&camOn&&!handSeen){ctx.font='600 16px '+FONT;ctx.fillStyle='#ffb547';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('손이 안 보여요',cur.x,cur.y+16)}
+}
+function grabHint(){return handMode&&camOn?'집어서 잡기':(inputSrc==='mouse'?'눌러서 끌기':'멈춰서 잡기')}
+
+/* ================= step logic ================= */
+function handleRing(h,t){const pulse=1+0.08*Math.sin(t/180);
+  ctx.beginPath();ctx.arc(h.x,h.y,h.r*pulse,0,7);ctx.strokeStyle='#ffd36b';ctx.lineWidth=4;ctx.stroke();
+  ctx.font='600 14px '+FONT;ctx.fillStyle='#ffd36b';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(grabHint(),h.x,h.y-h.r-8)}
+function updDrag(s,dt,t){
+  const h=s.handle();
+  if(!drag){
+    zonesNow=[{key:'handle',x:h.x,y:h.y,r:h.r,act:()=>{drag={ox:cur.x,oy:cur.y,p:0,ahead:0,t0:performance.now(),by:inputSrc};return{stay:1}}}];
+    if(EXAM()&&s.alt&&s.alt.handle){const a=s.alt.handle();zonesNow.push({key:'alt',x:a.x,y:a.y,r:a.r,act:()=>{penalize(10,s.alt.why,'alt',s.alt.fb);jumpTo(s.alt.to);return{stay:1}}})}
+    runZones(dt);handleRing(h,t);
+    if(EXAM()&&s.alt&&s.alt.handle){const a=s.alt.handle();handleRing(a,t)}
+    return}
+  zonesNow=[];dwellP=0;
+  if(blocked())return;
+  if(!holding()){drag=null;if(s.apply)s.apply(0);return}
+  const rawSigned=(s.axis==='x'?cur.x-drag.ox:cur.y-drag.oy)*s.dir;
+  if(EXAM()&&s.alt&&s.alt.opposite&&rawSigned<-28){penalize(10,s.alt.why,'alt',s.alt.fb);jumpTo(s.alt.to);return}
+  let raw=Math.max(0,Math.min(s.amount,rawSigned)),p=raw;
+  if(s.rate&&!EXAM()){p=Math.min(raw,drag.p+s.rate*dt);if(raw-p>40){drag.ahead+=dt;
+      ctx.font='700 20px '+FONT;ctx.fillStyle='#ffb547';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText('천천히! 빠른 주입은 통증과 독성 위험을 키웁니다',440,h.y+90);
+      if(drag.ahead>1500)penalize(5,'주입 속도 과다','fast','1.8mL는 60초 이상에 걸쳐 천천히 주입합니다.')}}
+  if(s.maxSpeed&&Math.abs(s.axis==='x'?cur.vx:cur.vy)>s.maxSpeed&&p>4){
+    penalize(5,s.speedWhy||s.speedFb,'speed',s.speedFb);
+    if(!EXAM()){toast(s.speedFb,0,3000);drag=null;if(s.apply)s.apply(0);return}}
+  drag.p=p;if(s.apply)s.apply(p);
+  const hp=s.handle();ctx.fillStyle='rgba(255,255,255,0.2)';rr(hp.x-60,hp.y+44,120,10,5);ctx.fill();ctx.fillStyle='#7fe0c9';rr(hp.x-60,hp.y+44,120*p/s.amount,10,5);ctx.fill();
+  if(p>=s.amount){
+    if(s.minDur&&EXAM()&&performance.now()-drag.t0<s.minDur)penalize(5,'주입 속도 과다','fast','1.8mL는 60초 이상에 걸쳐 천천히 주입합니다.');
+    let jumped=false;if(s.onDone)jumped=s.onDone();if(s.okfb)toast(s.okfb,1);if(!jumped)next()}
+}
+function updDepth(s,dt,t){
+  const h=s.handle();
+  if(!drag){zonesNow=[{key:'handle',x:h.x,y:h.y,r:h.r,act:()=>{drag={ox:cur.x,oy:cur.y-st.depth*7,push:0,by:inputSrc};return{stay:1}}}];runZones(dt);handleRing(h,t);return}
+  zonesNow=[];dwellP=0;
+  if(!holding()){drag=null;return}
+  let mm=(cur.y-drag.oy)/7;
+  if(mm>22){if(!st.depthContact){st.depthContact=1;toast('골 접촉! 약 22mm. 이제 1mm 후퇴하세요.',1,2200)}
+    drag.oy+=(mm-22)*7;mm=22;drag.push+=dt;
+    if(drag.push>1400){penalize(5,'골 접촉 후 계속 밀기','push','골에 닿은 뒤 계속 밀면 바늘이 휘거나 부러질 수 있습니다.');
+      if(!EXAM()){ctx.font='700 20px '+FONT;ctx.fillStyle='#ffb547';ctx.textAlign='center';ctx.fillText('골에 닿았어요. 더 밀면 바늘이 휘거나 부러질 수 있습니다',440,250)}}}
+  else drag.push=0;
+  st.depth=Math.max(0,mm);
+  if(st.depthContact&&st.depth<=21&&st.depth>=17){toast('골 접촉 후 1mm 후퇴. 하악공 부근 위치입니다.',1);next()}
+}
+function updShake(dt,t){
+  const s=sh;s.grip=holding();
+  if(s.stage==='luxate'){
+    if(!s.grip){s.ext=cur.x;s.lastExt=cur.x;s.dir=0;return}
+    const x=cur.x,HY=30;
+    if(s.dir>=0){if(x>s.ext)s.ext=x;else if(s.ext-x>HY){stroke(Math.abs(s.ext-s.lastExt));s.lastExt=s.ext;s.ext=x;s.dir=-1}}
+    if(s.dir<0){if(x<s.ext)s.ext=x;else if(x-s.ext>HY){stroke(Math.abs(s.ext-s.lastExt));s.lastExt=s.ext;s.ext=x;s.dir=1}}
+    s.cool=Math.max(0,s.cool-dt);s.warn=Math.max(0,s.warn-dt);
+    if(Math.abs(cur.vx)>55&&s.cool===0){s.violent++;s.cool=1200;s.warn=1600;
+      penalize(5,'발치: 과도한 힘',null,'빠르고 거친 동요는 치근 파절을 일으킵니다. 크게, 천천히, 점진적으로.');
+      if(s.violent>=3&&!st.fracture){st.fracture=1;penalize(15,'발치: 원심근 근단 파절',null,'과도한 힘이 반복되면 치근이 부러집니다.');s.prog=Math.max(0,s.prog-15)}}
+    if(s.prog>=100){s.stage='pull';s.pullY=cur.y}
+  }else if(s.stage==='pull'){
+    if(!s.grip){s.pullY=Math.max(s.pullY,cur.y);return}
+    if(s.pullY-cur.y>=160){s.stage='done';s.doneT=t;st.extracted=1;
+      toast(st.fracture?'치아는 나왔지만 원심근 근단이 남았어요. 실제라면 root tip pick 등으로 회수해야 합니다.':'발치 성공! 치근까지 온전합니다.',!st.fracture,3200)}
+  }else if(t-s.doneT>2600)next();
+}
+function stroke(a){if(a>90)sh.prog=Math.min(100,sh.prog+8+Math.min(6,(a-90)/30))}
+function drawShake(){
+  const s=sh,dx=Math.max(-1,Math.min(1,(cur.x-440)/320)),p=s.prog/100;
+  let lift=0;if(s.stage==='pull'&&s.grip)lift=Math.max(0,Math.min(200,s.pullY-cur.y));if(s.stage==='done')lift=230;
+  drawTooth(s.stage==='luxate'&&s.grip?dx*(0.04+0.22*p):0,lift,p*14,st.fracture,1);
+  rr(180,130,520,16,8);ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fill();rr(180,130,520*p,16,8);ctx.fillStyle='#7fe0c9';ctx.fill();
+  ctx.font='500 15px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.fillText(EXAM()?'탈구 진행도 '+Math.round(s.prog)+'%':'탈구 진행도 '+Math.round(s.prog)+'%   과도한 힘 '+s.violent+'/3',440,152);
+  if(!s.grip&&s.stage!=='done'){ctx.font='700 20px '+FONT;ctx.fillStyle='#ffd36b';ctx.fillText(handMode&&camOn?'포셉을 쥐세요 (엄지-검지 집기 유지)':'포셉을 쥐세요',440,190)}
+  if(s.warn>0&&!EXAM()){rr(180,182,520,46,10);ctx.fillStyle='rgba(179,38,30,0.95)';ctx.fill();ctx.font='700 19px '+FONT;ctx.fillStyle='#fff';ctx.textBaseline='middle';
+    ctx.fillText(st.fracture?'근단 파절! 힘을 줄이세요':'너무 빠르고 거칩니다. 치근 파절 위험',440,205)}
+}
+function drawEnd(){
+  ctx.fillStyle='#1d2b28';ctx.fillRect(0,104,890,616);
+  ctx.font='700 30px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText((EXAM()?'실전 모드':'연습 모드')+' · '+CASES[caseId].name+'  '+score+'점',50,130);
+  const seen=new Set(),u=mistakes.filter(m=>seen.has(m.why)?false:(seen.add(m.why),true));
+  if(!u.length){wrap('실수 없이 완주했어요.',50,190,780,28,'500 20px '+FONT,'#e3ece9');return}
+  let y=184;
+  for(const m of u){if(y>650){wrap('…외 '+(u.length-u.indexOf(m))+'건',50,y,780,24,'500 16px '+FONT,'#8fa6a0');break}
+    y+=wrap('· '+m.why,50,y,800,24,'700 17px '+FONT,'#ffb4ad');
+    if(m.fb)y+=wrap(m.fb,68,y,780,22,'500 15px '+FONT,'#cfe0db');
+    y+=8}
+}
+
+/* ================= suture logic ================= */
+function arcGeo(){const a=st.entry,b=st.exit,cx=(a.x+b.x)/2,cy=(a.y+b.y)/2,R=Math.hypot(a.x-b.x,a.y-b.y)/2,ux=(b.x-a.x)/(2*R),uy=(b.y-a.y)/(2*R);
+  return{cx,cy,R,ux,uy,px:-uy,py:ux,pt:t=>({x:cx-ux*R*Math.cos(Math.PI*t)-uy*R*Math.sin(Math.PI*t),y:cy-uy*R*Math.cos(Math.PI*t)+ux*R*Math.sin(Math.PI*t)})}}
+function updArc(s,dt,t){
+  if(!st.entry||!st.exit||Math.hypot(st.entry.x-st.exit.x,st.entry.y-st.exit.y)<10){next();return}
+  const g=arcGeo();
+  if(!EXAM()){ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.lineWidth=2;ctx.beginPath();
+    for(let i=0;i<=40;i++){const p=g.pt(i/40);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)}ctx.stroke();ctx.setLineDash([])}
+  // 지나온 경로(실) + 바늘
+  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=3;ctx.beginPath();for(let i=0;i<=30;i++){const p=g.pt(st.arcP*i/30);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)}ctx.stroke();
+  ctx.strokeStyle='#dfe6e8';ctx.lineWidth=5;ctx.beginPath();for(let i=0;i<=12;i++){const p=g.pt(Math.max(0,st.arcP-0.35)+Math.min(st.arcP,0.35)*i/12+0.0001);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)}ctx.stroke();
+  const tip=g.pt(st.arcP);
+  if(!drag){zonesNow=[{key:'handle',x:tip.x,y:tip.y,r:30,act:()=>{drag={by:inputSrc,off:0};return{stay:1}}}];runZones(dt);handleRing({x:tip.x,y:tip.y,r:30},t);return}
+  zonesNow=[];dwellP=0;
+  if(!holding()){drag=null;return}
+  const vx=cur.x-g.cx,vy=cur.y-g.cy,along=vx*g.ux+vy*g.uy,perp=vx*g.px+vy*g.py;
+  let th=Math.atan2(perp,-along);if(th<0)th=th< -Math.PI/2?Math.PI:0;
+  const tt=th/Math.PI,off=Math.abs(Math.hypot(vx,vy)-g.R);
+  if(off>55){drag.off+=dt;
+    if(drag.off>500){penalize(5,'바늘 경로 이탈','arcoff','바늘은 곡률을 따라 손목을 회전시켜 진행해야 합니다. 직선으로 밀거나 비틀면 판막이 찢어지고 바늘이 휩니다.');
+      if(!EXAM()){ctx.font='700 20px '+FONT;ctx.fillStyle='#ffb547';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('바늘 곡률을 따라 손목을 돌리세요',440,140)}}
+    return}
+  drag.off=0;
+  if(tt>=st.arcP-0.05&&tt<=st.arcP+0.15)st.arcP=Math.max(st.arcP,Math.min(1,tt));
+  if(st.arcP>=0.97){st.arcP=1;st.passes.push({a:st.entry,b:st.exit});if(s.autoPull)st.pulled=1;toast('바늘 통과. 지침기로 바늘을 다시 잡아 곡률대로 빼냅니다.',1);next()}
+}
+function tailPt(){const a=st.tieA||st.entry;return{x:a.x-55,y:a.y+50}}
+function updWrap(s,dt,t){
+  const WRAP_C=st.wrapC,dx=cur.x-WRAP_C.x,dy=cur.y-WRAP_C.y,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);
+  if(d>40&&d<240){if(st.wPrev!==null){let da=a-st.wPrev;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;st.wAcc+=da}st.wPrev=a}else st.wPrev=null;
+  const turns=Math.abs(st.wAcc)/(2*Math.PI);
+  // 감긴 실 시각화
+  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2;for(let i=0;i<Math.min(3,Math.floor(turns+0.15));i++){ctx.beginPath();ctx.ellipse(WRAP_C.x+40,WRAP_C.y-20+i*8,14,6,0,0,7);ctx.stroke()}
+  if(!EXAM()){ctx.font='600 17px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText('감은 횟수 '+turns.toFixed(1)+'회  '+(st.wAcc>0.3?'↻':st.wAcc<-0.3?'↺':''),440,130);
+    ctx.setLineDash([4,6]);ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.arc(WRAP_C.x,WRAP_C.y,120,0,7);ctx.stroke();ctx.setLineDash([])}
+  const k=s.throwN,tp=tailPt();
+  zonesNow=[C('tail',tp,24,()=>{
+    const n=Math.round(turns),dir=Math.sign(st.wAcc)||1;let err=null;
+    if(n===0)err=['실을 지침기에 감지 않았어요. 감은 뒤 꼬리를 잡습니다.','매듭: 감지 않고 묶음'];
+    else if(k===1&&n<2)err=['첫 throw는 2회 감는 surgeon\'s knot이어야 조이는 동안 매듭이 풀리지 않습니다.','매듭: 첫 throw 1회 감기'];
+    else if(k>1&&dir===st.lastDir)err=['직전 throw와 같은 방향으로 감으면 granny knot이 되어 미끄러집니다. 방향을 번갈아 감으세요.','매듭: 같은 방향으로 감기(granny knot)'];
+    st.wAcc=0;if(err)return BAD(err[0],5,err[1],()=>{st.lastDir=dir});
+    st.lastDir=dir;st.wAcc=0;return OK()})];
+  runZones(dt);drawZoneMarks();
+}
+function finishTension(s){st.throws=s.throwN;st.tension=0;if(s.after)s.after();next()}
+function updTension(s,dt,t){
+  const tp=tailPt();
+  if(!drag){zonesNow=[{key:'handle',x:tp.x,y:tp.y,r:28,act:()=>{drag={ox:cur.x,oy:cur.y,by:inputSrc,band:0};return{stay:1}}}];runZones(dt);handleRing({x:tp.x,y:tp.y,r:28},t);return}
+  zonesNow=[];dwellP=0;
+  if(!holding()){drag=null;st.tension=0;return}
+  const raw=(cur.x-drag.ox)*s.dir;st.tension=raw;
+  const bx=290,by=140,bw=300;ctx.fillStyle='rgba(255,255,255,0.15)';rr(bx,by,bw,14,7);ctx.fill();
+  ctx.fillStyle='rgba(127,224,201,0.45)';ctx.fillRect(bx+bw*70/150,by,bw*45/150,14);
+  ctx.fillStyle=raw>120?'#ff6b6b':'#fff';ctx.fillRect(bx+bw*Math.max(0,Math.min(150,raw))/150-2,by-4,4,22);
+  ctx.font='500 14px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('장력',bx-44,by+7);
+  if(raw>130){penalize(5,'매듭 과도한 장력','tight','조직이 하얗게 질릴 정도로 조이면 혈류가 막혀 판막 괴사와 봉합사 탈락이 생깁니다. 판막이 맞닿을 정도로만.');
+    if(!EXAM()){toast('너무 세게 조였어요. 조직이 하얗게 질립니다. 힘을 빼고 다시.',0,2600);drag=null;st.tension=0;return}
+    finishTension(s);return}
+  if(raw>=70&&raw<=115){drag.band+=dt;if(drag.band>600){
+    toast(s.throwN===1?'첫 매듭(surgeon\'s knot)이 조직을 맞붙였습니다.':s.throwN===3?'3 throw 매듭 완성.':'매듭 고정.',1);finishTension(s)}}
+  else drag.band=0;
+}
+
+/* ================= main loop ================= */
+let last=performance.now();
+function loop(t){
+  const dt=Math.min(50,t-last);last=t;
+  if(camOn&&video.readyState>=2){if(handMode&&landmarker)trackHands();else trackMotion()}
+  const px=cur.x,py=cur.y,k=handMode&&camOn?0.5:0.35;cur.x+=(cur.tx-cur.x)*k;cur.y+=(cur.ty-cur.y)*k;cur.vx=cur.x-px;cur.vy=cur.y-py;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0c1412';ctx.fillRect(0,0,W,H);
+  const s=S[si],view=typeof s.view==='function'?s.view():s.view;
+  if(s.kind==='zones'){zonesNow=stepZones(s)}else if(!['drag','depth','arc','wrap','tension'].includes(s.kind)){zonesNow=[]}
+  if(s.kind==='shake'){updShake(dt,t);if(S[si]===s)drawShake()}
+  else if(view==='case')drawCaseView();
+  else if(view==='mode')drawModeView();
+  else if(view==='socket')drawSocket();
+  else if(view==='needle')drawNeedleView();
+  else if(view==='lac')drawLac();
+  else if(view==='room')drawRoom();
+  else if(view==='glove')drawGloveView();
+  else if(view==='bench')drawBench(false);
+  else if(view==='mouth')drawMouth();
+  else if(view==='tooth')drawTooth(0,0,0,false,st.seated);
+  else if(view==='end')drawEnd();
+  if(S[si]===s){
+    if(s.kind==='zones'){runZones(dt);if(S[si]===s)drawZoneMarks()}
+    else if(s.kind==='drag')updDrag(s,dt,t);
+    else if(s.kind==='depth')updDepth(s,dt,t);
+    else if(s.kind==='arc')updArc(s,dt,t);
+    else if(s.kind==='wrap')updWrap(s,dt,t);
+    else if(s.kind==='tension')updTension(s,dt,t);
+    else if(s.kind==='wait'){const p=Math.min(1,(t-stepT0)/s.dur);
+      rr(180,260,520,16,8);ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fill();rr(180,260,520*p,16,8);ctx.fillStyle='#7fe0c9';ctx.fill();
+      ctx.font='500 18px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('환자: "아랫입술이 두꺼워진 것 같아요… 혀도 저려요."',440,290);
+      if(p>=1)next()}
+    if(S[si]===s)checkContam(dt);
+  }
+  drawTray();drawHeader();drawPip();drawToast();drawCursor();
+  requestAnimationFrame(loop);
+}
+resetAll();requestAnimationFrame(loop);
+})();
+
+</script>
+</body>
+</html>
