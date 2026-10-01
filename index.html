@@ -278,17 +278,17 @@ function curTray(){const s=S[si];let t=TRAY[s.grp]||[];
   return t.slice(0,18)}
 function slot(id){const i=curTray().indexOf(id),c=i%3,r=(i/3)|0;return{x:906+c*120,y:116+r*98,w:112,h:92}}
 const NEEDLE_PT=f=>{const a=Math.PI-Math.PI*f;return{x:440+170*Math.cos(a),y:440-170*Math.sin(a)}};
-const CASES={ext:{name:'IANB + #46 발치',tag:'구강외과',desc:'감염 관리부터 마취, 탐침 박리, 포셉 발치까지',grps:['prep','ane','ext','post'],phases:['준비','기구 조립','IANB','발치']},
-  ext8:{name:'#46 발치 + 8자 봉합',tag:'구강외과',desc:'마취 완료 가정. 발치 후 발치와 8자 봉합',grps:['prep','ext','sutprep','sut8','post'],phases:['준비','발치','봉합']},
-  s8:{name:'발치와 8자 봉합만',tag:'구강외과',desc:'발치가 끝난 상태에서 8자 봉합만',grps:['sutprep','sut8','post'],phases:['봉합']},
-  lac:{name:'상악 전치부 치은 열상',tag:'구강외과',desc:'#21–#23 세척 후 단순 단속 봉합 4바늘',grps:['prep','lacpre','sutprep','lac'],phases:['준비','세척','봉합']},
-  ept:{name:'#46 전기치수검사(EPT)',tag:'보존',desc:'격리·건조, 대조치 비교, 접촉 위치와 판독',grps:['prepc','ept'],phases:['준비','EPT']},
-  dam:{name:'#46 러버댐 장착',tag:'보존',desc:'클램프 선택·결찰, 펀칭, 장착과 인버팅',grps:['prepc','dam'],phases:['준비','러버댐']},
-  seal:{name:'#36 실란트',tag:'소아치과',desc:'세마, 방습, 산부식, 도포, 광중합, 점검',grps:['prepc','seal'],phases:['준비','실란트']},
-  dam14:{name:'#14–24 러버댐 장착',tag:'보존',desc:'소구치 클램프, 8홀 펀칭, 접촉점 통과',grps:['prepc','dam14'],phases:['준비','러버댐']},
-  fluor:{name:'불소 트레이 도포',tag:'소아치과',desc:'치면세마부터 트레이·겔 양·4분 도포',grps:['prepc','fluor'],phases:['준비','불소 도포']},
-  sc:{name:'치은연상 스케일링',tag:'치주',desc:'치식 숨김. 부위 보고 sickle·각도·레스트',grps:['prepc','sc'],phases:['준비','SC']},
-  rp:{name:'치근활택술(RP)',tag:'치주',desc:'치식 숨김. 부위 보고 Gracey·삽입 각도',grps:['prepc','rp'],phases:['준비','RP']}};
+const CASES={ext:{task:{q:'#46 발거를 위해 하치조신경 전달마취(IANB)를 시행한 후 #46을 발거하시오.',c:['마취 기구는 직접 조립한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'IANB + #46 발치',tag:'구강외과',desc:'감염 관리부터 마취, 탐침 박리, 포셉 발치까지',grps:['prep','ane','ext','post'],phases:['준비','기구 조립','IANB','발치']},
+  ext8:{task:{q:'#46을 발거한 후 발치와를 8자 봉합하시오.',c:['마취가 필요한 술식인 경우 마취는 이미 되어 있다고 가정한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'#46 발치 + 8자 봉합',tag:'구강외과',desc:'마취 완료 가정. 발치 후 발치와 8자 봉합',grps:['prep','ext','sutprep','sut8','post'],phases:['준비','발치','봉합']},
+  s8:{task:{q:'#46 발치와를 8자 봉합하시오.',c:['발치는 이미 끝난 상태로 가정한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'발치와 8자 봉합만',tag:'구강외과',desc:'발치가 끝난 상태에서 8자 봉합만',grps:['sutprep','sut8','post'],phases:['봉합']},
+  lac:{task:{q:'#21–#23 협측 치은 열상을 세척한 후 단순 단속 봉합 4바늘을 시행하시오.',c:['마취가 필요한 술식인 경우 마취는 이미 되어 있다고 가정한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'상악 전치부 치은 열상',tag:'구강외과',desc:'#21–#23 세척 후 단순 단속 봉합 4바늘',grps:['prep','lacpre','sutprep','lac'],phases:['준비','세척','봉합']},
+  ept:{task:{q:'#46의 치수 생활력을 전기치수검사(EPT)로 평가하시오.',c:['대조치는 #36으로 한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'#46 전기치수검사(EPT)',tag:'보존',desc:'격리·건조, 대조치 비교, 접촉 위치와 판독',grps:['prepc','ept'],phases:['준비','EPT']},
+  dam:{task:{q:'#46에 대해 rubber dam 격리를 시행하시오.',c:['Manikin 구내에 석션팁을 꽂지 않는다.','입술에 바세린이 발라져 있다고 가정한다.','마취가 필요한 술식인 경우 마취는 이미 되어 있다고 가정한다.']},name:'#46 러버댐 장착',tag:'보존',desc:'클램프 선택·결찰, 펀칭, 장착과 인버팅',grps:['prepc','dam'],phases:['준비','러버댐']},
+  seal:{task:{q:'#36에 치면열구전색(sealant)을 시행하시오.',c:['환자는 아동이다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'#36 실란트',tag:'소아치과',desc:'세마, 방습, 산부식, 도포, 광중합, 점검',grps:['prepc','seal'],phases:['준비','실란트']},
+  dam14:{task:{q:'#14–24에 대해 rubber dam 격리를 시행하시오.',c:['Manikin 구내에 석션팁을 꽂지 않는다.','입술에 바세린이 발라져 있다고 가정한다.','마취가 필요한 술식인 경우 마취는 이미 되어 있다고 가정한다.']},name:'#14–24 러버댐 장착',tag:'보존',desc:'소구치 클램프, 8홀 펀칭, 접촉점 통과',grps:['prepc','dam14'],phases:['준비','러버댐']},
+  fluor:{task:{q:'치면세마 후 트레이를 이용한 불소 도포를 시행하시오.',c:['환자는 아동이다.','1.23% APF 겔을 사용한다.']},name:'불소 트레이 도포',tag:'소아치과',desc:'치면세마부터 트레이·겔 양·4분 도포',grps:['prepc','fluor'],phases:['준비','불소 도포']},
+  sc:{task:{q:'표시된 부위의 치은연상 치석을 제거하시오.',c:['치식은 제시하지 않는다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'치은연상 스케일링',tag:'치주',desc:'치식 숨김. 부위 보고 sickle·각도·레스트',grps:['prepc','sc'],phases:['준비','SC']},
+  rp:{task:{q:'표시된 치주낭의 치근면을 치근활택술(RP)로 처치하시오.',c:['치식은 제시하지 않는다.','마취가 필요한 술식인 경우 마취는 이미 되어 있다고 가정한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'치근활택술(RP)',tag:'치주',desc:'치식 숨김. 부위 보고 Gracey·삽입 각도',grps:['prepc','rp'],phases:['준비','RP']}};
 const CASE_KEYS=['ext','ext8','s8','lac','ept','dam','dam14','seal','fluor','sc','rp'];
 function gloveType(){return CASES[caseId].grps.includes('prepc')?'exam':'sterile'}
 function afterGloving(){if(returnTo!==null){si=returnTo;returnTo=null;held=savedHeld;savedHeld=null;enterStep();return true}return false}
@@ -377,8 +377,8 @@ const FORCEPS_WRONG={
   f18:['#18R은 상악 우측 대구치용입니다.',5,'포셉 선택: #18R'],
   f210:['#210은 상악 제3대구치용입니다.',5,'포셉 선택: #210']};
 const S=[
- {id:'title',phase:'시작',grp:'start',view:'title',g:'시작',text:'',zones:()=>[BACK_ZONE(()=>showScreen('home')),
-   {key:'go',big:1,dwell:1100,label:'▶  시작하기',rect:{x:300,y:470,w:290,h:70},act:()=>{jumpTo('case');return{stay:1}}}]},
+ {id:'title',phase:'시작',grp:'start',view:'title',g:'시작',text:'',zones:()=>[{key:'back',dwell:900,label:'← 처음으로',rect:{x:24,y:24,w:140,h:46},act:()=>{showScreen('home');return{stay:1}}},
+   {key:'go',big:1,dwell:1100,label:'▶  시작하기',rect:{x:495,y:465,w:290,h:72},act:()=>{jumpTo('case');return{stay:1}}}]},
  {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[BACK_ZONE(()=>jumpTo('title'))].concat(CASE_KEYS.map((c,i)=>({key:'case'+i,dwell:1300,rect:{x:25+(i%4)*212,y:170+Math.floor(i/4)*172,w:200,h:160},act:()=>{setCase(c);return{ok:1}}})))},
  {grp:'start',id:'mode',phase:'모드',view:'mode',g:'모드 선택',text:'모드를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[
    BACK_ZONE(()=>{resetAll();jumpTo('case')}),
@@ -566,9 +566,8 @@ const S=[
  {view:'dam',g:'클램프 준비',text:'클램프에 안전줄을 묶을 것을 집으세요.',skip:{to:'dPunch',why:'클램프 치실 결찰 생략',fb:'클램프가 튀거나 부러질 때 삼킴·흡인을 막는 안전줄이에요. 반드시 묶습니다.'},
    zones:()=>pickZ(['floss'],{},()=>{st.ligated=1;held=null})},
  {id:'dPunch',view:'sheet',g:'시트 펀칭',text:'시트에 구멍을 뚫을 기구를 집으세요.',enter:()=>{held=null},zones:()=>pickZ(['punch'])},
- {g:'시트 펀칭',text:'펀치 구멍 크기를 고르세요(오른쪽 펀치 휠).',zones:()=>[1,2,3,4,5].map(n=>C('h'+n,{x:790,y:150+n*70},22,()=>{
-   if(n===5){st.holeSize=5;return OK('클램프를 거는 대구치는 가장 큰 구멍(5번)입니다.')}
-   return BAD(n<=2?'작은 구멍은 하악 전치용이에요. 클램프 걸 대구치는 가장 큰 구멍을 씁니다.':'대구치 클램프 치아에는 가장 큰 구멍(5번)을 써야 시트가 찢어지지 않아요.',5,'러버댐: 펀치 크기 '+n+'번',()=>{st.holeSize=n})}))},
+ {g:'시트 펀칭',text:'펀치 휠을 돌려 #46(클램프 걸 대구치)에 맞는 구멍 크기로 맞추세요.',tick:wheelTick,
+   zones:()=>[WHEEL_OK([5],'러버댐: 펀치 크기',n=>n<=2?'작은 구멍은 하악 전치용이에요. 클램프 걸 대구치는 가장 큰 구멍(5번)을 씁니다.':'대구치 클램프 치아에는 가장 큰 구멍(5번)을 써야 시트가 찢어지지 않아요.')]},
  {g:'시트 펀칭',text:'#46 위치에 구멍을 뚫으세요. (시트를 환자 얼굴에 댄 방향으로 보고 있어요)',zones:()=>[
    C('qLL',{x:330,y:450},22,()=>{st.punchAt={x:330,y:450};held=null;return OK('하악 우측 대구치: 아래쪽, 환자 우측(화면 왼쪽).')}),
    C('qUL',{x:330,y:250},22,()=>BAD('위쪽은 상악이에요.',5,'러버댐: 펀칭 위치(상악)',()=>{st.punchAt={x:330,y:250};held=null})),
@@ -638,11 +637,15 @@ const S=[
  {view:'dam14',g:'클램프 준비',text:'클램프에 안전줄을 묶을 것을 집으세요.',skip:{to:'d14Punch',why:'클램프 치실 결찰 생략',fb:'클램프가 튀거나 부러질 때 삼킴·흡인을 막는 안전줄이에요.'},
    zones:()=>pickZ(['floss'],{},()=>{st.ligated=1;held=null})},
  {id:'d14Punch',view:'sheet14',g:'시트 펀칭',text:'구멍을 뚫을 기구를 집으세요.',enter:()=>{held=null},zones:()=>pickZ(['punch'])},
- {g:'시트 펀칭',text:'#14부터 #24까지 8개 구멍을 뚫으세요. 시트의 치열궁 표시는 #15–#25(10개)예요. 가운데 두 개가 중절치.',zones:()=>ARCH_MARKS.map((m,i)=>C('hm'+i,m,15,()=>{
-     const ok=i>=1&&i<=8;
-     if(ok){st.holes.add(i);return [...st.holes].filter(k=>k>=1&&k<=8).length>=8?(held=null,OK('#14–#24, 8개 펀칭 완료. 간격이 치아 간격과 맞아야 시트가 찢어지지 않아요.')):{stay:1}}
-     if(EXAM()){st.holes.add(i);penalize(5,'#14–24 러버댐: 격리 범위 밖 펀칭','out'+i,'#15·#25는 이번 격리 범위 밖이에요. 필요 없는 구멍은 누출 원인이 됩니다.');return{stay:1}}
-     return BAD('그 자리는 #15/#25예요. 이번 격리 범위(#14–#24) 밖입니다.',5,'#14–24 러버댐: 격리 범위 밖 펀칭')}))},
+ {g:'시트 펀칭',text:'먼저 클램프를 걸 #14·#24용으로 펀치 휠을 돌려 구멍 크기를 맞추세요.',tick:wheelTick,
+   zones:()=>[WHEEL_OK([4,5],'#14–24 러버댐: 앵커치 구멍 크기',n=>n<4?'클램프가 걸리는 앵커치는 가장 큰 쪽(4–5번) 구멍을 써야 시트가 클램프에 찢어지지 않아요.':'')]},
+ PUNCH14_STEP([1,8],'#14·#24 자리에 구멍을 뚫으세요.'),
+ {g:'시트 펀칭',text:'다음은 #13·#23(견치)용으로 휠을 맞추세요.',tick:wheelTick,
+   zones:()=>[WHEEL_OK([3],'#14–24 러버댐: 견치 구멍 크기',n=>n<3?'견치는 치경부가 커서 3번이 맞아요. 너무 작으면 시트가 찢어져요.':'견치에 너무 큰 구멍이면 치경부가 헐거워 누출이 생겨요. 3번이 맞아요.')]},
+ PUNCH14_STEP([2,7],'#13·#23 자리에 구멍을 뚫으세요.'),
+ {g:'시트 펀칭',text:'마지막으로 상악 절치(#12–#22)용으로 휠을 맞추세요.',tick:wheelTick,
+   zones:()=>[WHEEL_OK([2],'#14–24 러버댐: 절치 구멍 크기',n=>n<2?'1번은 하악 절치용이에요. 상악 절치는 2번.':'상악 절치에 큰 구멍이면 헐거워 누출이 생겨요. 2번이 맞아요.')]},
+ PUNCH14_STEP([3,4,5,6],'#12·#11·#21·#22 자리에 구멍을 뚫으세요.',true),
  {view:'dam14',g:'클램프 장착',text:'클램프 포셉을 집으세요.',enter:()=>{held=null},zones:()=>pickZ(['cforceps'])},
  {g:'클램프 장착',text:'#14에 클램프를 장착하세요.',zones:()=>[C('k14',UPT(3),26,()=>{st.cl14=1;return OK()})]},
  {g:'클램프 장착',text:'반대쪽 #24에도 장착하세요.',zones:()=>[C('k24',UPT(10),26,()=>{st.cl24=1;held=null;return OK('양 끝 소구치 클램프로 시트를 고정합니다.')})]},
@@ -756,7 +759,7 @@ function BACK_ZONE(fn){return{key:'back',dwell:900,label:'← 뒤로',rect:{x:20
 function resetAll(keepCase){
   st={masked:0,sanit:0,lamp:{x:420,y:190},lightOn:0,gloved:0,gR:0,gL:0,gone:new Set(),onBench:0,ringOff:0,cart:0,cartFlip:true,needle:0,needleId:null,drop:0,
     chair:0,thumb:0,anchor:0,site:0,depth:0,depthContact:0,aspPos:0,reasp:0,inject:0,sep:0,forceps:0,seated:0,extracted:0,fracture:0,gauze:0,
-    driver:null,sutId:null,loaded:0,adson:null,entry:null,exit:null,arcP:0,pulled:0,wAcc:0,wPrev:null,lastDir:0,throws:0,tension:0,knot:null,cut:0,tail:0,sutured:0,mirror:0,airDry:0,clampId:null,sheetWing:0,frameBench:0,wingB:0,wingL:0,wing14:0,holes:new Set(),cts:new Set(),pSite:0,pDep:1,sCount:0,gel:0,gaugeRaw:0,passes:[],overs:[],knots:[],tieA:null,wrapC:{x:440,y:410},lastX:0,irrigated:0};
+    driver:null,sutId:null,loaded:0,adson:null,entry:null,exit:null,arcP:0,pulled:0,wAcc:0,wPrev:null,lastDir:0,throws:0,tension:0,knot:null,cut:0,tail:0,sutured:0,mirror:0,wheelAng:0,wPrevA:null,holeSz:{},airDry:0,clampId:null,sheetWing:0,frameBench:0,wingB:0,wingL:0,wing14:0,holes:new Set(),cts:new Set(),pSite:0,pDep:1,sCount:0,gel:0,gaugeRaw:0,passes:[],overs:[],knots:[],tieA:null,wrapC:{x:440,y:410},lastX:0,irrigated:0};
   held=null;score=100;mistakes=[];toastO=null;returnTo=null;savedHeld=null;contamT=0;saved=null;si=0;mode='practice';caseId='ext';
   if(keepCase){setCase(keepCase);si=idx('mode')}
   enterStep();
@@ -949,12 +952,19 @@ function drawRoom(){
   ctx.strokeStyle='rgba(120,150,170,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(290,158,12,20,0,0,7);ctx.ellipse(320,158,12,20,0,0,7);ctx.stroke();
   const fg=ctx.createLinearGradient(0,620,0,720);fg.addColorStop(0,'#aebfcc');fg.addColorStop(1,'#96a9b8');ctx.fillStyle=fg;ctx.fillRect(0,620,890,100);
   ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1;for(let x=0;x<890;x+=70){ctx.beginPath();ctx.moveTo(x,620);ctx.lineTo(x-40,720);ctx.stroke()}
-  // 브래킷 테이블
-  ctx.fillStyle='#8a9aa6';ctx.fillRect(704,320,10,300);ctx.fillStyle='#6d7d89';rr(680,612,58,12,5);ctx.fill();
+  // 체어 일체형 라이트 기둥 (등받이 뒤, 체어 베이스에서 올라감)
+  const pg=ctx.createLinearGradient(362,0,382,0);pg.addColorStop(0,'#aab6be');pg.addColorStop(.5,'#eef3f6');pg.addColorStop(1,'#aab6be');
+  ctx.fillStyle=pg;rr(362,118,20,520,8);ctx.fill();ctx.fillStyle='#d9e1e6';ctx.beginPath();ctx.arc(372,120,13,0,7);ctx.fill();
+  // 체어 일체형 딜리버리 암 → 기구 테이블
+  ctx.strokeStyle='#c7d1d8';ctx.lineWidth=14;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(500,590);ctx.lineTo(560,420);ctx.lineTo(690,360);ctx.stroke();
+  ctx.strokeStyle='#e9eff3';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(500,590);ctx.lineTo(560,420);ctx.lineTo(690,360);ctx.stroke();
+  ctx.fillStyle='#b9c4cb';ctx.beginPath();ctx.arc(560,420,10,0,7);ctx.fill();rr(682,316,18,48,6);ctx.fill();
   ctx.fillStyle='#e9eff3';rr(CF.x-6,CF.y-6,CF.w+12,CF.h+12,12);ctx.fill();
+  ctx.fillStyle='#d5dee4';rr(CF.x+CF.w-70,CF.y+CF.h+4,64,16,5);ctx.fill();
+  ['#3b4c5a','#3b4c5a','#c9d3d8'].forEach((c,i)=>{ctx.strokeStyle=c;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(CF.x+CF.w-60+i*20,CF.y+CF.h+12);ctx.quadraticCurveTo(CF.x+CF.w-70+i*20,CF.y+CF.h+60,CF.x+CF.w-40+i*20,CF.y+CF.h+90);ctx.stroke()});
   ctx.fillStyle='#2f6a96';rr(CF.x,CF.y,CF.w,CF.h,10);ctx.fill();
   ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;for(let i=CF.x+20;i<CF.x+CF.w;i+=20){ctx.beginPath();ctx.moveTo(i,CF.y);ctx.lineTo(i,CF.y+CF.h);ctx.stroke()}
-  ctx.font='600 15px '+FONT;ctx.fillStyle='rgba(255,255,255,0.85)';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('멸균 작업대',CF.x+12,CF.y+10);
+  ctx.font='600 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.7)';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('멸균 작업대',CF.x+12,CF.y+10);
   if(st.gone.has('gloves')&&!(st.gR&&st.gL))drawItem('gloves',CF.x+80,CF.y+95,1.2);
   if(st.onBench&&st.gone.has('syringe'))drawItem('syringe',CF.x+200,CF.y+95,1.3,{assembled:st.needle});
   // 체어 베이스
@@ -1000,14 +1010,18 @@ function drawRoom(){
   ctx.font='600 13px '+FONT;ctx.fillStyle='#24404e';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(upper?'상악 교합평면':'하악 교합평면',m.x+50,m.y-14);
   // 라이트
   const L=held==='lamp'?{x:cur.x,y:cur.y-30}:st.lamp;
-  ctx.strokeStyle='#d6dee3';ctx.lineWidth=10;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(300,104);ctx.lineTo(300,132);ctx.lineTo((300+L.x)/2,140);ctx.lineTo(L.x,L.y-52);ctx.stroke();
-  ctx.fillStyle='#c3ccd2';ctx.beginPath();ctx.arc((300+L.x)/2,140,7,0,7);ctx.fill();
+  const jx=(372+L.x)/2,jy=Math.min(126,L.y-70);ctx.strokeStyle='#d6dee3';ctx.lineWidth=10;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(372,120);ctx.lineTo(jx,jy);ctx.lineTo(L.x,L.y-52);ctx.stroke();
+  ctx.fillStyle='#c3ccd2';ctx.beginPath();ctx.arc(jx,jy,7,0,7);ctx.fill();
   if(st.lightOn&&held!=='lamp'){const bm=ctx.createLinearGradient(L.x,L.y,m.x,m.y);bm.addColorStop(0,'rgba(255,244,190,0.45)');bm.addColorStop(1,'rgba(255,244,190,0.05)');
     ctx.fillStyle=bm;ctx.beginPath();ctx.moveTo(L.x-30,L.y-20);ctx.lineTo(L.x+30,L.y-20);ctx.lineTo(m.x+34,m.y);ctx.lineTo(m.x-34,m.y);ctx.closePath();ctx.fill()}
   if(held!=='lamp')drawLampShape(L.x,L.y+30);
   // 풋 페달
-  const pd=st.chair*6;ctx.fillStyle='#3d4846';rr(566,600+pd,68,22,8);ctx.fill();ctx.fillStyle='#5b6967';rr(572,604+pd,56,6,3);ctx.fill();
-  ctx.font='500 13px '+FONT;ctx.fillStyle='#24404e';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText('풋 페달',600,640+pd);
+  ctx.strokeStyle='#3b4650';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(560,632);ctx.quadraticCurveTo(530,660,480,646);ctx.stroke();
+  const fcg=ctx.createRadialGradient(592,612,6,600,620,50);fcg.addColorStop(0,'#7a8790');fcg.addColorStop(1,'#3b4650');
+  ctx.fillStyle=fcg;ctx.beginPath();ctx.ellipse(600,626,52,16,0,0,7);ctx.fill();
+  ctx.fillStyle='#55626b';ctx.beginPath();ctx.ellipse(600,618,40,11,0,0,7);ctx.fill();
+  const pd=(st.chair-0.5)*0.5;ctx.save();ctx.translate(600,614);ctx.rotate(pd);ctx.fillStyle='#c9d3d8';rr(-30,-5,60,10,5);ctx.fill();ctx.restore();
+  ctx.fillStyle='#2f6a96';ctx.beginPath();ctx.arc(600,612,6,0,7);ctx.fill();
 }
 function drawGloveView(){
   ctx.fillStyle='#2b5378';ctx.fillRect(0,104,890,616);
@@ -1049,16 +1063,23 @@ function drawHud(){
 function drawMouth(){
   ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
   const cx=MC.x,cy=MC.y;
-  ctx.fillStyle='#e9cfb6';ctx.beginPath();ctx.ellipse(cx,cy,350,265,0,0,7);ctx.fill();
-  ctx.fillStyle='#5a1e24';ctx.beginPath();ctx.ellipse(cx,cy,300,210,0,0,7);ctx.fill();
-  ctx.strokeStyle='#e8a3a0';ctx.lineWidth=14;ctx.stroke();
-  ctx.fillStyle='#c8656a';ctx.beginPath();ctx.ellipse(cx,cy+80,140,90,0,Math.PI,Math.PI*2);ctx.fill();
+  const fg=ctx.createRadialGradient(cx,cy,180,cx,cy,380);fg.addColorStop(0,'#efd3b9');fg.addColorStop(1,'#d9b393');
+  ctx.fillStyle=fg;ctx.beginPath();ctx.ellipse(cx,cy,360,275,0,0,7);ctx.fill();
+  const mg=ctx.createRadialGradient(cx,cy+20,30,cx,cy,300);mg.addColorStop(0,'#3a0f14');mg.addColorStop(.7,'#6e2129');mg.addColorStop(1,'#a2434b');
+  ctx.fillStyle=mg;ctx.beginPath();ctx.ellipse(cx,cy,300,210,0,0,7);ctx.fill();
+  const lg=ctx.createLinearGradient(0,cy-230,0,cy+230);lg.addColorStop(0,'#c9737a');lg.addColorStop(.5,'#e7a1a2');lg.addColorStop(1,'#c9737a');
+  ctx.strokeStyle=lg;ctx.lineWidth=18;ctx.stroke();
+  ctx.fillStyle='rgba(222,140,145,0.85)';ctx.beginPath();ctx.ellipse(cx,cy-112,250,40,0,Math.PI,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx,cy+86,240,40,0,0,Math.PI);ctx.fill();
+  const tg=ctx.createRadialGradient(cx,cy+50,10,cx,cy+80,150);tg.addColorStop(0,'#e0858a');tg.addColorStop(1,'#b75a62');
+  ctx.fillStyle=tg;ctx.beginPath();ctx.ellipse(cx,cy+80,140,90,0,Math.PI,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(140,50,60,0.5)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,cy+2);ctx.lineTo(cx,cy+70);ctx.stroke();
   // raphe
   ctx.strokeStyle='#f0b7b2';ctx.lineWidth=5;ctx.setLineDash([10,8]);
   ctx.beginPath();ctx.moveTo(215,255);ctx.quadraticCurveTo(232,350,228,445);ctx.stroke();
   ctx.beginPath();ctx.moveTo(665,255);ctx.quadraticCurveTo(648,350,652,445);ctx.stroke();ctx.setLineDash([]);
   // teeth
-  const tooth=(x,y,w,c)=>{ctx.fillStyle=c||'#f4efe4';rr(x-w/2,y-12,w,24,5);ctx.fill()};
+  const tooth=(x,y,w,c)=>{const g2=ctx.createLinearGradient(x,y-12,x,y+12);g2.addColorStop(0,c||'#fbf7ee');g2.addColorStop(1,c?c:'#e2d8c3');ctx.fillStyle=g2;rr(x-w/2,y-12,w,24,7);ctx.fill();ctx.strokeStyle='rgba(150,130,100,0.35)';ctx.lineWidth=1;ctx.stroke()};
   const widths=[30,30,22,22,18,16,16];
   LOWER.forEach(([dx,dy],i)=>{
     const isT46=i===1;
@@ -1197,6 +1218,12 @@ function drawTray(){
     if(avail)drawItem(id,r.x+r.w/2,r.y+38,0.82,{assembled:id==='syringe'&&st.needle,flip:st.cartFlip});
     ctx.font='500 13px '+FONT;ctx.fillStyle=avail?'#e3ecf3':'rgba(227,236,233,0.3)';ctx.textAlign='center';ctx.textBaseline='top';
     ctx.fillText(name,r.x+r.w/2,r.y+70)}
+  const s0=S[si],tk=CASES[caseId]&&CASES[caseId].task;
+  if(tk&&s0.grp!=='start'&&s0.kind!=='end'){const n=curTray().length,top=116+Math.ceil(n/3)*98+6,bot=704;
+    if(bot-top>90){rr(906,top,356,bot-top,12);ctx.fillStyle='rgba(255,248,220,0.96)';ctx.fill();
+      ctx.font='700 15px '+FONT;ctx.fillStyle='#8a5a00';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('📋 문제',920,top+12);
+      let y=top+36;y+=wrap(tk.q,920,y,328,21,'700 15px '+FONT,'#2e3a44')+6;
+      tk.c.forEach(c=>{if(y<bot-20)y+=wrap('(단, '+c+')',920,y,328,18,'500 13px '+FONT,'#5a4a2a')+2})}}
 }
 const HAND_LINKS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 function drawPip(){
@@ -1431,10 +1458,7 @@ function drawSheetView(){
   ctx.fillText('↑ 코 쪽',440,170);
   if(!EXAM()){ctx.fillText('환자 얼굴에 댄 방향 그대로',440,590);ctx.fillText('위 = 상악 · 화면 왼쪽 = 환자 우측',440,612)}
   if(st.punchAt){ctx.fillStyle='#1b2733';ctx.beginPath();ctx.arc(st.punchAt.x,st.punchAt.y,4+(st.holeSize||3)*2,0,7);ctx.fill()}
-  ctx.fillStyle='rgba(255,255,255,0.08)';rr(745,190,90,380,16);ctx.fill();
-  [1,2,3,4,5].forEach(n=>{const y=150+n*70,r=3+n*2.2;ctx.fillStyle='#cfd8da';ctx.beginPath();ctx.arc(790,y,r,0,7);ctx.fill();
-    ctx.font='600 13px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.fillText(String(n),815,y)});
-  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.7)';ctx.textAlign='center';ctx.fillText('펀치 휠',790,175);
+  drawPunchWheel();
 }
 function drawSealView(){
   ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
@@ -1504,7 +1528,8 @@ function drawSheet14View(){
   ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(440,140);ctx.lineTo(440,580);ctx.moveTo(220,360);ctx.lineTo(660,360);ctx.stroke();ctx.setLineDash([]);
   ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.85)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('↑ 코 쪽',440,158);
   if(!EXAM())ctx.fillText('위 = 상악 · 화면 왼쪽 = 환자 우측',440,560);
-  ARCH_MARKS.forEach((m,i)=>{const on=st.holes.has(i);ctx.fillStyle=on?'#1b2733':'rgba(255,255,255,0.75)';ctx.beginPath();ctx.arc(m.x,m.y,on?8:3.5,0,7);ctx.fill()});
+  ARCH_MARKS.forEach((m,i)=>{const on=st.holes.has(i);ctx.fillStyle=on?'#1b2733':'rgba(255,255,255,0.75)';ctx.beginPath();ctx.arc(m.x,m.y,on?3+(st.holeSz[i]||3)*1.8:3.5,0,7);ctx.fill()});
+  if(S[si].tick||S[si].g==='시트 펀칭')drawPunchWheel();
 }
 function archTooth(p,w,col){ctx.fillStyle=col||'#f4efe4';ctx.beginPath();ctx.ellipse(p.x,p.y,w,w*0.82,0,0,7);ctx.fill()}
 function drawFluorView(){
@@ -1594,6 +1619,31 @@ function updGauge(s,dt,t){
     next();return}
   if(raw>=s.lo&&raw<=s.hi){drag.band+=dt;if(drag.band>700){if(s.okfb)toast(s.okfb,1);next()}}else drag.band=0;
 }
+/* ===== 러버댐 펀치 휠 ===== */
+const WHEEL={x:790,y:370,r:58};
+function wheelSize(){const k=Math.round(-(st.wheelAng||0)/(2*Math.PI/5));return((k%5)+5)%5+1}
+function wheelTick(dt){const dx=cur.x-WHEEL.x,dy=cur.y-WHEEL.y,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);
+  if(d>22&&d<130&&holding()){if(st.wPrevA!=null){let da=a-st.wPrevA;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;st.wheelAng=(st.wheelAng||0)+da}st.wPrevA=a}else st.wPrevA=null}
+function drawPunchWheel(){const W0=WHEEL;
+  ctx.fillStyle='rgba(255,255,255,0.06)';rr(W0.x-80,W0.y-120,160,250,16);ctx.fill();
+  const pg=ctx.createRadialGradient(W0.x-15,W0.y-15,10,W0.x,W0.y,W0.r);pg.addColorStop(0,'#eef3f5');pg.addColorStop(1,'#9aa7ad');
+  ctx.fillStyle=pg;ctx.beginPath();ctx.arc(W0.x,W0.y,W0.r,0,7);ctx.fill();
+  for(let n=1;n<=5;n++){const ang=-Math.PI/2+(n-1)*2*Math.PI/5+(st.wheelAng||0),rad=W0.r-18;
+    ctx.fillStyle='#2b3640';ctx.beginPath();ctx.arc(W0.x+Math.cos(ang)*rad,W0.y+Math.sin(ang)*rad,2.5+n*1.9,0,7);ctx.fill()}
+  ctx.fillStyle='#ffd36b';ctx.beginPath();ctx.moveTo(W0.x-9,W0.y-W0.r-16);ctx.lineTo(W0.x+9,W0.y-W0.r-16);ctx.lineTo(W0.x,W0.y-W0.r-4);ctx.fill();
+  ctx.fillStyle='#cfd8da';ctx.beginPath();ctx.arc(W0.x,W0.y,8,0,7);ctx.fill();
+  ctx.font='600 13px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('펀치 휠 · 현재 '+wheelSize()+'번',W0.x,W0.y+W0.r+20);
+  ctx.font='500 12px '+FONT;ctx.fillStyle='rgba(255,255,255,0.65)';ctx.fillText(handMode&&camOn?'집은 채로 휠 둘레를 돌리기':'휠 둘레를 끌어서 돌리기',W0.x,W0.y-W0.r-30)}
+function WHEEL_OK(okSizes,why,fbWrong,onOk){return{key:'wok',label:'이 크기로 맞춤',rect:{x:WHEEL.x-70,y:WHEEL.y+86,w:140,h:42},act:()=>{
+  const n=wheelSize();if(okSizes.includes(n)){st.holeSize=n;if(onOk)onOk(n);return OK(n+'번 구멍으로 맞췄어요.')}
+  return BAD(fbWrong(n),5,why+' ('+n+'번)',()=>{st.holeSize=n;if(onOk)onOk(n)})}}}
+function PUNCH14_STEP(group,text,last){return{g:'시트 펀칭',text,zones:()=>ARCH_MARKS.map((m,i)=>i).filter(i=>!st.holes.has(i)).map(i=>C('hm'+i,ARCH_MARKS[i],15,()=>{
+  if(group.includes(i)){st.holes.add(i);st.holeSz[i]=st.holeSize;const done=group.every(k=>st.holes.has(k));
+    return done?(last&&(held=null),OK(last?'#14–#24, 8개 펀칭 완료. 치아마다 맞는 크기로 뚫었어요.':'완료.')):{stay:1}}
+  const out=i===0||i===9;const fb=out?'그 자리는 #15/#25예요. 이번 격리 범위(#14–#24) 밖입니다.':'그 자리는 지금 맞춘 크기로 뚫을 치아가 아니에요.';
+  if(EXAM()){if(out){st.holes.add(i);st.holeSz[i]=st.holeSize}penalize(5,out?'#14–24 러버댐: 격리 범위 밖 펀칭':'#14–24 러버댐: 구멍 크기 불일치','p'+i,fb);return{stay:1}}
+  return BAD(fb,5,out?'#14–24 러버댐: 격리 범위 밖 펀칭':'#14–24 러버댐: 구멍 크기 불일치')}))}}
 /* ===== 클램프 보드 ===== */
 const CLAMP_CLASS=n=>n<=205?'molar':n<=209?'premolar':n<=211?'anterior':'cervical';
 const CLAMP_NAME={molar:'대구치',premolar:'소구치',anterior:'전치부',cervical:'전치부 치경부(retraction)'};
@@ -1620,47 +1670,56 @@ function drawClampBoard(){
 const BENCH_CLAMP={x:770,y:575};
 function UPTr(k,r){const p=UPT(k);return{x:p.x,y:p.y,r}}
 
-/* ===== 치주 기구 보드 (이름 없이 생크 모양으로) ===== */
+/* ===== 치주 기구 보드 (레퍼런스처럼 양쪽 작업단, 이름 없이) ===== */
 const INSTR={
-  sickleA:{name:'전치부 sickle',shape:'생크가 곧고 끝이 뾰족',use:'전치부 치은연상',seg:[[92,0]],bl:'s'},
-  sickleP:{name:'구치부 sickle',shape:'생크가 두 번 꺾인 contra-angle, 끝이 뾰족',use:'구치부 치은연상',seg:[[40,0],[30,40],[30,-15]],bl:'s'},
-  univ:{name:'Universal curette',shape:'생크 각도 중간, 끝이 둥글고 양쪽 날 사용',use:'여러 부위(범용)',seg:[[45,0],[30,30],[18,10]],bl:'c'},
-  g12:{name:'Gracey 1/2',shape:'생크가 거의 곧고 끝에서 살짝 꺾임',use:'전치부',seg:[[72,0],[18,20]],bl:'c'},
-  g56:{name:'Gracey 5/6',shape:'생크가 길고 완만하게 한 번 꺾임',use:'전치·소구치',seg:[[86,0],[24,24]],bl:'c'},
-  g78:{name:'Gracey 7/8',shape:'생크가 중간 정도로 꺾임',use:'구치부 협·설면',seg:[[50,0],[30,40],[18,62]],bl:'c'},
-  g1112:{name:'Gracey 11/12',shape:'생크가 여러 번 꺾인 S자',use:'구치부 근심면',seg:[[40,0],[26,45],[24,-22],[16,38]],bl:'c'},
-  g1314:{name:'Gracey 13/14',shape:'생크가 가장 급하게 꺾여 갈고리처럼 휨',use:'구치부 원심면',seg:[[45,0],[26,72],[20,138]],bl:'c'}};
+  sickleA:{name:'전치부 sickle',shape:'생크가 곧고 끝이 뾰족',use:'전치부 치은연상',pts:[[0,0],[92,0],[112,-5]],bl:'s'},
+  sickleP:{name:'구치부 sickle',shape:'생크가 두 번 꺾인 contra-angle, 끝이 뾰족',use:'구치부 치은연상',pts:[[0,0],[42,0],[62,-18],[86,-20],[100,-8]],bl:'s'},
+  univ:{name:'Universal curette',shape:'생크 각도 중간, 끝이 둥글고 양쪽 날 사용',use:'여러 부위(범용)',pts:[[0,0],[58,0],[82,-12],[100,-14]],bl:'u'},
+  g12:{name:'Gracey 1/2',shape:'생크가 길고 곧으며 끝에서 살짝 꺾임',use:'전치부',pts:[[0,0],[86,0],[108,-4],[122,-10]],bl:'c'},
+  g56:{name:'Gracey 5/6',shape:'생크가 길고 완만하게 한 번 꺾임',use:'전치·소구치',pts:[[0,0],[72,0],[100,-8],[124,-16]],bl:'c'},
+  g78:{name:'Gracey 7/8',shape:'생크가 중간 정도로 두 번 꺾임',use:'구치부 협·설면',pts:[[0,0],[48,0],[70,-16],[94,-18],[110,-30]],bl:'c'},
+  g1112:{name:'Gracey 11/12',shape:'생크가 여러 번 꺾인 S자',use:'구치부 근심면',pts:[[0,0],[44,0],[64,-20],[86,-10],[102,-26]],bl:'c'},
+  g1314:{name:'Gracey 13/14',shape:'생크가 급하게 꺾여 끝이 뒤로 돌아오는 갈고리형',use:'구치부 원심면',pts:[[0,0],[56,0],[80,-18],[88,-38],[78,-52]],bl:'c'}};
 const SC_SET=['univ','sickleP','g78','sickleA','g1314'];
 const RP_SET=['g56','g1314','g78','g12','g1112','sickleP'];
 let instrSet=[];
-const instrRect=(i,n)=>{const step=520/n,cx=105+step*(i+0.5);return{x:cx-step/2+6,y:140,w:step-12,h:470}};
+const instrRect=(i,n)=>{const h=Math.min(86,460/n);return{x:105,y:140+i*h,w:520,h:h-8}};
 function INSTR_ZONES(set,ok){instrSet=set;const P=S[si].grp==='sc'?'SC':'RP';
   return set.map((id,i)=>({key:'in'+id,rect:instrRect(i,set.length),act:()=>{const it=INSTR[id];
     if(ok.includes(id)){held=id;return OK(it.name+': '+it.shape+' → '+it.use+'에 맞아요.')}
     const want=ok.map(k=>INSTR[k].name).join(' 또는 ');
     const pen=(id==='univ'&&P==='SC')?2:5;
     return BAD('그건 '+it.name+'('+it.shape+', '+it.use+'용)이에요. 이 부위엔 '+want+'이(가) 맞아요.',pen,P+': 기구 선택 오류('+it.name+')',()=>{held=id})}}))}
-function drawInstrument(id,cx,by,sc){const it=INSTR[id];ctx.save();ctx.translate(cx,by);ctx.scale(sc,sc);
-  const hg=ctx.createLinearGradient(-9,0,9,0);hg.addColorStop(0,'#9aa7ad');hg.addColorStop(.5,'#eef3f5');hg.addColorStop(1,'#9aa7ad');
-  ctx.fillStyle=hg;rr(-9,-170,18,170,8);ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.18)';ctx.lineWidth=1;for(let y=-160;y<-20;y+=7){ctx.beginPath();ctx.moveTo(-8,y);ctx.lineTo(8,y+3);ctx.stroke()}
-  let x=0,y=-170,ang=0;ctx.strokeStyle='#dfe6e9';ctx.lineWidth=4.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(x,y);
-  it.seg.forEach(([len,a])=>{ang=a*Math.PI/180;x+=len*Math.sin(ang);y-=len*Math.cos(ang);ctx.lineTo(x,y)});ctx.stroke();
-  const dx=Math.sin(ang),dy=-Math.cos(ang);ctx.fillStyle='#f4f8fa';ctx.beginPath();
-  if(it.bl==='s'){ctx.moveTo(x-dy*4,y+dx*4);ctx.lineTo(x+dx*26,y+dy*26);ctx.lineTo(x+dy*4,y-dx*4);ctx.closePath();ctx.fill()}
-  else{ctx.lineWidth=5;ctx.strokeStyle='#f4f8fa';ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+dx*16+dy*8,y+dy*16-dx*8,x+dx*22+dy*2,y+dy*22-dx*2);ctx.stroke();
-    ctx.beginPath();ctx.arc(x+dx*22+dy*2,y+dy*22-dx*2,3.2,0,7);ctx.fill()}
+function drawInstrEnd(it,flip){
+  ctx.save();if(flip)ctx.scale(-1,-1);
+  ctx.strokeStyle='#e3e9ec';ctx.lineWidth=3.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();
+  it.pts.forEach(([x,y],k)=>k?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.stroke();
+  const n=it.pts.length,[x1,y1]=it.pts[n-1],[x0,y0]=it.pts[n-2];let dx=x1-x0,dy=y1-y0;const l=Math.hypot(dx,dy)||1;dx/=l;dy/=l;const nx=-dy,ny=dx;
+  ctx.fillStyle='#f4f8fa';ctx.strokeStyle='#f4f8fa';
+  if(it.bl==='s'){ctx.beginPath();ctx.moveTo(x1+nx*3,y1+ny*3);ctx.lineTo(x1+dx*18-nx*4,y1+dy*18-ny*4);ctx.lineTo(x1-nx*3,y1-ny*3);ctx.closePath();ctx.fill()}
+  else{ctx.lineWidth=it.bl==='u'?3.4:3;ctx.beginPath();ctx.moveTo(x1,y1);
+    const cx=x1+dx*12-nx*(it.bl==='u'?2:6),cy=y1+dy*12-ny*(it.bl==='u'?2:6),ex=x1+dx*10+nx*8,ey=y1+dy*10+ny*8;
+    ctx.quadraticCurveTo(cx+dx*6,cy+dy*6,ex,ey);ctx.stroke();ctx.beginPath();ctx.arc(ex,ey,2,0,7);ctx.fill()}
+  ctx.restore()}
+function drawInstrHoriz(id,cx,cy,sc){const it=INSTR[id];ctx.save();ctx.translate(cx,cy);ctx.scale(sc,sc);
+  const hg=ctx.createLinearGradient(0,-9,0,9);hg.addColorStop(0,'#8e9ba2');hg.addColorStop(.45,'#f1f5f7');hg.addColorStop(1,'#7f8c93');
+  ctx.fillStyle=hg;rr(-110,-8,220,16,7);ctx.fill();
+  ctx.strokeStyle='rgba(60,70,76,0.35)';ctx.lineWidth=1;for(let x=-100;x<100;x+=5){if(Math.abs(x)<22)continue;ctx.beginPath();ctx.moveTo(x,-7);ctx.lineTo(x+4,7);ctx.stroke()}
+  ctx.fillStyle='rgba(60,70,76,0.5)';[-26,-20,20,26].forEach(x=>ctx.fillRect(x,-8,2,16));
+  ctx.fillStyle='#b8c3c9';rr(-126,-4,18,8,3);ctx.fill();rr(108,-4,18,8,3);ctx.fill();
+  ctx.save();ctx.translate(124,0);drawInstrEnd(it,false);ctx.restore();
+  ctx.save();ctx.translate(-124,0);drawInstrEnd(it,true);ctx.restore();
   ctx.restore()}
 function drawInstrBoard(){
   ctx.fillStyle='#1b2733';ctx.fillRect(0,104,890,616);
   const n=instrSet.length;
-  instrSet.forEach((id,i)=>{const r=instrRect(i,n);rr(r.x,r.y,r.w,r.h,14);ctx.fillStyle='rgba(255,255,255,0.05)';ctx.fill();
-    drawInstrument(id,r.x+r.w/2,r.y+r.h-50,1.35);
-    ctx.font='700 20px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String.fromCharCode(65+i),r.x+r.w/2,r.y+r.h-22)});
+  instrSet.forEach((id,i)=>{const r=instrRect(i,n);rr(r.x,r.y,r.w,r.h,12);ctx.fillStyle='rgba(255,255,255,0.05)';ctx.fill();
+    ctx.font='700 22px '+FONT;ctx.fillStyle='#bcd7ff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(String.fromCharCode(65+i),r.x+14,r.y+r.h/2);
+    drawInstrHoriz(id,r.x+r.w/2+16,r.y+r.h/2,1.15)});
   ctx.fillStyle='rgba(255,255,255,0.08)';rr(640,140,240,200,14);ctx.fill();
   ctx.save();ctx.beginPath();ctx.rect(640,140,240,200);ctx.clip();ctx.translate(640,140);ctx.scale(0.4,0.4);ctx.translate(-160,-110);drawPerioCore();ctx.restore();
-  ctx.font='600 13px '+FONT;ctx.fillStyle='#ffd36b';ctx.textAlign='center';ctx.fillText('작업 부위',760,356);
-  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText('생크의 꺾임 정도와',760,400);ctx.fillText('끝 모양을 보고 고르세요',760,420);
+  ctx.font='600 13px '+FONT;ctx.fillStyle='#ffd36b';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('작업 부위',760,356);
+  ctx.font='500 13px '+FONT;ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText('생크의 꺾임과',760,400);ctx.fillText('작업단 끝 모양을 보고',760,420);ctx.fillText('고르세요',760,440);
 }
 
 /* ===== 체어 조정 ===== */
@@ -1677,19 +1736,21 @@ function updChair(s,dt,t){const h={x:600,y:612,r:36};
 /* ===== 타이틀 ===== */
 function drawTitleView(){
   const t=performance.now()/1000;
-  const g=ctx.createLinearGradient(0,104,0,720);g.addColorStop(0,'#2a6aa8');g.addColorStop(1,'#122a44');ctx.fillStyle=g;ctx.fillRect(0,104,890,616);
-  for(let i=0;i<26;i++){const x=(i*137)%880+5,y=130+((i*89)%520),a=0.3+0.7*Math.abs(Math.sin(t*1.3+i));
-    ctx.globalAlpha=a;ctx.fillStyle=i%3?'#bfe3ff':'#ffe27a';ctx.font=(10+(i%4)*5)+'px '+FONT;ctx.textAlign='center';ctx.fillText('✦',x,y)}
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#eaf6ff');g.addColorStop(1,'#b9def8');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,0.55)';[[160,120,90],[1120,140,70],[980,600,110],[240,610,80]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()});
+  for(let i=0;i<34;i++){const x=(i*157)%1260+10,y=30+((i*97)%660),a=0.25+0.75*Math.abs(Math.sin(t*1.3+i));
+    ctx.globalAlpha=a;ctx.fillStyle=i%3===0?'#ffcf4a':i%3===1?'#7cc0f0':'#ffffff';ctx.font=(12+(i%4)*6)+'px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✦',x,y)}
   ctx.globalAlpha=1;
-  const bob=Math.sin(t*2.2)*8;ctx.font='72px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🦷',445,215+bob);
-  ctx.font='700 58px Gaegu, '+FONT;ctx.fillStyle='#ffffff';ctx.fillText('두근두근 치의학부',445,305);
-  ctx.fillStyle='#ffe27a';rr(380,352,130,22,6);ctx.fill();
-  ctx.font='700 64px Gaegu, '+FONT;ctx.fillStyle='#1d5c98';ctx.fillText('B반',445,350);
-  ctx.font='600 20px '+FONT;ctx.fillStyle='#cfe9ff';ctx.fillText('술식 시뮬레이터 · 케이스 '+CASE_KEYS.length+'개',445,412);
-  const pul=0.5+0.5*Math.sin(t*3);ctx.shadowColor='rgba(255,226,122,'+(0.4+0.5*pul)+')';ctx.shadowBlur=24;
-  ctx.fillStyle='#3289d4';rr(300,470,290,70,35);ctx.fill();ctx.shadowBlur=0;
-  ctx.font='600 15px '+FONT;ctx.fillStyle='rgba(255,255,255,0.85)';
-  ctx.fillText(camOn?(handMode?'✋ 엄지-검지를 집으면 선택돼요':'커서를 버튼 위에 잠시 멈추면 선택돼요'):'📷 아래 "카메라 켜기"를 누르면 손으로 조작할 수 있어요 · 마우스·터치도 OK',445,585);
+  const bob=Math.sin(t*2.2)*8;ctx.font='84px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🦷',640,150+bob);
+  ctx.font='700 70px Gaegu, '+FONT;ctx.fillStyle='#ffffff';ctx.fillText('두근두근 치의학부',644,264);ctx.fillStyle='#1d5c98';ctx.fillText('두근두근 치의학부',640,260);
+  ctx.fillStyle='#ffe27a';rr(552,352,176,30,10);ctx.fill();
+  ctx.font='700 92px Gaegu, '+FONT;ctx.fillStyle='#ffffff';ctx.fillText('B반',645,345);ctx.fillStyle='#c2467a';ctx.fillText('B반',640,340);
+  ctx.font='600 22px '+FONT;ctx.fillStyle='#2e4354';ctx.fillText('술식 시뮬레이터 · 케이스 '+CASE_KEYS.length+'개',640,425);
+  const pul=0.5+0.5*Math.sin(t*3);ctx.shadowColor='rgba(50,137,212,'+(0.35+0.4*pul)+')';ctx.shadowBlur=26;
+  ctx.fillStyle='#3289d4';rr(495,465,290,72,36);ctx.fill();ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(255,255,255,0.25)';rr(505,471,270,22,11);ctx.fill();
+  ctx.font='600 16px '+FONT;ctx.fillStyle='#3d5a70';
+  ctx.fillText(camOn?(handMode?'✋ 엄지-검지를 집으면 선택돼요':'커서를 버튼 위에 잠시 멈추면 선택돼요'):'📷 아래 "카메라 켜기"를 누르면 손으로 조작할 수 있어요 · 마우스·터치도 OK',640,590);
 }
 /* ================= suture logic ================= */
 function arcGeo(){const a=st.entry,b=st.exit,cx=(a.x+b.x)/2,cy=(a.y+b.y)/2,R=Math.hypot(a.x-b.x,a.y-b.y)/2,ux=(b.x-a.x)/(2*R),uy=(b.y-a.y)/(2*R);
@@ -1758,7 +1819,7 @@ function updTension(s,dt,t){
 
 
 /* ================= 앱 셸: 홈 · 기록 · 리더보드 ================= */
-const APP_VERSION='v1.3';
+const APP_VERSION='v1.4';
 const PATCH_DATE='10월 1일';
 let screen='home',user=null;
 function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
@@ -1822,19 +1883,21 @@ function brandBlock(small){
 function notices(){return `
   <div class="intro-note chalkboard">
     <div class="notice-head"><span>📢 B반 공지사항</span></div>
-    <p><b>노트북 카메라 + 크롬</b>으로 접속하면 내 손이 그대로 기구가 돼요. <b>엄지·검지 사이</b>가 커서예요.</p>
+    <p><b>카메라를 켜면</b> 내 손이 그대로 기구가 돼요. <b>엄지·검지 사이</b>가 커서예요. 마우스·터치로도 할 수 있어요.</p>
     <p><b>엄지-검지를 집으면 잡기, 떼면 놓기</b>. 노란 고리가 뜨면 집은 채로 안내 방향으로 움직이면 돼요.</p>
     <p>멸균 장갑을 낀 뒤 <b>얼굴(내 화면)이나 무영등을 만지면 오염</b>이에요. 실제 술식처럼 조심!</p>
-    <p><b>두근두근 코드 그대로</b> 로그인돼요. <b>실전 모드</b> 점수가 리더보드에 올라가요.</p>
-    <p>외과 술식에 이어 <b>보존·소아치과·치주</b> 술식도 추가됐어요. 치주 케이스는 <b>치식이 숨겨져</b> 있으니 부위를 보고 판단해요!</p>
-    <p>휴대폰은 <b>가로로 돌리고 손가락 터치</b>로 하는 게 편해요.</p>
+    <p><b>두근두근 치의학부 코드 그대로</b> 로그인돼요. 따로 가입할 필요 없어요. <b>실전 모드</b> 점수가 리더보드에 올라가요.</p>
     <p class="chalk-cta">🦷 이제 술식하러 가볼까요! ✨</p>
   </div>`}
 function patchNotes(){return `
   <details class="intro-note">
     <summary class="notice-head"><span>🛠 패치 내역</span><span class="notice-meta">${PATCH_DATE} · ${APP_VERSION}</span></summary>
     <ul class="patch">
-      <li class="new"><b>게임 시작 화면</b> 추가(▶ 시작하기), 진료실·환자 그림을 더 실감 나게 다듬고 기본 기구에 <b>미러·핀셋·치주 탐침</b> 추가</li>
+      <li class="new">시작 화면을 <b>화면 가득</b> 밝게, 진료실을 <b>체어 일체형</b>(라이트 기둥·딜리버리 암·풋 컨트롤)으로 다시 그림, 구내 그림 질감 개선</li>
+      <li class="new">트레이 아래에 <b>📋 문제 상황</b>(조건 포함) 표시</li>
+      <li class="new"><b>러버댐 펀치 휠</b>을 직접 돌려 구멍 크기 조정. #14–24는 앵커치·견치·절치별로 크기를 바꿔가며 펀칭</li>
+      <li class="new">치주 기구를 실제처럼 <b>양쪽 작업단</b> 모양으로 다시 그림</li>
+      <li><b>게임 시작 화면</b> 추가(▶ 시작하기), 진료실·환자 그림을 더 실감 나게 다듬고 기본 기구에 <b>미러·핀셋·치주 탐침</b> 추가</li>
       <li class="new"><b>러버댐 클램프 #201–#212</b> 보드에서 선택, <b>윙드 테크닉</b>(입 밖에서 클램프 윙에 시트·프레임 → 통째로 장착 → <b>핀셋으로 윙에서 시트 벗기기</b>)</li>
       <li class="new"><b>치주</b>: 기구 이름 없이 <b>생크 모양만 보고</b> 고르기, 하악/상악 작업 전 <b>체어(교합평면) 조절</b>, 마무리에 <b>에어 건조 + 프로빙</b>으로 잔존 치석 확인, 스트로크가 2번으로 세지던 문제 수정</li>
       <li class="new"><b>모바일 전체 화면</b>: 아이폰처럼 전체 화면이 안 되는 기기도 화면 가득 채우기 모드로 동작</li>
@@ -2011,7 +2074,7 @@ function loop(t){
   else if(view==='tooth')drawTooth(0,0,0,false,st.seated);
   else if(view==='end')drawEnd();
   if(S[si]===s){
-    if(s.kind==='zones'||s.kind==='end'){runZones(dt);if(S[si]===s)drawZoneMarks()}
+    if(s.kind==='zones'||s.kind==='end'){if(s.tick)s.tick(dt);runZones(dt);if(S[si]===s)drawZoneMarks()}
     else if(s.kind==='drag')updDrag(s,dt,t);
     else if(s.kind==='depth')updDepth(s,dt,t);
     else if(s.kind==='arc')updArc(s,dt,t);
@@ -2028,7 +2091,7 @@ function loop(t){
       if(p>=1)next()}
     if(S[si]===s)checkContam(dt);
   }
-  drawTray();drawHeader();drawPip();drawToast();drawCursor();
+  if(S[si].id!=='title'){drawTray();drawHeader()}drawPip();drawToast();drawCursor();
   requestAnimationFrame(loop);
 }
 resetAll();showScreen('home');requestAnimationFrame(loop);
