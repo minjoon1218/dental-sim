@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>치과 술식 시뮬레이터</title>
+<title>두근두근 치의학부 B반 · 술식 시뮬레이터</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap">
 <style>
@@ -42,16 +42,48 @@ label{font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:6p
 #status{font-size:.88rem;color:var(--muted);margin-left:auto}
 .help{margin-top:14px;font-size:.88rem;color:var(--muted);line-height:1.7;max-width:80ch}
 video{display:none}
+
+.ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,22,19,0.92);padding:16px;overflow:auto}
+.ov[hidden]{display:none}
+.ovcard{background:var(--surface);color:var(--ink);border-radius:16px;padding:28px 30px;width:min(440px,100%);box-shadow:0 10px 40px rgba(0,0,0,0.35)}
+.ovcard.wide{width:min(860px,100%);max-height:100%;display:flex;flex-direction:column}
+.ovcard h2{font-size:1.9rem;margin:2px 0 14px;letter-spacing:-0.02em}
+.ovcard h3{font-size:1.25rem;margin:0}
+.ovsub{margin:0;color:var(--scrub);font-weight:600;font-size:.95rem}
+.ovhello{margin:0 0 16px;color:var(--muted)}
+.ovfield{display:flex;flex-direction:column;gap:6px;font-size:.9rem;color:var(--muted);margin-bottom:12px}
+.ovfield input{font:inherit;font-size:1.1rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);letter-spacing:.04em}
+.ovrow{display:flex;gap:8px;flex-wrap:wrap}
+.ovcol{display:flex;flex-direction:column;gap:8px}
+.ovcol button.big{font-size:1.1rem;padding:14px}
+button.ghost{background:transparent}
+button:disabled{opacity:.45;cursor:not-allowed}
+.ovmsg{color:var(--muted);font-size:.9rem;min-height:1.2em;margin:10px 0 0}
+.ovnote{font-size:.82rem;color:var(--muted);background:var(--bg);border-radius:8px;padding:8px 10px;margin:12px 0 0;line-height:1.55}
+.ovhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.ovscroll{overflow:auto;min-height:0}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.tab{font-size:.82rem;padding:6px 10px;font-weight:500}
+.tab.on{background:var(--scrub);color:#fff;border-color:var(--scrub)}
+.ovtable{width:100%;border-collapse:collapse;font-size:.9rem}
+.ovtable th{text-align:left;color:var(--muted);font-weight:600;padding:8px 6px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface)}
+.ovtable td{padding:8px 6px;border-bottom:1px solid var(--line)}
+.ovtable tr.rrow{cursor:pointer}
+.ovtable tr.rrow:hover{background:var(--bg)}
+.ovtable tr.rdet td{color:var(--muted);font-size:.85rem;line-height:1.6;background:var(--bg)}
+.ovtable tr.me td{background:rgba(47,111,98,0.14);font-weight:600}
+.stagebox{position:relative}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>치과 술식 시뮬레이터: 발치 · 8자 봉합 · 치은 열상 봉합</h1>
+  <h1>두근두근 치의학부 B반 · 술식 시뮬레이터</h1>
   <p class="sub">카메라를 켜면 MediaPipe 손 추적이 켜집니다. 엄지와 검지 사이가 커서이고, 엄지-검지를 집으면 잡기, 떼면 놓기입니다. 노란 고리는 집은 채로 안내된 방향으로 움직이는 동작이에요. 장갑을 낀 뒤 얼굴(내 화면)이나 라이트를 만지면 오염으로 기록됩니다.</p>
-  <div class="stagebox"><canvas id="stage" aria-label="시뮬레이션 화면"></canvas></div>
+  <div class="stagebox"><canvas id="stage" aria-label="시뮬레이션 화면"></canvas><div id="ov" class="ov"></div></div>
   <div class="bar">
     <button class="primary" id="camBtn">카메라 켜기</button>
-    <button id="restartBtn">처음부터(모드 선택)</button>
+    <button id="backBtn">← 뒤로</button>
+    <button id="homeBtn">처음 화면</button>
     <label>움직임 추적 감도 <input id="sens" type="range" min="10" max="60" value="28"></label>
     <label><input id="showCam" type="checkbox" checked> 내 화면 표시</label>
     <span id="status">마우스 모드</span>
@@ -62,6 +94,9 @@ video{display:none}
 
 <script>
 (function(){
+/* ===== 설정: Apps Script 웹앱 URL을 붙여넣으면 서버 기록·리더보드가 켜집니다 ===== */
+const API_URL='';
+const CLASS_NAME='두근두근 치의학부 B반';
 if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h){this.rect(x,y,w,h)}}
 const W=1280,H=720,DW=750;
 const cv=document.getElementById('stage'),ctx=cv.getContext('2d');
@@ -140,7 +175,7 @@ function toStage(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.lef
 cv.addEventListener('pointermove',e=>{const p=toStage(e);cur.tx=p.x;cur.ty=p.y;lastMouse=performance.now()});
 cv.addEventListener('pointerdown',e=>{const p=toStage(e);cur.tx=cur.x=p.x;cur.ty=cur.y=p.y;lastMouse=performance.now();mouseDown=true;onPress('mouse')});
 window.addEventListener('pointerup',()=>{if(mouseDown){mouseDown=false;onRelease('mouse')}});
-function onPress(src){inputSrc=src;if(blocked())return;for(const z of zonesNow){if(inZone(z,cur.x,cur.y)){fire(z);return}}}
+function onPress(src){inputSrc=src;if(screen!=='game'||blocked()||performance.now()<armT)return;for(const z of zonesNow){if(inZone(z,cur.x,cur.y)){fire(z);return}}}
 function onRelease(src){if(drag&&drag.by===src){const s=S[si];
   if(s.kind==='drag'){drag=null;if(s.apply)s.apply(0)}else if(s.kind==='depth'){drag=null}}}
 function holding(){if(handMode&&camOn&&performance.now()-lastMouse>900)return pinch;return true}
@@ -190,10 +225,10 @@ function LAC_STEPS(){const out=[],WY=420;
       if(px+150<=600)z.push(C('far'+i,{x:px+150,y:470},14,()=>BAD('간격이 너무 넓으면 사이가 벌어져 치유가 늦어집니다.',5,'열상: 봉합 간격 과대',set({x:px+150,y:470}))));return z}});
     out.push({kind:'arc',autoPull:i>0,g:G,text:'집은 채로 곡률을 따라 손목을 돌려 상처를 가로질러 통과시키세요.'});
     if(i===0)out.push({kind:'drag',g:G,text:'실을 당겨 짧은 꼬리(2–3cm)를 남기세요.',handle:()=>({x:st.exit.x,y:st.exit.y,r:30}),axis:'y',dir:-1,amount:70,onDone:()=>{st.pulled=1}});
-    for(let k=1;k<=3;k++){
-      out.push({kind:'wrap',throwN:k,g:'매듭 '+(i+1)+'/4',text:k+'번째 throw: 긴 실을 지침기에 감고(상처 주위로 원 그리기) 짧은 꼬리를 집으세요.'+(k===1?' 첫 throw는 2회 감습니다.':'')});
+    for(let k=1;k<=2;k++){
+      out.push({kind:'wrap',throwN:k,g:'매듭 '+(i+1)+'/4',text:k===1?'Surgeon\'s knot 1번째 throw: 긴 실을 지침기에 2회 감고(상처 주위로 원 그리기) 짧은 꼬리를 집으세요.':'2번째 throw: 반대 방향으로 1회 감고 짧은 꼬리를 집으세요.'});
       out.push({kind:'tension',throwN:k,dir:k===2?-1:1,g:'매듭 '+(i+1)+'/4',text:(k===2?'왼쪽':'오른쪽')+'으로 당겨 조이세요. 상처 가장자리가 맞닿을 정도로만.',
-        after:(k===3&&i>0)?()=>finishStitch({x:st.entry.x+20,y:st.entry.y+22}):null});
+        after:(k===2&&i>0)?()=>finishStitch({x:st.entry.x+20,y:st.entry.y+22}):null});
     }
     if(i===0){
       out.push({g:'매듭 1/4',text:'매듭을 어디에 둘지 정리하세요.',zones:()=>[
@@ -250,10 +285,11 @@ const FORCEPS_WRONG={
   f18:['#18R은 상악 우측 대구치용입니다.',5,'포셉 선택: #18R'],
   f210:['#210은 상악 제3대구치용입니다.',5,'포셉 선택: #210']};
 const S=[
- {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>CASE_KEYS.map((c,i)=>({key:'case'+i,rect:{x:25+i*212,y:190,w:200,h:380},act:()=>{setCase(c);return{ok:1}}}))},
+ {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[BACK_ZONE(()=>showScreen('home'))].concat(CASE_KEYS.map((c,i)=>({key:'case'+i,dwell:1300,rect:{x:25+i*212,y:190,w:200,h:380},act:()=>{setCase(c);return{ok:1}}})))},
  {grp:'start',id:'mode',phase:'모드',view:'mode',g:'모드 선택',text:'모드를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[
-   {key:'m1',rect:{x:110,y:190,w:310,h:340},act:()=>{mode='practice';return{ok:1}}},
-   {key:'m2',rect:{x:470,y:190,w:310,h:340},act:()=>{mode='exam';return{ok:1}}}]},
+   BACK_ZONE(()=>resetAll()),
+   {key:'m1',dwell:1300,rect:{x:110,y:190,w:310,h:340},act:()=>{mode='practice';runStart=performance.now();return{ok:1}}},
+   {key:'m2',dwell:1300,rect:{x:470,y:190,w:310,h:340},act:()=>{mode='exam';runStart=performance.now();return{ok:1}}}]},
  {grp:'prep',id:'mask',phase:'준비',view:'room',g:'술자 준비',text:'술자 준비부터 시작합니다. 트레이에서 마스크를 집으세요.',
    skip:{to:'sanit',why:'마스크 미착용',fb:'마스크는 비말·에어로졸 차단의 기본입니다.'},zones:()=>pickZ(['mask'])},
  {grp:'prep',g:'술자 준비',text:'마스크를 쓰세요. 집은 마스크를 왼쪽 아래 내 화면(얼굴)으로 가져가세요.',zones:()=>[{key:'pip',rect:PIP,act:()=>{st.masked=1;held=null;st.gone.add('mask');return OK('착용 완료. 코 철사를 눌러 밀착시키는 것까지가 착용이에요.')}}]},
@@ -369,12 +405,10 @@ const S=[
    C('ld1',P8.LD1,15,()=>BAD('가장자리에 너무 가깝습니다.',5,'8자: 설측 원심 1mm',set(P8.LD1)))]}},
  {kind:'arc',g:'8자 봉합',text:'다시 곡률을 따라 통과시키세요.'},
  {kind:'drag',g:'8자 봉합',text:'실을 당겨 늘어진 실을 정리하세요.',handle:()=>({x:st.exit.x,y:st.exit.y,r:30}),axis:'y',dir:-1,amount:50},
- {kind:'wrap',throwN:1,g:'매듭',text:'1번째 throw: 긴 실을 지침기에 감으세요(발치와 주위로 원 그리기). 그다음 협측 근심의 짧은 꼬리를 집으세요.'},
+ {kind:'wrap',throwN:1,g:'매듭',text:'Surgeon\'s knot 1번째 throw: 긴 실을 지침기에 2회 감으세요(발치와 주위로 원 그리기). 그다음 협측 근심의 짧은 꼬리를 집으세요.'},
  {kind:'tension',throwN:1,dir:1,g:'매듭',text:'꼬리를 집은 채 오른쪽으로 당겨 조이세요. 판막이 발치와 위로 모이면 충분합니다.'},
- {kind:'wrap',throwN:2,g:'매듭',text:'2번째 throw: 감고 짧은 꼬리를 집으세요.'},
- {kind:'tension',throwN:2,dir:-1,g:'매듭',text:'왼쪽으로 당겨 조이세요.'},
- {kind:'wrap',throwN:3,g:'매듭',text:'3번째 throw: 감고 짧은 꼬리를 집으세요.'},
- {kind:'tension',throwN:3,dir:1,g:'매듭',text:'오른쪽으로 당겨 매듭을 완성하세요.'},
+ {kind:'wrap',throwN:2,g:'매듭',text:'2번째 throw: 반대 방향으로 1회 감고 짧은 꼬리를 집으세요.'},
+ {kind:'tension',throwN:2,dir:-1,g:'매듭',text:'왼쪽으로 당겨 매듭을 완성하세요.'},
  {g:'매듭',text:'매듭을 어디에 둘지 정리하세요.',zones:()=>[
    C('kb',{x:420,y:545},18,()=>{finishStitch({x:420,y:545});st.sutured=2;return OK('매듭을 협측 판막 위에. 발치와 위를 피해야 플라크가 덜 끼고 혈병을 건드리지 않습니다.')}),
    C('kc',{x:440,y:410},20,()=>BAD('발치와 바로 위의 매듭은 음식물·플라크가 끼고 혈병과 치유를 방해합니다.',5,'매듭 위치: 발치와 위',()=>{finishStitch({x:440,y:410});st.sutured=2}))]},
@@ -390,15 +424,20 @@ for(let i=1;i<S.length;i++){for(const k of['phase','view','grp'])if(!S[i][k])S[i
 S.forEach(s=>{if(!s.kind)s.kind='zones'});
 const GLOVE_START=idx('gloveStart');
 
-function resetAll(){
+let runStart=0,armT=0,freshLock=false,saved=null;
+function BACK_ZONE(fn){return{key:'back',dwell:900,label:'← 뒤로',rect:{x:20,y:118,w:120,h:46},act:()=>{fn();return{stay:1}}}}
+function resetAll(keepCase){
   st={masked:0,sanit:0,lamp:{x:420,y:190},lightOn:0,gloved:0,gR:0,gL:0,gone:new Set(),onBench:0,ringOff:0,cart:0,cartFlip:true,needle:0,needleId:null,drop:0,
     chair:0,thumb:0,anchor:0,site:0,depth:0,depthContact:0,aspPos:0,reasp:0,inject:0,sep:0,forceps:0,seated:0,extracted:0,fracture:0,gauze:0,
     driver:null,sutId:null,loaded:0,adson:null,entry:null,exit:null,arcP:0,pulled:0,wAcc:0,wPrev:null,lastDir:0,throws:0,tension:0,knot:null,cut:0,tail:0,sutured:0,passes:[],overs:[],knots:[],tieA:null,wrapC:{x:440,y:410},lastX:0,irrigated:0};
-  held=null;score=100;mistakes=[];toastO=null;returnTo=null;savedHeld=null;contamT=0;si=0;mode='practice';caseId='ext';enterStep();
+  held=null;score=100;mistakes=[];toastO=null;returnTo=null;savedHeld=null;contamT=0;saved=null;si=0;mode='practice';caseId='ext';
+  if(keepCase){setCase(keepCase);si=idx('mode')}
+  enterStep();
 }
-document.getElementById('restartBtn').onclick=resetAll;
 function enterStep(){dw={key:null,t:0,lock:null};drag=null;penSet=new Set();stepT0=performance.now();
   const s=S[si];if(s.enter)s.enter();
+  if(s.grp==='start'||s.kind==='end'){armT=performance.now()+700;freshLock=true}else{armT=0;freshLock=false}
+  if(s.kind==='end'&&!saved)saveRecord();
   if(s.kind==='shake')sh={prog:0,dir:0,ext:cur.x,lastExt:cur.x,violent:0,cool:0,warn:0,stage:'luxate',pullY:0,doneT:0};
   if(s.kind==='depth'){st.depth=0;st.depthContact=0}
   if(s.kind==='wrap'){st.wAcc=0;st.wPrev=null}
@@ -417,12 +456,14 @@ function runZones(dt){
   dwellP=0;
   if(blocked()){dw.key=null;return}
   let over=null;for(const z of zonesNow)if(inZone(z,cur.x,cur.y)){over=z;break}
+  if(performance.now()<armT){if(freshLock&&over)dw.lock=over.key;return}
+  freshLock=false;
   if(!over){dw.key=null;dw.lock=null;return}
   if(handMode&&camOn)return; // 손 추적 모드: 집기로만 선택
   if(dw.lock===over.key)return;
   if(dw.key!==over.key){dw.key=over.key;dw.t=0}
-  dw.t+=dt;dwellP=dw.t/DW;
-  if(dw.t>=DW){dw.t=0;inputSrc='dwell';fire(over)}
+  const need=over.dwell||DW;dw.t+=dt;dwellP=dw.t/need;
+  if(dw.t>=need){dw.t=0;inputSrc='dwell';fire(over)}
 }
 function stepZones(s){
   let zs=s.zones();
@@ -801,8 +842,12 @@ function drawZoneMarks(){
     ctx.setLineDash(hov?[]:[6,5]);ctx.lineWidth=hov?3:2;ctx.strokeStyle=hov?'#7fe0c9':'rgba(255,255,255,0.75)';ctx.stroke();ctx.setLineDash([]);
     if(hov&&dw.key===z.key&&dwellP>0){ctx.beginPath();ctx.arc(z.x,z.y,z.r+8,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,dwellP));ctx.strokeStyle='#7fe0c9';ctx.lineWidth=5;ctx.stroke()}}
   for(const z of zonesNow){if(!z.rect||z.tray||z.rect===PIP)continue;
-    const hov=inZone(z,cur.x,cur.y);rr(z.rect.x,z.rect.y,z.rect.w,z.rect.h,12);ctx.lineWidth=hov?4:2;ctx.setLineDash(hov?[]:[8,6]);
-    ctx.strokeStyle=hov?'#7fe0c9':'rgba(255,255,255,0.5)';ctx.stroke();ctx.setLineDash([])}
+    const hov=inZone(z,cur.x,cur.y);rr(z.rect.x,z.rect.y,z.rect.w,z.rect.h,12);
+    if(z.label){ctx.fillStyle=hov?'rgba(127,224,201,0.3)':'rgba(255,255,255,0.1)';ctx.fill()}
+    ctx.lineWidth=hov?4:2;ctx.setLineDash(hov||z.label?[]:[8,6]);
+    ctx.strokeStyle=hov?'#7fe0c9':'rgba(255,255,255,0.5)';ctx.stroke();ctx.setLineDash([]);
+    if(hov&&dw.key===z.key&&dwellP>0){ctx.fillStyle='rgba(127,224,201,0.35)';rr(z.rect.x,z.rect.y,z.rect.w*Math.min(1,dwellP),z.rect.h,12);ctx.fill()}
+    if(z.label){ctx.font='600 17px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(z.label,z.rect.x+z.rect.w/2,z.rect.y+z.rect.h/2)}}
 }
 function drawToast(){if(!toastO)return;if(performance.now()>toastO.until){toastO=null;return}
   rr(290,H-112,590,96,12);ctx.fillStyle=toastO.ok?'rgba(47,111,98,0.97)':'rgba(179,38,30,0.97)';ctx.fill();
@@ -896,9 +941,12 @@ function drawEnd(){
   ctx.font='700 30px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='top';
   ctx.fillText((EXAM()?'실전 모드':'연습 모드')+' · '+CASES[caseId].name+'  '+score+'점',50,130);
   const seen=new Set(),u=mistakes.filter(m=>seen.has(m.why)?false:(seen.add(m.why),true));
-  if(!u.length){wrap('실수 없이 완주했어요.',50,190,780,28,'500 20px '+FONT,'#e3ece9');return}
-  let y=184;
-  for(const m of u){if(y>650){wrap('…외 '+(u.length-u.indexOf(m))+'건',50,y,780,24,'500 16px '+FONT,'#8fa6a0');break}
+  const sv=saved?{saving:'기록 저장 중…',ok:'기록 저장 완료',fail:'서버 저장 실패 · 이 기기에만 저장됨',local:'이 기기에 저장됨',guest:'게스트 모드 · 기록 저장 안 됨'}[saved.status]:'';
+  ctx.font='500 15px '+FONT;ctx.fillStyle='#8fa6a0';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText('소요 시간 '+fmtTime((saved&&saved.dur)||0)+'   '+sv,50,170);
+  if(!u.length){wrap('실수 없이 완주했어요.',50,206,780,28,'500 20px '+FONT,'#e3ece9');return}
+  let y=204;
+  for(const m of u){if(y>590){wrap('…외 '+(u.length-u.indexOf(m))+'건',50,y,780,24,'500 16px '+FONT,'#8fa6a0');break}
     y+=wrap('· '+m.why,50,y,800,24,'700 17px '+FONT,'#ffb4ad');
     if(m.fb)y+=wrap(m.fb,68,y,780,22,'500 15px '+FONT,'#cfe0db');
     y+=8}
@@ -965,9 +1013,110 @@ function updTension(s,dt,t){
     if(!EXAM()){toast('너무 세게 조였어요. 조직이 하얗게 질립니다. 힘을 빼고 다시.',0,2600);drag=null;st.tension=0;return}
     finishTension(s);return}
   if(raw>=70&&raw<=115){drag.band+=dt;if(drag.band>600){
-    toast(s.throwN===1?'첫 매듭(surgeon\'s knot)이 조직을 맞붙였습니다.':s.throwN===3?'3 throw 매듭 완성.':'매듭 고정.',1);finishTension(s)}}
+    toast(s.throwN===1?'Surgeon\'s knot 첫 throw가 조직을 맞붙였습니다.':'매듭 완성.',1);finishTension(s)}}
   else drag.band=0;
 }
+
+
+/* ================= 앱 셸: 홈 · 기록 · 리더보드 ================= */
+let screen='home',user=null;
+function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+user=lsGet('dds_user',null);
+const ov=document.getElementById('ov');
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+async function api(params,body){
+  if(!API_URL)throw new Error('no api');
+  const r=body?await fetch(API_URL,{method:'POST',body:JSON.stringify(body)}):await fetch(API_URL+'?'+new URLSearchParams(params));
+  const j=await r.json();if(!j.ok)throw new Error(j.error||'error');return j}
+function fmtTime(sec){sec=Math.round(sec||0);return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
+function fmtDate(iso){const d=new Date(iso);if(isNaN(d))return'';return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+const MODE_NAME={practice:'연습',exam:'실전'};
+function showScreen(n,arg){screen=n;if(n==='game'){ov.hidden=true;return}ov.hidden=false;
+  if(n==='home')renderHome();else if(n==='records')renderRecords();else if(n==='board')renderBoard(arg||{c:'ext',m:'exam'})}
+function serverNote(){return API_URL?'':'<p class="ovnote">기록 서버가 아직 연결되지 않았어요. 기록은 이 기기에만 저장되고 리더보드도 이 기기 기록만 보여요.</p>'}
+function renderHome(msg){
+  if(!user){
+    ov.innerHTML='<div class="ovcard"><p class="ovsub">치과 술식 시뮬레이터</p><h2>'+esc(CLASS_NAME)+'</h2>'+
+      '<label class="ovfield">'+(API_URL?'발급받은 개인 코드':'이름')+'<input id="codeIn" autocomplete="off" spellcheck="false" placeholder="'+(API_URL?'예: B-7KQ2M':'이름 입력')+'"></label>'+
+      '<div class="ovrow"><button class="primary" id="loginBtn">입장</button><button id="guestBtn">코드 없이 체험</button></div>'+
+      '<p class="ovmsg" id="ovmsg">'+esc(msg||'')+'</p>'+serverNote()+'</div>';
+    const go=async()=>{const v=document.getElementById('codeIn').value.trim();if(!v)return;const m=document.getElementById('ovmsg');
+      if(!API_URL){user={code:'LOCAL:'+v,name:v,local:1};lsSet('dds_user',user);renderHome();return}
+      m.textContent='확인 중…';
+      try{const j=await api({action:'login',code:v});user={code:j.user.code,name:j.user.name};lsSet('dds_user',user);renderHome()}
+      catch(e){m.textContent='코드를 확인할 수 없어요. 발급받은 코드를 다시 확인해 주세요.'}};
+    document.getElementById('loginBtn').onclick=go;
+    document.getElementById('codeIn').onkeydown=e=>{if(e.key==='Enter')go()};
+    document.getElementById('guestBtn').onclick=()=>{user={guest:1,name:'게스트'};renderHome()};
+    return}
+  ov.innerHTML='<div class="ovcard"><p class="ovsub">치과 술식 시뮬레이터</p><h2>'+esc(CLASS_NAME)+'</h2>'+
+    '<p class="ovhello">'+esc(user.name)+(user.guest?' · 기록이 저장되지 않아요':'님, 안녕하세요')+'</p>'+
+    '<div class="ovcol"><button class="primary big" id="startBtn">시작하기</button>'+
+    '<button id="recBtn"'+(user.guest?' disabled':'')+'>내 기록</button><button id="boardBtn">리더보드</button>'+
+    '<button class="ghost" id="outBtn">'+(user.guest?'코드 입력하기':'로그아웃')+'</button></div>'+serverNote()+'</div>';
+  document.getElementById('startBtn').onclick=()=>{resetAll();showScreen('game')};
+  document.getElementById('recBtn').onclick=()=>showScreen('records');
+  document.getElementById('boardBtn').onclick=()=>showScreen('board');
+  document.getElementById('outBtn').onclick=()=>{user=null;try{localStorage.removeItem('dds_user')}catch(e){}renderHome()};
+}
+function normRec(r){return{time:r.time,case:r.case,mode:r.mode,score:Number(r.score)||0,durationSec:Number(r.durationSec)||0,
+  mistakes:Array.isArray(r.mistakes)?r.mistakes:String(r.mistakes||'').split(' | ').filter(Boolean),name:r.name,code:r.code}}
+async function renderRecords(){
+  ov.innerHTML='<div class="ovcard wide"><div class="ovhead"><h3>내 기록</h3><button id="ovBack">← 뒤로</button></div><div id="recBody" class="ovscroll">불러오는 중…</div></div>';
+  document.getElementById('ovBack').onclick=()=>showScreen('home');
+  let recs,src='';
+  try{if(!API_URL||user.local)throw 0;recs=(await api({action:'history',code:user.code})).records}
+  catch(e){recs=lsGet('dds_records',[]).filter(r=>r.code===user.code).reverse();src=API_URL&&!user.local?'<p class="ovnote">서버에 연결하지 못해 이 기기 기록만 보여요.</p>':''}
+  recs=recs.map(normRec);
+  const body=document.getElementById('recBody');if(!body)return;
+  if(!recs.length){body.innerHTML='<p class="ovmsg">아직 기록이 없어요. 한 번 완주하면 여기에 쌓입니다.</p>'+src;return}
+  const best={};recs.forEach(r=>{const k=r.case+'|'+r.mode;if(!best[k]||r.score>best[k])best[k]=r.score});
+  body.innerHTML=src+'<table class="ovtable"><thead><tr><th>날짜</th><th>케이스</th><th>모드</th><th>점수</th><th>시간</th><th>실수</th></tr></thead><tbody>'+
+    recs.map((r,i)=>'<tr class="rrow" data-i="'+i+'"><td>'+fmtDate(r.time)+'</td><td>'+esc((CASES[r.case]||{}).name||r.case)+'</td><td>'+(MODE_NAME[r.mode]||r.mode)+'</td><td><b>'+r.score+'</b>'+(best[r.case+'|'+r.mode]===r.score?' ★':'')+'</td><td>'+fmtTime(r.durationSec)+'</td><td>'+r.mistakes.length+'건</td></tr>'+
+      '<tr class="rdet" id="det'+i+'" hidden><td colspan="6">'+(r.mistakes.length?r.mistakes.map(m=>'· '+esc(m)).join('<br>'):'실수 없음')+'</td></tr>').join('')+'</tbody></table>';
+  body.querySelectorAll('.rrow').forEach(tr=>tr.onclick=()=>{const d=document.getElementById('det'+tr.dataset.i);d.hidden=!d.hidden});
+}
+async function renderBoard(sel){
+  const tabs=CASE_KEYS.map(k=>'<button class="tab'+(k===sel.c?' on':'')+'" data-c="'+k+'">'+esc(CASES[k].name)+'</button>').join('');
+  const mt=['exam','practice'].map(m=>'<button class="tab'+(m===sel.m?' on':'')+'" data-m="'+m+'">'+MODE_NAME[m]+' 모드</button>').join('');
+  ov.innerHTML='<div class="ovcard wide"><div class="ovhead"><h3>리더보드</h3><button id="ovBack">← 뒤로</button></div>'+
+    '<div class="tabs">'+tabs+'</div><div class="tabs">'+mt+'</div><div id="bBody" class="ovscroll">불러오는 중…</div></div>';
+  document.getElementById('ovBack').onclick=()=>showScreen('home');
+  ov.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>renderBoard({c:b.dataset.c,m:sel.m}));
+  ov.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>renderBoard({c:sel.c,m:b.dataset.m}));
+  let list,note='';
+  try{if(!API_URL)throw 0;list=(await api({action:'board',case:sel.c,mode:sel.m})).board}
+  catch(e){note='<p class="ovnote">'+(API_URL?'서버에 연결하지 못해 ':'')+'이 기기에 저장된 기록만 보여요.</p>';
+    const bestBy={};lsGet('dds_records',[]).map(normRec).filter(r=>r.case===sel.c&&r.mode===sel.m).forEach(r=>{const b=bestBy[r.code];
+      if(!b||r.score>b.score||(r.score===b.score&&r.durationSec<b.durationSec))bestBy[r.code]=r});
+    list=Object.values(bestBy).sort((a,b)=>b.score-a.score||a.durationSec-b.durationSec)}
+  const body=document.getElementById('bBody');if(!body)return;
+  if(!list.length){body.innerHTML=note+'<p class="ovmsg">아직 기록이 없어요.</p>';return}
+  body.innerHTML=note+'<table class="ovtable"><thead><tr><th>순위</th><th>이름</th><th>최고 점수</th><th>시간</th><th>날짜</th></tr></thead><tbody>'+
+    list.map((r,i)=>'<tr'+(user&&r.name===user.name?' class="me"':'')+'><td>'+(i+1)+'</td><td>'+esc(r.name)+'</td><td><b>'+r.score+'</b></td><td>'+fmtTime(r.durationSec)+'</td><td>'+fmtDate(r.time)+'</td></tr>').join('')+'</tbody></table>';
+}
+async function saveRecord(){
+  const dur=Math.round((performance.now()-runStart)/1000);
+  const uniq=[...new Set(mistakes.map(m=>m.why))];
+  if(!user||user.guest){saved={status:'guest',dur};return}
+  const rec={time:new Date().toISOString(),case:caseId,mode,score,durationSec:dur,mistakes:uniq,name:user.name,code:user.code};
+  const all=lsGet('dds_records',[]);all.push(rec);lsSet('dds_records',all.slice(-300));
+  if(!API_URL||user.local){saved={status:'local',dur};return}
+  saved={status:'saving',dur};
+  try{await api(null,Object.assign({action:'record'},rec));saved={status:'ok',dur}}catch(e){saved={status:'fail',dur}}
+}
+function endZones(){return[
+  {key:'again',label:'다시 하기',rect:{x:520,y:640,w:160,h:50},act:()=>{const m=mode,c=caseId;resetAll(c);mode=m;runStart=performance.now();next();return{stay:1}}},
+  {key:'home',label:'홈으로',rect:{x:700,y:640,w:160,h:50},act:()=>{showScreen('home');return{stay:1}}}]}
+function inRun(){const s=S[si];return screen==='game'&&s.grp!=='start'&&s.kind!=='end'}
+document.getElementById('backBtn').onclick=()=>{
+  if(screen!=='game'){if(screen!=='home')showScreen('home');return}
+  const s=S[si];
+  if(s.id==='case'||s.kind==='end'){showScreen('home');return}
+  if(s.id==='mode'){resetAll();return}
+  if(confirm('진행 중인 기록이 사라집니다. 모드 선택으로 돌아갈까요?')){resetAll(caseId)}};
+document.getElementById('homeBtn').onclick=()=>{if(inRun()&&!confirm('진행 중인 기록이 사라집니다. 처음 화면으로 갈까요?'))return;showScreen('home')};
 
 /* ================= main loop ================= */
 let last=performance.now();
@@ -976,8 +1125,9 @@ function loop(t){
   if(camOn&&video.readyState>=2){if(handMode&&landmarker)trackHands();else trackMotion()}
   const px=cur.x,py=cur.y,k=handMode&&camOn?0.5:0.35;cur.x+=(cur.tx-cur.x)*k;cur.y+=(cur.ty-cur.y)*k;cur.vx=cur.x-px;cur.vy=cur.y-py;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#0c1412';ctx.fillRect(0,0,W,H);
+  if(screen!=='game'){zonesNow=[];requestAnimationFrame(loop);return}
   const s=S[si],view=typeof s.view==='function'?s.view():s.view;
-  if(s.kind==='zones'){zonesNow=stepZones(s)}else if(!['drag','depth','arc','wrap','tension'].includes(s.kind)){zonesNow=[]}
+  if(s.kind==='zones'){zonesNow=stepZones(s)}else if(s.kind==='end'){zonesNow=endZones()}else if(!['drag','depth','arc','wrap','tension'].includes(s.kind)){zonesNow=[]}
   if(s.kind==='shake'){updShake(dt,t);if(S[si]===s)drawShake()}
   else if(view==='case')drawCaseView();
   else if(view==='mode')drawModeView();
@@ -991,7 +1141,7 @@ function loop(t){
   else if(view==='tooth')drawTooth(0,0,0,false,st.seated);
   else if(view==='end')drawEnd();
   if(S[si]===s){
-    if(s.kind==='zones'){runZones(dt);if(S[si]===s)drawZoneMarks()}
+    if(s.kind==='zones'||s.kind==='end'){runZones(dt);if(S[si]===s)drawZoneMarks()}
     else if(s.kind==='drag')updDrag(s,dt,t);
     else if(s.kind==='depth')updDepth(s,dt,t);
     else if(s.kind==='arc')updArc(s,dt,t);
@@ -1006,7 +1156,7 @@ function loop(t){
   drawTray();drawHeader();drawPip();drawToast();drawCursor();
   requestAnimationFrame(loop);
 }
-resetAll();requestAnimationFrame(loop);
+resetAll();showScreen('home');requestAnimationFrame(loop);
 })();
 
 </script>
