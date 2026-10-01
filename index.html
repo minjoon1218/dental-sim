@@ -249,12 +249,19 @@ function trackHands(){
 }
 function twoHands(){return handMode&&camOn&&aux.seen}
 function auxOK(s){if(!s||!s.aux||!twoHands())return true;const a=s.aux();return Math.hypot(aux.x-a.x,aux.y-a.y)<=a.r+24}
-function drawAuxTarget(s){if(!s||!s.aux||!(handMode&&camOn))return;const a=s.aux(),ok=auxOK(s);
-  ctx.save();ctx.setLineDash(ok&&aux.seen?[]:[7,6]);ctx.strokeStyle=ok&&aux.seen?'#ff9ec7':'rgba(255,158,199,0.85)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,7);ctx.stroke();ctx.restore();
-  ctx.font='600 13px '+FONT;ctx.fillStyle='#ffb8d6';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('🤚 '+a.label,a.x,a.y+a.r+6);
-  if(!aux.seen){ctx.font='500 12px '+FONT;ctx.fillStyle='rgba(255,184,214,0.8)';ctx.fillText('(반대 손도 화면에 보이면 같이 써요)',a.x,a.y+a.r+24)}}
+function drawAuxTarget(s){if(!s||!s.aux||!(handMode&&camOn))return;const a=s.aux(),ok=auxOK(s)&&aux.seen;
+  const pul=ok?0:4*Math.sin(performance.now()/180);
+  ctx.save();
+  ctx.fillStyle=ok?'rgba(255,47,166,0.30)':'rgba(255,47,166,0.18)';ctx.beginPath();ctx.arc(a.x,a.y,a.r+pul,0,7);ctx.fill();
+  ctx.lineWidth=7;ctx.strokeStyle='rgba(255,255,255,0.95)';ctx.stroke();
+  ctx.setLineDash(ok?[]:[10,7]);ctx.lineWidth=4;ctx.strokeStyle='#ff2fa6';ctx.stroke();ctx.setLineDash([]);
+  ctx.font='22px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🤚',a.x,a.y);
+  if(aux.seen&&!ok){ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(255,47,166,0.9)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(aux.x,aux.y);ctx.lineTo(a.x,a.y);ctx.stroke();ctx.setLineDash([])}
+  const lab='반대 손: '+a.label+(aux.seen?'':' (반대 손도 화면에 보이게)');ctx.font='700 14px '+FONT;const w=ctx.measureText(lab).width+20;
+  const ly=Math.min(a.y+a.r+10,H-40);ctx.fillStyle='rgba(20,10,30,0.88)';rr(a.x-w/2,ly,w,28,14);ctx.fill();ctx.strokeStyle='#ff2fa6';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#ffd6ee';ctx.fillText(lab,a.x,ly+14);ctx.restore()}
 function auxGate(s,px,py){if(auxOK(s))return true;ctx.font='700 18px '+FONT;ctx.fillStyle='#ff9ec7';ctx.textAlign='center';ctx.textBaseline='bottom';
-  ctx.fillText('반대 손을 분홍 원에 두세요: '+s.aux().label,px||440,(py||200));return false}
+  ctx.fillStyle='rgba(20,10,30,0.85)';const m='🤚 반대 손을 분홍 원(🤚 표시)에 두세요',mw=ctx.measureText(m).width+28;rr((px||440)-mw/2,(py||200)-30,mw,34,17);ctx.fill();ctx.fillStyle='#ffd6ee';ctx.fillText(m,px||440,(py||200)-1);return false}
 function toStage(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
 cv.addEventListener('pointermove',e=>{const p=toStage(e);cur.tx=p.x;cur.ty=p.y;lastMouse=performance.now()});
 cv.addEventListener('pointerdown',e=>{const p=toStage(e);cur.tx=cur.x=p.x;cur.ty=cur.y=p.y;lastMouse=performance.now();mouseDown=true;onPress('mouse')});
@@ -924,7 +931,7 @@ const S=[
 S.forEach(st0=>{
   if(st0.kind==='depth'||(st0.kind==='drag'&&st0.hud))st0.aux=()=>({x:Z.notch.x-10,y:Z.notch.y,r:46,label:'반대 손 엄지: 관상돌기 절흔 견인'});
   if(st0.kind==='shake')st0.aux=()=>({x:440,y:650,r:52,label:'반대 손: 하악 지지'});
-  if(st0.kind==='arc')st0.aux=()=>({x:st.entry.x-46,y:st.entry.y+34,r:42,label:'조직겸자: 판막 고정'});
+  if(st0.kind==='arc')st0.aux=()=>({x:st.entry.x-70,y:st.entry.y+40,r:50,label:'조직겸자로 판막 고정'});
   if(st0.kind==='tension'){const d0=st0.dir;st0.aux=()=>{const c=st.wrapC||{x:440,y:410};return{x:c.x-d0*170,y:c.y,r:54,label:'반대 손: 긴 실 반대로 당기기'}}}
   if(st0.kind==='strokes')st0.aux=()=>({x:740,y:250,r:52,label:'미러: 볼·혀 견인'});
 });
@@ -2282,7 +2289,7 @@ function updTension(s,dt,t){
 
 
 /* ================= 앱 셸: 홈 · 기록 · 리더보드 ================= */
-const APP_VERSION='v2.1';
+const APP_VERSION='v2.2';
 const PATCH_DATE='10월 1일';
 let screen='home',user=null;
 function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
