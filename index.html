@@ -151,7 +151,6 @@ body.noscroll{overflow:hidden;position:fixed;width:100%}
       <button id="homeBtn">처음 화면</button>
       <button id="handBtn">주로 쓰는 손: 오른손</button>
       <button id="pipMinBtn">내 화면 접기</button>
-      <button id="pipMoveBtn">내 화면 옮기기</button>
       <button id="fsBtn">⛶ 전체 화면</button>
       <label>움직임 추적 감도 <input id="sens" type="range" min="10" max="60" value="28"></label>
       <label><input id="showCam" type="checkbox" checked> 내 화면 표시</label>
@@ -2352,47 +2351,19 @@ function patchNotes(){return `
   <details class="intro-note">
     <summary class="notice-head"><span>🛠 패치 내역</span><span class="notice-meta">${PATCH_DATE} · ${APP_VERSION}</span></summary>
     <ul class="patch">
-      <li class="new">케이스 끝나면 <b>케이스 선택</b> 버튼, 시작 화면에 <b>내 기록·리더보드</b> 버튼 추가</li>
-      <li class="new">케이스·모드 선택이 너무 빨리 넘어가지 않도록 <b>잠깐 누르고 있기 + 로딩</b> 적용</li>
-      <li class="new"><b>반대 손으로도 체어 조정</b> 가능</li>
-      <li class="new">치주 probing을 <b>UNC-15(1mm마다 눈금, 5mm 띠)</b>로 바꾸고 치근·치조골·치주낭·확대경까지 그려 읽기 쉽게</li>
-      <li class="new"><b>Chrome 안내</b>: 카메라는 Chrome에서만 인식된다는 공지 추가, Chrome이 아니거나 카카오톡 등 앱 안 브라우저면 경고 표시</li>
-      <li class="new"><b>양손 인식</b>: 손 두 개를 동시에 추적해요. 주로 쓰는 손이 기구, 반대 손(분홍 커서)은 엄지 견인·미러·조직겸자·하악 지지·실 당기기 같은 보조 동작. 분홍 원에 반대 손이 있어야 진행돼요(한 손만 보이면 자동으로 한 손 모드)</li>
-      <li class="new"><b>EPT·실란트·불소·턱관절·근육 촉진</b> 화면을 실사풍으로 다시 그림(치아 음영·점막 혈관·실제 측면 두개골·두경부 해부, 연습 모드에선 촉진 근육 위치를 흐리게 표시)</li>
-      <li class="new">케이스 선택을 <b>페이지 넘기기</b>(6개씩 크게)로 바꾸고 오른쪽에 내 화면 자리 확보, 과목 태그 글자 잘림 수정</li>
-      <li class="new">XCP 구성품·칫솔·캘리퍼 등 <b>빠져 있던 기구 그림</b> 추가, XCP 조립대를 실물처럼 다시 그림, 트레이 기구에 입체감</li>
-      <li class="new">턱관절 탈구 정복술을 <b>구강내과</b>로 분류</li>
-      <li><b>새 케이스 7종</b>: XCP 조립 · 치주 probing+동요도 · 턱관절 탈구 정복 · 교정 TBI(변형 차터스법) · 약물성 치은비대 협진 의뢰서 · Moyers 분석 · 긴장성 두통 근육 촉진</li>
-      <li class="new"><b>모든 환자 케이스에 체어 조정</b> 단계 추가, 케이스·모드 선택 화면도 <b>화면 가득</b>(모바일에서 크게)</li>
-      <li class="new">진료실 그림에서 교합평면 표시선과 환자 보안경 제거</li>
-      <li>시작 화면을 <b>화면 가득</b> 밝게, 진료실을 <b>체어 일체형</b>(라이트 기둥·딜리버리 암·풋 컨트롤)으로 다시 그림, 구내 그림 질감 개선</li>
-      <li class="new">트레이 아래에 <b>📋 문제 상황</b>(조건 포함) 표시</li>
-      <li class="new"><b>러버댐 펀치 휠</b>을 직접 돌려 구멍 크기 조정. #14–24는 앵커치·견치·절치별로 크기를 바꿔가며 펀칭</li>
-      <li class="new">치주 기구를 실제처럼 <b>양쪽 작업단</b> 모양으로 다시 그림</li>
-      <li><b>게임 시작 화면</b> 추가(▶ 시작하기), 진료실·환자 그림을 더 실감 나게 다듬고 기본 기구에 <b>미러·핀셋·치주 탐침</b> 추가</li>
-      <li class="new"><b>러버댐 클램프 #201–#212</b> 보드에서 선택, <b>윙드 테크닉</b>(입 밖에서 클램프 윙에 시트·프레임 → 통째로 장착 → <b>핀셋으로 윙에서 시트 벗기기</b>)</li>
-      <li class="new"><b>치주</b>: 기구 이름 없이 <b>생크 모양만 보고</b> 고르기, 하악/상악 작업 전 <b>체어(교합평면) 조절</b>, 마무리에 <b>에어 건조 + 프로빙</b>으로 잔존 치석 확인, 스트로크가 2번으로 세지던 문제 수정</li>
-      <li class="new"><b>모바일 전체 화면</b>: 아이폰처럼 전체 화면이 안 되는 기기도 화면 가득 채우기 모드로 동작</li>
-      <li><b>새 케이스 4종</b>: #14–24 러버댐 장착 · 불소 트레이 도포(치면세마부터) · 치은연상 스케일링 · 치근활택술(RP). 치주 케이스는 <b>치식을 숨겨서</b> 부위를 보고 기구를 골라야 해요</li>
-      <li class="new"><b>내 화면 창 이동·접기</b>: 창 위 막대를 끌어서 옮기거나 – 버튼으로 접기, 아래 버튼으로 모서리 이동. 케이스·모드 선택 화면에선 카드를 가리지 않게 오른쪽 빈 공간에 떠요</li>
-      <li class="new"><b>모바일 대응</b>: 터치로 진행 가능, 전체 화면 버튼, 세로 화면일 때 가로 회전 안내</li>
-      <li><b>새 케이스 3종</b>: #46 전기치수검사(EPT) · #46 러버댐 장착 · #36 실란트 (진료용 장갑 착용 흐름 별도 적용)</li>
-      <li class="new"><b>하늘색 테마</b>로 전체 색감 변경, 타이틀을 "두근두근 치의학부 / B반"으로 정리</li>
-      <li class="new">케이스 선택 화면을 <b>2줄 카드</b>로 바꾸고 과목 태그(구강외과·보존·소아치과) 표시</li>
-      <li><b>케이스 4종</b>: IANB + #46 발치 / #46 발치 + 8자 봉합 / 발치와 8자 봉합만 / 상악 전치부(#21–#23) 치은 열상 단순 단속 봉합 4바늘</li>
-      <li><b>MediaPipe 손 추적</b>: 집기 동작으로 기구 잡기·놓기, 집은 채로 움직이는 동작(피스톤, 페달, seat, 탈구, 봉합 바늘 통과) 인식</li>
-      <li><b>연습 모드 / 실전 모드</b>: 연습은 단계별 안내와 즉시 해설, 실전은 목표만 보여주고 틀려도 진행·생략 가능, 끝나고 해설 한 번에</li>
-      <li><b>봉합 매듭을 2 throw surgeon's knot</b>으로 변경(2회 감기 → 반대 방향 1회), 같은 방향이면 granny knot으로 기록</li>
-      <li><b>멸균 장갑 착용 수정</b>: 두 번째 장갑은 접힌 커프 틈 안쪽으로 손가락을 넣어 잡도록 판정 위치 변경</li>
-      <li><b>두근두근 코드 로그인 + 내 기록 + 리더보드</b>(케이스·모드별 학생당 최고점, 같은 점수면 짧은 시간 우선)</li>
-      <li>케이스·모드 선택이 <b>너무 빨리 넘어가던 문제 수정</b>, 화면 안 <b>뒤로가기 버튼</b> 추가</li>
-      <li><b>라이트/다크 모드</b> 추가(두근두근과 설정 공유)</li>
+      <li><b>술식 18종</b>: 구강외과(IANB·발치·8자 봉합·열상 봉합) · 보존(EPT·러버댐 2종) · 소아치과(실란트·불소) · 치주(SC·RP·probing·협진 의뢰서) · 영상치의학(XCP) · 교정(TBI·Moyers) · 구강내과(턱관절 정복·근육 촉진)</li>
+      <li><b>손으로 조작</b>: 카메라로 양손 인식(주로 쓰는 손 = 기구, 반대 손 = 견인·지지 같은 보조 동작). 마우스·터치도 가능</li>
+      <li><b>연습 / 실전 모드</b>: 연습은 단계별 안내와 즉시 해설, 실전은 목표만 보고 진행하고 끝나고 해설</li>
+      <li><b>두근두근 코드로 로그인</b> → 내 기록·리더보드 연동</li>
+      <li><b>실기 문제처럼</b>: 트레이 아래 문제 상황·조건 제시, 모든 환자 케이스에 체어(교합면) 조정</li>
+      <li class="new">최근: 기록·리더보드에서 <b>이전 화면으로 돌아가기</b>, probing 눈금 UNC-15로 개선, 선택 시 잠깐 누르기 + 로딩, 화면 옮기기 버튼 정리</li>
     </ul>
   </details>`}
 function themeBox(){return '<div class="intro-note center"><button class="themeBtn btn-soft">'+themeLabel()+'</button></div>'}
 function bindTheme(){ov.querySelectorAll('.themeBtn').forEach(b=>b.onclick=toggleTheme)}
 
-function showScreen(n,arg){screen=n;
+let ovFrom='home';
+function showScreen(n,arg,from){if(n==='records'||n==='board')ovFrom=from||(screen==='game'?'game':screen==='records'||screen==='board'?ovFrom:'home');screen=n;
   if(n==='game'){ov.hidden=true;gamePage.hidden=false;window.scrollTo(0,0);return}
   ov.hidden=false;gamePage.hidden=true;
   if(n==='home')renderHome();else if(n==='records')renderRecords();else if(n==='board')renderBoard(arg||{c:'ext',m:'exam'})}
@@ -2433,12 +2404,13 @@ function renderHome(msg){
   document.getElementById('boardBtn').onclick=()=>showScreen('board');
   document.getElementById('outBtn').onclick=()=>{user=null;try{localStorage.removeItem('dds_user')}catch(e){}renderHome()};
 }
-function pageHead(title){return brandBlock(true)+'<div class="page-head"><h2>'+title+'</h2><button class="btn-soft" id="ovBack">← 홈으로</button></div>'}
+function pageHead(title){return brandBlock(true)+'<div class="page-head"><h2>'+title+'</h2><button class="btn-soft" id="ovBack">'+(ovFrom==='game'?'← 이전으로':'← 홈으로')+'</button></div>'}
+function ovBack(){if(ovFrom==='game'){showScreen('game')}else showScreen('home')}
 function normRec(r){return{time:r.time,case:r.case,mode:r.mode,score:Number(r.score)||0,durationSec:Number(r.durationSec)||0,
   mistakes:Array.isArray(r.mistakes)?r.mistakes:String(r.mistakes||'').split(' | ').filter(Boolean),name:r.name,code:r.code}}
 async function renderRecords(){
   ov.innerHTML=pageHead('📒 내 기록')+'<div class="intro-note" id="recBody">불러오는 중…</div>'+themeBox();
-  bindTheme();document.getElementById('ovBack').onclick=()=>showScreen('home');
+  bindTheme();document.getElementById('ovBack').onclick=ovBack;
   let recs,src='';
   try{if(!API_ON||user.local)throw 0;recs=(await api({action:'history',code:user.code})).records}
   catch(e){recs=lsGet('dds_records',[]).filter(r=>r.code===user.code).reverse();src=API_ON&&!user.local?'<p class="hint">서버에 연결하지 못해 이 기기 기록만 보여요.</p>':''}
@@ -2457,7 +2429,7 @@ async function renderBoard(sel){
   const tabs=CASE_KEYS.map(k=>'<button class="sort-btn'+(k===sel.c?' active':'')+'" data-c="'+k+'">'+esc(CASES[k].name)+'</button>').join('');
   const mt=['exam','practice'].map(m=>'<button class="sort-btn'+(m===sel.m?' active':'')+'" data-m="'+m+'">'+MODE_NAME[m]+' 모드</button>').join('');
   ov.innerHTML=pageHead('🏆 리더보드')+'<div class="intro-note"><div class="sort-row">'+tabs+'</div><div class="sort-row">'+mt+'</div><div id="bBody">불러오는 중…</div></div>'+themeBox();
-  bindTheme();document.getElementById('ovBack').onclick=()=>showScreen('home');
+  bindTheme();document.getElementById('ovBack').onclick=ovBack;
   ov.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>renderBoard({c:b.dataset.c,m:sel.m}));
   ov.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>renderBoard({c:sel.c,m:b.dataset.m}));
   let list,note='';
@@ -2500,7 +2472,6 @@ function syncPipBtn(){const b=document.getElementById('pipMinBtn');if(b)b.textCo
 (()=>{const hb=document.getElementById('handBtn');if(!hb)return;const lab=()=>hb.textContent='주로 쓰는 손: '+(domHand==='R'?'오른손':'왼손');lab();
   hb.onclick=()=>{domHand=domHand==='R'?'L':'R';try{localStorage.setItem('dds_hand',domHand)}catch(e){}lab()}})();
 document.getElementById('pipMinBtn').onclick=()=>{if(pipOnStart())pipStartMin=!pipStartMin;else pipMin=!pipMin;syncPipBtn()};
-document.getElementById('pipMoveBtn').onclick=()=>{pipCorner=(pipCorner+1)%PIP_CORNERS.length;const p=pipActivePos();p.x=PIP_CORNERS[pipCorner].x;p.y=PIP_CORNERS[pipCorner].y};
 (()=>{const fb=document.getElementById('fsBtn'),fx=document.getElementById('fsExit'),fc=document.getElementById('fsCam'),box=document.querySelector('.stagebox');
   if(!fb||!box)return;
   const nat=()=>(box.requestFullscreen||box.webkitRequestFullscreen)&&(document.fullscreenEnabled||document.webkitFullscreenEnabled);
