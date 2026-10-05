@@ -268,7 +268,8 @@ cv.addEventListener('pointerdown',e=>{const p=toStage(e);cur.tx=cur.x=p.x;cur.ty
 window.addEventListener('pointerup',()=>{if(mouseDown){mouseDown=false;onRelease('mouse')}});
 function onPress(src){inputSrc=src;if(screen!=='game')return;
   const P=src==='aux'?aux:cur;
-  if(src==='aux'){if(blocked()||performance.now()<armT)return;for(const z of zonesNow){if((z.key!=='handle'||z.auxOK)&&inZone(z,P.x,P.y)){if(z.hold){startHold(z,src);return}fire(z);return}}return}
+  if(src==='aux'){if(skipRect&&inR(skipRect,P.x,P.y)){if(tutSkipAvail()){skipTutorial();return}if(skipAvail()){skipStep();return}}if(blocked()||performance.now()<armT)return;for(const z of zonesNow){if((z.key!=='handle'||z.auxOK)&&inZone(z,P.x,P.y)){if(z.hold){startHold(z,src);return}fire(z);return}}return}
+  if(skipRect&&inR(skipRect,P.x,P.y)){if(tutSkipAvail()){skipTutorial();return}if(skipAvail()){skipStep();return}}
   const b=pipBar();if(inR(b,cur.x,cur.y)){if(cur.x>b.x+b.w-30){if(pipOnStart())pipStartMin=!pipStartMin;else pipMin=!pipMin;syncPipBtn()}else pipDrag={dx:cur.x-PIP.x,dy:cur.y-PIP.y,src};return}
   if(blocked()||performance.now()<armT)return;for(const z of zonesNow){if(inZone(z,cur.x,cur.y)){if(z.hold){startHold(z,src);return}fire(z);return}}}
 let auxItem=null,pendingHold=null,loadingUntil=0,loadingMsg='';
@@ -328,10 +329,11 @@ CASES.tbi={task:{q:'고정식 교정장치 환자에게 변형 차터스법으�
 CASES.ref={task:{q:'약물성 치은비대 환자의 주치의에게 보낼 협진 의뢰서를 작성하시오.',c:['환자 정보는 화면에 제시된 것을 따른다.']},name:'약물성 치은비대 협진 의뢰서',tag:'치주',desc:'수신처, 원인 약물, 소견, 요청, 계획',grps:['ref'],phases:['의뢰서']};
 CASES.moyer={task:{q:'혼합치열기 환자의 하악 우측 공간을 Moyers 분석으로 평가하시오.',c:['75% 확률 값을 사용한다.']},name:'Moyers 혼합치열 분석',tag:'교정',desc:'하악 4전치 측정, 표 읽기, 공간 평가',grps:['moyer'],phases:['Moyers 분석']};
 CASES.ha={task:{q:'긴장성 두통이 의심되는 환자의 저작근과 경부 근육을 촉진하시오.',c:['우측만 시행한다.']},name:'긴장성 두통 근육 촉진',tag:'구강내과',desc:'촉진 압력, 측두근·교근·경부 근육 위치',grps:['prepc','ha'],phases:['준비','근육 촉진']};
+CASES.tut={task:{q:'손(또는 마우스)으로 조작하는 법을 연습해요.',c:['약 1분이면 끝나요.','어려우면 마우스로 해도 돼요.']},name:'튜토리얼',tag:'안내',desc:'',grps:['tut'],phases:['튜토리얼']};
 const CASE_KEYS=['ext','ext8','s8','lac','ept','dam','dam14','seal','fluor','sc','rp','perch','ref','xcp','tbi','moyer','tmj','ha'];
 function gloveType(){return CASES[caseId].grps.includes('prepc')?'exam':'sterile'}
 function afterGloving(){if(returnTo!==null){si=returnTo;returnTo=null;held=savedHeld;savedHeld=null;enterStep();return true}return false}
-function CH(key,label,ok,fb,row,why,accept,onOk){return{key,label,rect:{x:110,y:250+row*84,w:670,h:66},act:()=>{
+function CH(key,label,ok,fb,row,why,accept,onOk){return{key,good:!!ok,label,rect:{x:110,y:250+row*84,w:670,h:66},act:()=>{
   if(ok){if(onOk)onOk();return OK(fb)}return BAD(fb,5,why||label,accept||(()=>{}))}}}
 const P8={BM:{x:395,y:515},BM1:{x:368,y:488},BM8:{x:420,y:590},LM:{x:395,y:305},LM1:{x:368,y:334},BD:{x:485,y:515},BD1:{x:512,y:488},LD:{x:485,y:305},LD1:{x:512,y:334}};
 const SUTVIEW=()=>caseId==='lac'?'lac':'socket';
@@ -422,8 +424,9 @@ const MY_X=[340,400,460,520],MY_W=[5.4,5.9,5.9,5.4];
 const S=[
  {id:'title',phase:'시작',grp:'start',view:'title',g:'시작',text:'',zones:()=>[{key:'back',dwell:900,label:'← 처음으로',rect:{x:24,y:24,w:140,h:46},act:()=>{showScreen('home');return{stay:1}}},
    {key:'go',big:1,dwell:1500,hold:500,label:'▶  시작하기',rect:{x:495,y:455,w:290,h:72},act:()=>{startLoading('케이스 목록 불러오는 중…');jumpTo('case');return{stay:1}}},
-   {key:'trec',dwell:1300,hold:400,label:'📒 내 기록',rect:{x:470,y:552,w:160,h:48},act:()=>{if(!user||user.guest){toast('게스트는 기록이 저장되지 않아요. 홈에서 코드로 입장하세요.',0,2600);return{stay:1}}showScreen('records');return{stay:1}}},
-   {key:'tboard',dwell:1300,hold:400,label:'🏆 리더보드',rect:{x:650,y:552,w:160,h:48},act:()=>{showScreen('board');return{stay:1}}}]},
+   {key:'ttut',dwell:1300,hold:400,label:'🎓 튜토리얼',rect:{x:380,y:552,w:160,h:48},act:()=>{startTutorial();return{stay:1}}},
+   {key:'trec',dwell:1300,hold:400,label:'📒 내 기록',rect:{x:560,y:552,w:160,h:48},act:()=>{if(!user||user.guest){toast('게스트는 기록이 저장되지 않아요. 홈에서 코드로 입장하세요.',0,2600);return{stay:1}}showScreen('records');return{stay:1}}},
+   {key:'tboard',dwell:1300,hold:400,label:'🏆 리더보드',rect:{x:740,y:552,w:160,h:48},act:()=>{showScreen('board');return{stay:1}}}]},
  {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[BACK_ZONE(()=>jumpTo('title')),
    ...(casePage>0?[{key:'prev',dwell:900,label:'◀ 이전',rect:{x:952,y:620,w:140,h:56},act:()=>{casePage--;return{stay:1}}}]:[]),
    ...(casePage<pageCount()-1?[{key:'next',dwell:900,label:'다음 ▶',rect:{x:1104,y:620,w:150,h:56},act:()=>{casePage++;return{stay:1}}}]:[])].concat(CASE_KEYS.map((c,i)=>({c,i})).filter(o=>Math.floor(o.i/PER_PAGE)===casePage).map(({c,i})=>({key:'case'+i,dwell:1800,hold:650,rect:CASE_RECT(i),act:()=>{setCase(c);startLoading('케이스 불러오는 중…');return{ok:1}}})))},
@@ -755,7 +758,7 @@ const S=[
    CH('qb','바로 물로 헹구고 식사해도 된다',0,'바로 헹구거나 먹으면 불소 효과가 크게 떨어집니다.',1,'불소: 주의사항 오류')]},
 
  /* ===== 치은연상 SC ===== */
- {grp:'sc',phase:'SC',view:'room',kind:'chair',plane:'lower',target:0.55,g:'체어 조정',text:'먼저 하악 부위입니다. 입을 벌렸을 때 하악 교합평면이 바닥과 평행하도록 풋 페달로 등받이를 조절하세요(집은 채로 위아래).'},
+ {grp:'sc',phase:'SC',view:'room',kind:'chair',plane:'lower',target:0.55,g:'체어 조정',text:'먼저 하악 부위입니다. 입을 벌렸을 때 하악 교합평면이 바닥과 평행하도록 풋 페달로 등받이를 조절하세요(집은 채로 좌우로).'},
  {view:'perio',g:'시야 확보',text:'시야 확보와 견인에 쓸 기구를 왼손에 드세요.',zones:()=>pickZ(['mirror'],{},()=>{st.mirror=1})},
  {view:'instr',enter:()=>{st.pSite=0},g:'부위 1',text:'오른쪽 위에 표시된 부위(치식 숨김)를 보고, 생크 모양으로 맞는 기구를 고르세요.',
    zones:()=>INSTR_ZONES(SC_SET,['sickleA'])},
@@ -777,7 +780,7 @@ const S=[
  {kind:'hold',g:'잔존 치석 확인',text:'치은연을 따라 살살 훑어(프로빙) 걸리는 곳이 없는지 확인하세요.',at:()=>({x:440,y:370,r:56}),dur:1100,label:'프로빙',onDone:()=>{held=null},okfb:'걸리는 곳 없음. 치은연상 SC 완료!'},
 
 /* ===== RP ===== */
- {grp:'rp',phase:'RP',view:'room',kind:'chair',plane:'lower',target:0.55,g:'체어 조정',text:'먼저 하악 부위입니다. 하악 교합평면이 바닥과 평행하도록 풋 페달로 등받이를 조절하세요(집은 채로 위아래).'},
+ {grp:'rp',phase:'RP',view:'room',kind:'chair',plane:'lower',target:0.55,g:'체어 조정',text:'먼저 하악 부위입니다. 하악 교합평면이 바닥과 평행하도록 풋 페달로 등받이를 조절하세요(집은 채로 좌우로).'},
  {view:'perio',g:'시야 확보',text:'시야 확보와 견인에 쓸 기구를 왼손에 드세요.',zones:()=>pickZ(['mirror'],{},()=>{st.mirror=1})},
  {view:'instr',enter:()=>{st.pSite=10},g:'부위 1',text:'오른쪽 위에 표시된 치주낭(치식 숨김)을 보고, 생크 모양으로 맞는 Gracey를 고르세요.',zones:()=>INSTR_ZONES(RP_SET,['g1314'])},
  {view:'perio',g:'부위 1',text:'치주낭에 넣을 때 각도는?',zones:()=>[
@@ -923,6 +926,18 @@ const S=[
  {g:'기록',text:'촉진 중 무엇을 확인해 기록할까요?',zones:()=>[
    CH('hr1','압통 여부와 평소 두통과 같은 통증인지(familiar pain), 관련통',1,'평소 두통이 재현되면 근육성 원인을 강하게 시사해요.',0),
    CH('hr2','아프다고 하면 그냥 "압통 있음"만 기록',0,'familiar pain·관련통 여부가 진단에 중요해요.',1,'촉진: 기록 불충분')]},
+
+ /* ===== 튜토리얼 ===== */
+ {id:'tut0',grp:'tut',phase:'튜토리얼',view:'tut',g:'준비',text:'튜토리얼에 오신 걸 환영해요! 아래 "카메라 켜기"를 누르고, 오른쪽 아래 내 화면에 손이 보이면 [시작] 버튼을 집거나 클릭하세요.',
+   zones:()=>[{key:'t0',label:'시작 ▶',rect:{x:340,y:520,w:200,h:56},act:()=>OK()}]},
+ {kind:'reach',g:'커서 움직이기',text:'커서(파란 점)를 반짝이는 별 ⭐ 위로 옮겨 잠깐 머무세요. 손으로 할 땐 엄지와 검지 사이가 커서예요.',pts:[{x:220,y:260},{x:680,y:260},{x:450,y:540}]},
+ {g:'집기',text:'집기: 이빨 🦷 위에서 엄지와 검지를 붙이세요. (마우스는 클릭)',zones:()=>[C('tt',{x:250,y:420},44,()=>{held='tutTooth';return OK('잡았어요! 이제 이빨이 커서를 따라와요.')})]},
+ {g:'놓기',text:'놓기: 바구니 🧺 위로 옮긴 뒤 한 번 더 집으면(클릭) 놓아요.',zones:()=>[C('tb',{x:650,y:420},54,()=>{held=null;st.tutDrop=1;return OK('놓기 성공!')})]},
+ {kind:'drag',g:'집은 채로 끌기',text:'끌기: 노란 고리에서 집은 채로(마우스는 누른 채로) 오른쪽으로 쭉 옮기세요. 중간에 떼면 처음부터예요.',handle:()=>({x:220+(drag?drag.p:0),y:560,r:30}),axis:'x',dir:1,amount:420,apply:p=>{st.tutDrag=p},okfb:'완벽해요!'},
+ {kind:'circle',g:'원 그리기',text:'원 그리기: 집은 채로 커서를 가운데 원을 따라 크게 한 바퀴 돌리세요.',center:()=>({x:450,y:380}),turns:1,okfb:'좋아요! 봉합 매듭이나 세마할 때 이렇게 해요.'},
+ {cond:()=>handMode&&camOn,kind:'reach',useAux:1,g:'양손',text:'양손: 반대 손을 분홍 원 🤚 에 넣어 잠깐 머무세요. 반대 손은 견인·지지 같은 보조 동작에 써요.',pts:[{x:300,y:400}]},
+ {g:'마무리',text:'끝! 손 인식이 어렵다면 언제든 마우스로 똑같이 할 수 있어요.',zones:()=>[
+   {key:'tdone',label:'✅ 튜토리얼 완료',rect:{x:330,y:600,w:220,h:54},act:()=>{markTutDone();resetAll();toast('튜토리얼 완료! 이제 술식을 시작해 볼까요?',1);return{stay:1}}}]},
 
  {grp:'post',view:'mouth',phase:'마무리',g:'발치 후 처치',text:'지혈에 필요한 것을 집으세요.',zones:()=>pickZ(['gauze'])},
  {grp:'post',g:'발치 후 처치',text:'발치와에 거즈를 올리고 물게 하세요.',zones:()=>[C('gz',T46,30,()=>{st.gauze=1;held=null;return OK('거즈 교합 압박. 혈병 유지를 위해 강한 세척은 피합니다.')})]},
@@ -1109,6 +1124,7 @@ function drawItem(id,x,y,s,o){o=o||{};ctx.save();ctx.translate(x,y);ctx.scale(s,
     ctx.strokeStyle='#ffffff';ctx.lineWidth=1;for(let x=8;x<30;x+=2.5){ctx.beginPath();ctx.moveTo(x,-5);ctx.lineTo(x+1,5);ctx.stroke()}break;
   case 'caliper':ctx.fillStyle='#cfd8da';rr(-36,-4,72,8,2);ctx.fill();ctx.fillStyle='#b8c3c9';rr(-36,-20,6,24,2);ctx.fill();rr(8,-20,6,24,2);ctx.fill();rr(4,-6,16,16,3);ctx.fill();
     ctx.strokeStyle='#4a565e';ctx.lineWidth=1;for(let x=-28;x<34;x+=4){ctx.beginPath();ctx.moveTo(x,-4);ctx.lineTo(x,x%8===0?1:-1);ctx.stroke()}break;
+  case 'tutTooth':ctx.font='56px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🦷',0,0);break;
   case 'mirror':ctx.fillStyle='#cfd8da';rr(-36,-4,46,8,4);ctx.fill();ctx.strokeStyle='#cfd8da';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(22,-6);ctx.stroke();
     ctx.fillStyle='#9fb3c4';ctx.beginPath();ctx.arc(30,-10,11,0,7);ctx.fill();ctx.fillStyle='#e9f6ff';ctx.beginPath();ctx.arc(30,-10,8,0,7);ctx.fill();break;
   case 'pincette':ctx.strokeStyle='#cfd8da';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-34,-8);ctx.lineTo(18,-2);ctx.lineTo(32,-10);ctx.moveTo(-34,8);ctx.lineTo(18,2);ctx.lineTo(32,-4);ctx.stroke();break;
@@ -1784,7 +1800,7 @@ function drawPunchWheel(){const W0=WHEEL;
   ctx.font='600 13px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('펀치 휠 · 현재 '+wheelSize()+'번',W0.x,W0.y+W0.r+20);
   ctx.font='500 12px '+FONT;ctx.fillStyle='rgba(255,255,255,0.65)';ctx.fillText(handMode&&camOn?'집은 채로 휠 둘레를 돌리기':'휠 둘레를 끌어서 돌리기',W0.x,W0.y-W0.r-30)}
-function WHEEL_OK(okSizes,why,fbWrong,onOk){return{key:'wok',label:'이 크기로 맞춤',rect:{x:WHEEL.x-70,y:WHEEL.y+86,w:140,h:42},act:()=>{
+function WHEEL_OK(okSizes,why,fbWrong,onOk){return{key:'wok',okSizes,label:'이 크기로 맞춤',rect:{x:WHEEL.x-70,y:WHEEL.y+86,w:140,h:42},act:()=>{
   const n=wheelSize();if(okSizes.includes(n)){st.holeSize=n;if(onOk)onOk(n);return OK(n+'번 구멍으로 맞췄어요.')}
   return BAD(fbWrong(n),5,why+' ('+n+'번)',()=>{st.holeSize=n;if(onOk)onOk(n)})}}}
 function PUNCH14_STEP(group,text,last){return{g:'시트 펀칭',text,zones:()=>ARCH_MARKS.map((m,i)=>i).filter(i=>!st.holes.has(i)).map(i=>C('hm'+i,ARCH_MARKS[i],15,()=>{
@@ -1794,9 +1810,9 @@ function PUNCH14_STEP(group,text,last){return{g:'시트 펀칭',text,zones:()=>A
   if(EXAM()){if(out){st.holes.add(i);st.holeSz[i]=st.holeSize}penalize(5,out?'#14–24 러버댐: 격리 범위 밖 펀칭':'#14–24 러버댐: 구멍 크기 불일치','p'+i,fb);return{stay:1}}
   return BAD(fb,5,out?'#14–24 러버댐: 격리 범위 밖 펀칭':'#14–24 러버댐: 구멍 크기 불일치')}))}}
 /* ===== 공통 헬퍼(신규 케이스) ===== */
-function CHAIR(grp,phase,plane,cond){const txt={lower:'환자 자세: 입을 벌렸을 때 하악 교합면이 바닥과 평행하도록 풋 컨트롤로 등받이를 조절하세요(집은 채로 위아래).',
-  upper:'환자 자세: 등받이를 눕혀 상악 교합면이 바닥과 거의 수직이 되도록 풋 컨트롤로 조절하세요.',
-  sit:'환자 자세: 환자가 똑바로 앉도록 풋 컨트롤로 등받이를 세우세요.'}[plane];
+function CHAIR(grp,phase,plane,cond){const txt={lower:'환자 자세: 입을 벌렸을 때 하악 교합면이 바닥과 평행하도록 풋 컨트롤로 등받이를 조절하세요(집은 채로 좌우로).',
+  upper:'환자 자세: 등받이를 눕혀 상악 교합면이 바닥과 거의 수직이 되도록 풋 컨트롤로 조절하세요(집은 채로 좌우로).',
+  sit:'환자 자세: 환자가 똑바로 앉도록 풋 컨트롤로 등받이를 세우세요(집은 채로 좌우로).'}[plane];
   return{grp,phase,view:'room',kind:'chair',plane,target:plane==='upper'?0.05:plane==='lower'?0.55:1,cond,g:'체어 조정',text:txt}}
 function PROBE_STEPS(){return PROBE_SITES.map(([nm,v],k)=>({g:'치주낭 측정',text:'#46 '+nm+': 치주 탐침 눈금을 읽어 기록하세요.',enter:()=>{st.psite=k},
   zones:()=>[...Array(10)].map((_,i)=>({key:'pd'+(i+1),label:String(i+1),rect:{x:110+i*64,y:612,w:56,h:44},act:()=>{
@@ -2110,6 +2126,71 @@ function drawHeadV(){
     ctx.beginPath();ctx.moveTo(548,368);ctx.quadraticCurveTo(520,470,452,592);ctx.lineTo(484,596);ctx.quadraticCurveTo(548,480,572,376);ctx.closePath();ctx.fill();
     ctx.beginPath();ctx.moveTo(590,404);ctx.quadraticCurveTo(620,500,760,560);ctx.lineTo(720,590);ctx.quadraticCurveTo(610,540,572,420);ctx.closePath();ctx.fill();ctx.globalAlpha=1}
 }
+/* ===== 튜토리얼 & 건너뛰기 ===== */
+function tutKey(){return 'dds_tut_'+((user&&(user.code||user.name))||'guest')}
+function tutDone(){try{return localStorage.getItem(tutKey())==='1'}catch(e){return true}}
+function markTutDone(){try{localStorage.setItem(tutKey(),'1')}catch(e){}}
+function startTutorial(){resetAll();setCase('tut');mode='practice';runStart=performance.now();si=idx('tut0');enterStep();showScreen('game')}
+function updReach(s,dt,t){const P=s.useAux?aux:cur;const pts=s.pts;const i=st.reachI||0;zonesNow=[];dwellP=0;
+  pts.forEach((p,k)=>{if(k<i)return;const on=k===i;ctx.save();ctx.globalAlpha=on?1:0.3;
+    if(s.useAux){ctx.fillStyle='rgba(255,47,166,0.25)';ctx.beginPath();ctx.arc(p.x,p.y,56,0,7);ctx.fill();ctx.lineWidth=6;ctx.strokeStyle='#fff';ctx.stroke();ctx.lineWidth=3;ctx.strokeStyle='#ff2fa6';ctx.stroke();ctx.font='30px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🤚',p.x,p.y)}
+    else{const sc=on?1+0.1*Math.sin(t/160):1;ctx.font=(48*sc)+'px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('⭐',p.x,p.y)}ctx.restore()});
+  const p=pts[i];if(!p)return;const inside=Math.hypot(P.x-p.x,P.y-p.y)<(s.useAux?60:46);
+  if(inside)st.reachT=(st.reachT||0)+dt;else st.reachT=0;
+  ctx.strokeStyle='#ffd36b';ctx.lineWidth=6;ctx.beginPath();ctx.arc(p.x,p.y,(s.useAux?64:52),-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,(st.reachT||0)/500));ctx.stroke();
+  if(st.reachT>500){st.reachT=0;st.reachI=i+1;if(st.reachI>=pts.length){st.reachI=0;toast('잘했어요!',1,1200);next()}}}
+function drawTutView(){
+  const g=ctx.createLinearGradient(0,104,0,720);g.addColorStop(0,'#eaf6ff');g.addColorStop(1,'#cfe8fb');ctx.fillStyle=g;ctx.fillRect(0,104,890,616);
+  const s=S[si];ctx.textAlign='center';ctx.textBaseline='middle';
+  if(s.id==='tut0'){
+    ctx.font='700 30px Gaegu, '+FONT;ctx.fillStyle='#1d5c98';ctx.fillText('손으로 조작하는 법',440,170);
+    [['☝️','커서','엄지·검지 사이'],['👌','집기 = 클릭','엄지+검지 붙이기'],['✊','끌기 = 드래그','붙인 채로 움직이기']].forEach(([e,a,b],k)=>{const x=200+k*240;
+      ctx.fillStyle='#fff';rr(x-100,220,200,200,20);ctx.fill();ctx.font='64px '+FONT;ctx.fillText(e,x,290);
+      ctx.font='700 20px '+FONT;ctx.fillStyle='#1f3344';ctx.fillText(a,x,360);ctx.font='500 15px '+FONT;ctx.fillStyle='#4f6a7d';ctx.fillText(b,x,392)});
+    ctx.font='600 17px '+FONT;ctx.fillStyle=camOn&&handMode?(handSeen?'#2f9a5a':'#c98a00'):'#5b788c';
+    ctx.fillText(camOn&&handMode?(handSeen?'✅ 손이 인식됐어요!':'✋ 손을 카메라에 보여주세요'):(camOn?'움직임 추적 모드(손 모델 로딩 실패) · 마우스 권장':'📷 카메라 꺼짐 · 마우스로도 똑같이 할 수 있어요'),440,470)}
+  if(s.g==='집기'||s.g==='놓기'){
+    if(held!=='tutTooth'&&!st.tutDrop){ctx.font='72px '+FONT;ctx.fillText('🦷',250,420)}
+    ctx.font='84px '+FONT;ctx.fillText('🧺',650,430);if(st.tutDrop){ctx.font='40px '+FONT;ctx.fillText('🦷',650,400)}}
+  if(s.g==='집은 채로 끌기'){ctx.fillStyle='rgba(50,137,212,0.18)';rr(200,546,460,28,14);ctx.fill();ctx.fillStyle='#3289d4';rr(200,546,20+(st.tutDrag||0),28,14);ctx.fill();
+    ctx.font='40px '+FONT;ctx.fillText('🏁',690,520)}
+  if(s.g==='마무리'){
+    ctx.font='700 26px Gaegu, '+FONT;ctx.fillStyle='#1d5c98';ctx.fillText('손 인식이 잘 안 될 때',440,160);
+    const tips=['💡 밝은 곳에서, 손 전체가 화면에 들어오게','📏 카메라에서 50–70cm 떨어지기','🖐 손바닥을 카메라 쪽으로','🌐 Chrome으로 접속하기','🖱 그래도 어렵다면 마우스로! 클릭 = 집기, 드래그 = 끌기'];
+    tips.forEach((tx,k)=>{ctx.fillStyle=k===4?'#fff4d6':'#ffffff';rr(150,196+k*76,580,60,14);ctx.fill();ctx.font=(k===4?'700 ':'500 ')+'18px '+FONT;ctx.fillStyle='#1f3344';ctx.textAlign='left';ctx.fillText(tx,174,226+k*76);ctx.textAlign='center'})}
+}
+let skipRect=null;
+function skipAvail(){const s=S[si];return mode==='practice'&&screen==='game'&&s.grp!=='start'&&s.grp!=='tut'&&s.kind!=='end'&&performance.now()-stepT0>15000}
+function tutSkipAvail(){return screen==='game'&&S[si].grp==='tut'}
+function skipTutorial(){markTutDone();resetAll();jumpTo('case');startLoading('케이스 목록 불러오는 중…')}
+function drawSkipBtn(){if(tutSkipAvail()){skipRect={x:1050,y:50,w:214,h:44};const r=skipRect,hov=inR(r,cur.x,cur.y);
+    ctx.fillStyle=hov?'#ffffff':'rgba(255,255,255,0.9)';rr(r.x,r.y,r.w,r.h,22);ctx.fill();ctx.strokeStyle='#3289d4';ctx.lineWidth=2;ctx.stroke();
+    ctx.font='700 15px '+FONT;ctx.fillStyle='#1d5c98';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('튜토리얼 건너뛰기 ⏩',r.x+r.w/2,r.y+r.h/2);return}
+  if(!skipAvail()){skipRect=null;return}skipRect={x:1050,y:50,w:214,h:44};const r=skipRect,hov=inR(r,cur.x,cur.y);
+  ctx.fillStyle=hov?'#ffe27a':'rgba(255,226,122,0.92)';rr(r.x,r.y,r.w,r.h,22);ctx.fill();
+  ctx.font='700 15px '+FONT;ctx.fillStyle='#5a4300';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('⏭ 했다 치고 넘어가기',r.x+r.w/2,r.y+r.h/2)}
+function skipStep(){const s=S[si],before=si;
+  penalize(5,'건너뜀: '+(s.g||'단계'),null,'연습 모드에서 건너뛴 단계예요(−5점).');toastO=null;
+  if(s.kind==='zones'){
+    let zs=stepZones(s).filter(z=>!['back','skipbtn','prev','next','flip'].includes(z.key)&&!String(z.key).startsWith('skip:'));
+    const w=zs.find(z=>z.key==='wok');if(w&&w.okSizes){st.wheelAng=-(w.okSizes[0]-1)*2*Math.PI/5}
+    if(zs.some(z=>z.key==='barrel'))st.cartFlip=false;
+    zs.sort((a,b)=>(b.good?1:0)-(a.good?1:0));
+    for(let k=0;k<40&&si===before;k++){let progressed=false;
+      for(const z of stepZones(s).filter(z=>!['back','skipbtn','prev','next','flip'].includes(z.key)&&!String(z.key).startsWith('skip:'))){
+        const r=z.act();if(!r)continue;if(r.ok){if(si===before)next();progressed=true;break}if(r.stay){progressed=true;if(si!==before)break}}
+      if(!progressed)break}
+    if(si===before)next();return}
+  if(s.kind==='drag'){if(s.apply)s.apply(s.amount);let j=false;if(s.onDone)j=s.onDone();if(!j)next();return}
+  if(s.kind==='depth'){st.depth=21;st.depthContact=1;next();return}
+  if(s.kind==='arc'){st.arcP=1;st.passes.push({a:st.entry,b:st.exit});if(s.autoPull)st.pulled=1;next();return}
+  if(s.kind==='wrap'){st.lastDir=s.throwN===1?1:-(st.lastDir||1);st.wAcc=0;next();return}
+  if(s.kind==='tension'){finishTension(s);return}
+  if(s.kind==='gauge'){if(s.apply)s.apply((s.lo+s.hi)/2);next();return}
+  if(s.kind==='chair'){st.chair=s.target;next();return}
+  if(s.kind==='shake'){st.extracted=1;next();return}
+  if(s.kind==='reach'){st.reachI=0;next();return}
+  if(s.onDone)s.onDone();next()}
 /* ===== 클램프 보드 ===== */
 const CLAMP_CLASS=n=>n<=205?'molar':n<=209?'premolar':n<=211?'anterior':'cervical';
 const CLAMP_NAME={molar:'대구치',premolar:'소구치',anterior:'전치부',cervical:'전치부 치경부(retraction)'};
@@ -2191,14 +2272,15 @@ function drawInstrBoard(){
 /* ===== 체어 조정 ===== */
 function updChair(s,dt,t){const h={x:600,y:612,r:36};
   const ok=Math.abs(st.chair-s.target)<0.08;
-  if(!drag){zonesNow=[{key:'handle',auxOK:1,x:h.x,y:h.y,r:h.r+16,act:()=>{const P=inputSrc==='aux'?aux:cur;drag={oy:P.y,c0:st.chair,by:inputSrc,band:0};return{stay:1}}}];runZones(dt);handleRing(h,t);
+  if(!drag){zonesNow=[{key:'handle',auxOK:1,x:h.x,y:h.y,r:h.r+16,act:()=>{const P=inputSrc==='aux'?aux:cur;drag={ox:P.x,oy:P.y,c0:st.chair,by:inputSrc,band:0};return{stay:1}}}];runZones(dt);handleRing(h,t);
     if(twoHands()){ctx.font='500 12px '+FONT;ctx.fillStyle='#ffb8d6';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('반대 손(분홍)으로도 페달을 밟을 수 있어요',600,656)}return}
   zonesNow=[];dwellP=0;
   const P=drag.by==='aux'?aux:cur,held0=drag.by==='aux'?aux.pinch:holding();
   if(!held0){drag=null;return}
-  st.chair=Math.max(0,Math.min(1,drag.c0-(P.y-drag.oy)/150));
+  st.chair=Math.max(0,Math.min(1,drag.c0+(P.x-drag.ox)/220));
   ctx.font='600 15px '+FONT;ctx.fillStyle=ok?'#2fbf8f':'#ffd36b';ctx.textAlign='center';ctx.textBaseline='bottom';
-  ctx.fillText(ok?'좋아요, 그대로 유지':(st.chair<s.target?'↑ 등받이를 더 세우세요':'↓ 등받이를 더 눕히세요'),600,570);
+  ctx.fillText(ok?'좋아요, 그대로 유지':(st.chair<s.target?'▶ 오른쪽으로: 등받이 세우기':'◀ 왼쪽으로: 등받이 눕히기'),600,570);
+  ctx.font='500 12px '+FONT;ctx.fillStyle='rgba(36,64,78,0.8)';ctx.fillText('◀ 눕히기          세우기 ▶',600,590);
   if(ok){drag.band+=dt;if(drag.band>700){toast(s.plane==='upper'?'상악 교합면이 바닥과 거의 수직. 술자는 환자 머리 쪽(11–12시)에서 시야를 확보해요.':s.plane==='sit'?'환자가 똑바로 앉았어요.':'하악 교합면이 바닥과 평행. 하악 작업에 좋은 자세예요.',1);next()}}else drag.band=0}
 
 /* ===== 타이틀 ===== */
@@ -2289,7 +2371,7 @@ function updTension(s,dt,t){
 
 
 /* ================= 앱 셸: 홈 · 기록 · 리더보드 ================= */
-const APP_VERSION='v2.2';
+const APP_VERSION='v2.4';
 const PATCH_DATE='10월 1일';
 let screen='home',user=null;
 function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
@@ -2373,6 +2455,8 @@ function patchNotes(){return `
       <li><b>연습 / 실전 모드</b>: 연습은 단계별 안내와 즉시 해설, 실전은 목표만 보고 진행하고 끝나고 해설</li>
       <li><b>두근두근 코드로 로그인</b> → 내 기록·리더보드 연동</li>
       <li><b>실기 문제처럼</b>: 트레이 아래 문제 상황·조건 제시, 모든 환자 케이스에 체어(교합면) 조정</li>
+      <li class="new"><b>🎓 튜토리얼</b>: 커서·집기·놓기·끌기·원 그리기·양손을 1분 만에 연습(처음 접속하면 코드 유무와 상관없이 자동 진행, <b>건너뛰기</b> 가능, 시작 화면에서 다시 보기)</li>
+      <li class="new">연습 모드에서 15초 넘게 막히면 <b>⏭ 했다 치고 넘어가기</b> 버튼(−5점), 체어 조절은 <b>좌우로</b></li>
       <li class="new">최근: 체어 각도 현실화(기본 자세 세움, 하악은 약간 뒤로), 반대 손으로 잡은 라이트·기구는 반대 손에 표시, 장갑 오염은 <b>잡은 채로 잠시 유지</b>할 때만, 턱관절 하악 그림 수정 · 기록·리더보드에서 <b>이전 화면으로 돌아가기</b>, probing 눈금 UNC-15로 개선, 선택 시 잠깐 누르기 + 로딩, 화면 옮기기 버튼 정리</li>
     </ul>
   </details>`}
@@ -2401,6 +2485,7 @@ function renderHome(msg){
       <div class="notice-head"><span>🙋 ${esc(user.name)}${user.guest?' (체험 중 · 기록 저장 안 됨)':'님 어서 와요'}</span>
         <button class="link-btn small" id="outBtn">${user.guest?'코드 입력하기':'로그아웃'}</button></div>
       <button class="next-btn" id="startBtn">술식 시작하기 🦷</button>
+      ${!tutDone()?'<p class="hint">🎓 처음이라 <b>튜토리얼(약 1분)</b>부터 시작해요. 필요 없으면 오른쪽 위 <b>튜토리얼 건너뛰기</b>를 누르세요.</p>':''}
       <div class="btn-row"><button class="btn-soft" id="recBtn"${user.guest?' disabled':''}>📒 내 기록</button><button class="btn-soft" id="boardBtn">🏆 리더보드</button></div>
     </div>`;
   }
@@ -2416,7 +2501,7 @@ function renderHome(msg){
     document.getElementById('codeIn').onkeydown=e=>{if(e.key==='Enter')go()};
     document.getElementById('guestBtn').onclick=()=>{user={guest:1,name:'게스트'};renderHome()};
     return}
-  document.getElementById('startBtn').onclick=()=>{resetAll();showScreen('game')};
+  document.getElementById('startBtn').onclick=()=>{if(!tutDone()){startTutorial();return}resetAll();showScreen('game')};
   document.getElementById('recBtn').onclick=()=>showScreen('records');
   document.getElementById('boardBtn').onclick=()=>showScreen('board');
   document.getElementById('outBtn').onclick=()=>{user=null;try{localStorage.removeItem('dds_user')}catch(e){}renderHome()};
@@ -2461,7 +2546,7 @@ async function renderBoard(sel){
   body.innerHTML=note+'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>순위</th><th>닉네임</th><th>최고 점수</th><th>시간</th><th>날짜</th></tr></thead><tbody>'+
     list.map((r,i)=>'<tr'+(user&&r.name===user.name?' class="me"':'')+'><td class="rank">'+medal(i)+'</td><td>'+esc(r.name)+'</td><td><b>'+r.score+'</b></td><td>'+fmtTime(r.durationSec)+'</td><td>'+fmtDate(r.time)+'</td></tr>').join('')+'</tbody></table></div>';
 }
-async function saveRecord(){
+async function saveRecord(){if(caseId==='tut')return;
   const dur=Math.round((performance.now()-runStart)/1000);
   const uniq=[...new Set(mistakes.map(m=>m.why))];
   if(!user||user.guest){saved={status:'guest',dur};return}
@@ -2510,7 +2595,7 @@ function loop(t){
   if(screen!=='game'){zonesNow=[];requestAnimationFrame(loop);return}
   if(pipDrag){const mn=pipIsMin(),p=pipActivePos();p.x=cur.x-pipDrag.dx;p.y=cur.y-pipDrag.dy-(mn&&!pipOnStart()?108:0)}
   const s=S[si],view=typeof s.view==='function'?s.view():s.view;
-  if(s.kind==='zones'){zonesNow=stepZones(s)}else if(s.kind==='end'){zonesNow=endZones()}else if(!['drag','depth','arc','wrap','tension','hold','circle','strokes','gauge','chair'].includes(s.kind)){zonesNow=[]}
+  if(s.kind==='zones'){zonesNow=stepZones(s)}else if(s.kind==='end'){zonesNow=endZones()}else if(!['drag','depth','arc','wrap','tension','hold','circle','strokes','gauge','chair','reach'].includes(s.kind)){zonesNow=[]}
   if(s.kind==='shake'){updShake(dt,t);if(S[si]===s)drawShake()}
   else if(view==='case')drawCaseView();
   else if(view==='mode')drawModeView();
@@ -2538,6 +2623,7 @@ function loop(t){
   else if(view==='letter')drawLetter();
   else if(view==='moyers')drawMoyers();
   else if(view==='head')drawHeadV();
+  else if(view==='tut')drawTutView();
   else if(view==='room')drawRoom();
   else if(view==='glove')drawGloveView();
   else if(view==='bench')drawBench(false);
@@ -2556,13 +2642,14 @@ function loop(t){
     else if(s.kind==='strokes')updStrokes(s,dt,t);
     else if(s.kind==='gauge')updGauge(s,dt,t);
     else if(s.kind==='chair')updChair(s,dt,t);
+    else if(s.kind==='reach')updReach(s,dt,t);
     else if(s.kind==='wait'){const p=Math.min(1,(t-stepT0)/s.dur);
       rr(180,260,520,16,8);ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fill();rr(180,260,520*p,16,8);ctx.fillStyle='#8fd3ff';ctx.fill();
       ctx.font='500 18px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(s.waitMsg||'환자: "아랫입술이 두꺼워진 것 같아요… 혀도 저려요."',440,290);
       if(p>=1)next()}
     if(S[si]===s)checkContam(dt);
   }
-  if(S[si].grp!=='start'){drawAuxTarget(S[si]);drawTray();drawHeader()}
+  if(S[si].grp!=='start'){drawAuxTarget(S[si]);drawTray();drawHeader();drawSkipBtn()}
   if(performance.now()<loadingUntil){const p=1-(loadingUntil-performance.now())/800;ctx.fillStyle='rgba(12,24,36,0.55)';ctx.fillRect(0,0,W,H);
     ctx.strokeStyle='#8fd3ff';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.arc(W/2,H/2-20,34,-Math.PI/2,-Math.PI/2+Math.PI*2*p);ctx.stroke();
     ctx.font='600 20px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(loadingMsg,W/2,H/2+40)}
