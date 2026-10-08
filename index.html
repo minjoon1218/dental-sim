@@ -612,7 +612,17 @@ const S=[
  {kind:'drag',eSlider:1,g:'검사',text:'전류를 천천히 올리세요. 이번엔 최대치까지 올려봅니다.',handle:()=>({x:330+(drag?drag.p:0),y:150,r:24}),axis:'x',dir:1,amount:200,rate:0.03,minDur:4000,
    slowMsg:'천천히 올려야 정확한 역치를 잡고 환자도 놀라지 않아요',fastWhy:'EPT: 전류를 급하게 올림',fastFb:'전류는 천천히 올려야 역치가 정확하고 환자가 놀라지 않습니다.',
    apply:p=>{st.eptVal=Math.round(p/200*80)},okfb:'#46: 최대치(80)까지 무반응'},
- {g:'판독',text:'결과를 어떻게 해석할까요? (#36: 34에서 반응 / #46: 80까지 무반응)',zones:()=>[
+ {g:'위음성 확인',text:'#46이 최대치까지 무반응이에요. 판독 전에 무엇을 해야 할까요?',zones:()=>[
+   CH('fn1','대조치 #36을 다시 검사해 기기·회로가 정상인지 확인',1,'대조치가 다시 반응하면 배터리·립클립·전도 매질 문제가 아니라는 뜻이라, #46 무반응이 위음성일 가능성을 줄여요.',0),
+   CH('fn2','바로 판독한다',0,'회로(립클립 이탈·매질 건조·배터리) 문제로도 무반응이 나와요. 대조치 재검사로 위음성을 먼저 배제합니다.',1,'EPT: 위음성 확인 생략'),
+   CH('fn3','#46을 더 세게 누르며 다시 올린다',0,'누르는 힘은 결과와 상관없어요. 대조치로 회로부터 확인합니다.',2,'EPT: 위음성 확인 방법 오류')]},
+ {g:'위음성 확인',text:'#36에 다시 프로브를 대세요.',enter:()=>{st.eptVal=0;st.contact=null},zones:()=>[
+   C('p36b',{x:640,y:322},18,()=>{st.contact={x:640,y:322};return OK()}),
+   C('p36bc',{x:640,y:432},18,()=>BAD('치은에 가까우면 전류가 새요. 처음처럼 협측 교합측~중앙 1/3에 댑니다.',5,'EPT: 치경부 접촉',()=>{st.contact={x:640,y:432}}))]},
+ {kind:'drag',eSlider:1,g:'위음성 확인',text:'전류를 천천히 올리세요. 환자가 손을 들면 멈춥니다.',handle:()=>({x:330+(drag?drag.p:0),y:150,r:24}),axis:'x',dir:1,amount:85,rate:0.022,minDur:2500,
+   slowMsg:'천천히 올려야 정확한 역치를 잡고 환자도 놀라지 않아요',fastWhy:'EPT: 전류를 급하게 올림',fastFb:'전류는 천천히 올려야 역치가 정확하고 환자가 놀라지 않습니다.',
+   apply:p=>{st.eptVal=Math.round(p/200*80)},okfb:'#36 다시 34에서 반응 → 기기·회로 정상. #46 무반응은 위음성 가능성이 낮아요.'},
+ {g:'판독',text:'결과를 어떻게 해석할까요? (#36: 34 반응·재검사도 34 / #46: 80까지 무반응)',zones:()=>[
    CH('ia','치수 괴사 의심. 냉검사·타진·방사선과 종합해 판단',1,'EPT는 신경 반응만 보는 보조 검사라 위양성·위음성이 있어요. 반드시 다른 검사와 종합합니다.',0),
    CH('ib','무반응이니 바로 발치를 결정한다',0,'단일 검사로 치료를 결정하지 않습니다. 근관치료로 보존 가능한지 종합 평가가 먼저예요.',1,'EPT 판독: 단일 검사로 치료 결정'),
    CH('ic','수치가 높을수록 치수 상태가 나쁘다',0,'EPT 수치의 크기는 치수 건강 정도와 비례하지 않아요. 반응 유무와 대조치 비교가 핵심입니다.',2,'EPT 판독: 수치 크기로 상태 판단')]},
@@ -1390,16 +1400,18 @@ function drawCaseView(){
 }
 function line(a,b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
 function dot(p,r){ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(p.x,p.y,r||3.5,0,7);ctx.fill()}
+function knotDot(p,n){ctx.save();ctx.fillStyle='#111';ctx.strokeStyle='#fff';ctx.lineWidth=2;
+  for(let i=0;i<Math.max(1,n);i++){ctx.beginPath();ctx.ellipse(p.x+i*5,p.y-i*3,8+i,6,-0.4,0,7);ctx.fill();ctx.stroke()}ctx.restore()}
 function drawSutures(){
   ctx.lineCap='round';
   const bl=Math.max(0,Math.min(1,(st.tension-110)/40));
   if(bl>0&&st.entry&&st.exit){ctx.fillStyle='rgba(255,255,255,'+(0.65*bl)+')';[st.entry,st.exit].forEach(p=>{ctx.beginPath();ctx.ellipse(p.x,p.y,30,12,0,0,7);ctx.fill()})}
   for(const p of st.passes){ctx.strokeStyle='rgba(20,20,20,0.45)';ctx.setLineDash([4,4]);ctx.lineWidth=2;line(p.a,p.b);ctx.setLineDash([]);dot(p.a);dot(p.b)}
   for(const o of st.overs){ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.5;line(o.a,o.b)}
-  for(const k of st.knots){dot(k,3+(k.throws||3));ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2;
+  for(const k of st.knots){knotDot(k,k.throws||2);ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(k.x,k.y);ctx.lineTo(k.x+k.tl,k.y-5);ctx.moveTo(k.x,k.y);ctx.lineTo(k.x+k.tl*0.9,k.y+7);ctx.stroke()}
   if(st.tieA&&st.pulled&&st.exit){ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.5;
-    if(st.throws>0){line(st.exit,st.tieA);dot(st.tieA,3+st.throws)}
+    if(st.throws>0){line(st.exit,st.tieA);knotDot(st.tieA,st.throws)}
     else{ctx.beginPath();ctx.moveTo(st.exit.x,st.exit.y);ctx.quadraticCurveTo(st.exit.x+80,st.exit.y-60,st.exit.x+60,st.exit.y-110);ctx.stroke()}
     const tp=tailPt();ctx.lineWidth=2;line(st.tieA,tp)}
   if(st.entry&&!st.passes.some(p=>p.a===st.entry))dot(st.entry);
@@ -1508,7 +1520,8 @@ function drawZoneMarks(){
   for(const z of zonesNow){if(z.tray||z.rect)continue;
     const hov=inZone(z,cur.x,cur.y)&&!blocked();
     ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,7);ctx.fillStyle=hov?'rgba(143,211,255,0.35)':'rgba(255,255,255,0.12)';ctx.fill();
-    ctx.setLineDash(hov?[]:[6,5]);ctx.lineWidth=hov?3:2;ctx.strokeStyle=hov?'#8fd3ff':'rgba(255,255,255,0.75)';ctx.stroke();ctx.setLineDash([]);
+    ctx.lineWidth=6;ctx.strokeStyle='rgba(15,35,60,0.85)';ctx.stroke();ctx.setLineDash(hov?[]:[6,5]);ctx.lineWidth=hov?3.5:2.5;ctx.strokeStyle=hov?'#8fd3ff':'#ffd36b';ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#ff6a3d';ctx.beginPath();ctx.arc(z.x,z.y,3.5,0,7);ctx.fill();
     if(hov&&dw.key===z.key&&dwellP>0){ctx.beginPath();ctx.arc(z.x,z.y,z.r+8,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,dwellP));ctx.strokeStyle='#8fd3ff';ctx.lineWidth=5;ctx.stroke()}}
   for(const z of zonesNow){if(!z.rect||z.tray||z.rect===PIP)continue;
     const hov=inZone(z,cur.x,cur.y);rr(z.rect.x,z.rect.y,z.rect.w,z.rect.h,12);
@@ -2343,11 +2356,32 @@ function updWrap(s,dt,t){
   const WRAP_C=st.wrapC,dx=cur.x-WRAP_C.x,dy=cur.y-WRAP_C.y,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);
   if(d>40&&d<240){if(st.wPrev!==null){let da=a-st.wPrev;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;st.wAcc+=da}st.wPrev=a}else st.wPrev=null;
   const turns=Math.abs(st.wAcc)/(2*Math.PI);
-  // 감긴 실 시각화
-  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2;for(let i=0;i<Math.min(3,Math.floor(turns+0.15));i++){ctx.beginPath();ctx.ellipse(WRAP_C.x+40,WRAP_C.y-20+i*8,14,6,0,0,7);ctx.stroke()}
-  if(!EXAM()){ctx.font='600 17px '+FONT;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';
-    ctx.fillText('감은 횟수 '+turns.toFixed(1)+'회  '+(st.wAcc>0.3?'↻':st.wAcc<-0.3?'↺':''),440,130);
-    ctx.setLineDash([4,6]);ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.arc(WRAP_C.x,WRAP_C.y,120,0,7);ctx.stroke();ctx.setLineDash([])}
+  // 감긴 실 시각화(크게, 방향 색 구분)
+  const dirNow=st.wAcc>0.3?1:st.wAcc<-0.3?-1:0,COL={1:'#3aa0ff','-1':'#ff9a3a',0:'#ffffff'};
+  ctx.save();ctx.fillStyle='rgba(10,20,30,0.55)';ctx.beginPath();ctx.arc(WRAP_C.x,WRAP_C.y,150,0,7);ctx.fill();
+  ctx.setLineDash([5,7]);ctx.strokeStyle='rgba(255,255,255,0.45)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(WRAP_C.x,WRAP_C.y,120,0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.save();ctx.translate(WRAP_C.x,WRAP_C.y);ctx.rotate(-0.5);drawItem('nh',0,0,2.1);ctx.restore();
+  const full=Math.floor(turns),frac=turns-full,cx0=WRAP_C.x+38,cy0=WRAP_C.y-22;
+  for(let i=0;i<Math.min(4,full);i++){ctx.strokeStyle=COL[dirNow]||'#fff';ctx.lineWidth=7;ctx.beginPath();ctx.ellipse(cx0+i*16,cy0+i*12,26,14,-0.5,0,7);ctx.stroke();
+    ctx.strokeStyle='rgba(0,0,0,0.45)';ctx.lineWidth=2;ctx.stroke()}
+  if(frac>0.05&&full<4){ctx.strokeStyle=COL[dirNow]||'#fff';ctx.lineWidth=7;ctx.beginPath();const a0=-Math.PI/2;ctx.ellipse(cx0+full*16,cy0+full*12,26,14,-0.5,a0,a0+dirNow*2*Math.PI*frac,dirNow<0);ctx.stroke()}
+  // 진행 고리(현재 바퀴)
+  ctx.strokeStyle=COL[dirNow]||'#fff';ctx.lineWidth=9;ctx.lineCap='round';ctx.beginPath();const st0=-Math.PI/2;ctx.arc(WRAP_C.x,WRAP_C.y,136,st0,st0+(dirNow||1)*2*Math.PI*frac,dirNow<0);ctx.stroke();
+  // 현재 위치에 방향 화살표
+  if(dirNow){const aa=Math.atan2(cur.y-WRAP_C.y,cur.x-WRAP_C.x),px=WRAP_C.x+136*Math.cos(aa),py=WRAP_C.y+136*Math.sin(aa),tg=aa+dirNow*Math.PI/2;
+    ctx.fillStyle=COL[dirNow];ctx.beginPath();ctx.moveTo(px+Math.cos(tg)*18,py+Math.sin(tg)*18);ctx.lineTo(px+Math.cos(tg+2.5)*14,py+Math.sin(tg+2.5)*14);ctx.lineTo(px+Math.cos(tg-2.5)*14,py+Math.sin(tg-2.5)*14);ctx.closePath();ctx.fill()}
+  ctx.restore();
+  // 정보 패널
+  const need=s.throwN===1?2:1,last=st.lastDir,wantDir=s.throwN===1?0:-(last||1);
+  const nm=d=>d>0?'시계 방향 ↻':d<0?'반시계 방향 ↺':'—';
+  ctx.fillStyle='rgba(10,20,30,0.85)';rr(150,118,580,62,14);ctx.fill();
+  ctx.font='700 26px '+FONT;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText(turns.toFixed(1)+'회',170,149);
+  ctx.font='700 20px '+FONT;ctx.fillStyle=COL[dirNow]||'#cfe0ea';ctx.fillText(dirNow?nm(dirNow):'감는 중이 아님',270,149);
+  if(!EXAM()){ctx.font='600 15px '+FONT;ctx.fillStyle='#ffd36b';ctx.textAlign='right';
+    ctx.fillText(s.throwN===1?'목표: 2회 (방향 자유)':'목표: '+nm(wantDir)+' 1회',712,140);
+    if(s.throwN>1){ctx.font='500 13px '+FONT;ctx.fillStyle='#cfe0ea';ctx.fillText('지난 throw: '+nm(last),712,162)}
+    const okN=Math.round(turns)>=need&&(s.throwN===1||dirNow===wantDir);
+    if(okN){ctx.font='700 16px '+FONT;ctx.fillStyle='#7ff0a8';ctx.textAlign='center';ctx.fillText('✓ 좋아요! 이제 짧은 꼬리를 집으세요',WRAP_C.x,WRAP_C.y+170)}}
   const k=s.throwN,tp=tailPt();
   zonesNow=[C('tail',tp,24,()=>{
     const n=Math.round(turns),dir=Math.sign(st.wAcc)||1;let err=null;
@@ -2380,7 +2414,7 @@ function updTension(s,dt,t){
 
 
 /* ================= 앱 셸: 홈 · 기록 · 리더보드 ================= */
-const APP_VERSION='v2.5';
+const APP_VERSION='v2.6';
 const PATCH_DATE='10월 1일';
 let screen='home',user=null;
 function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
@@ -2466,6 +2500,7 @@ function patchNotes(){return `
       <li><b>실기 문제처럼</b>: 트레이 아래 문제 상황·조건 제시, 모든 환자 케이스에 체어(교합면) 조정</li>
       <li class="new"><b>🎓 튜토리얼</b>: 커서·집기·놓기·끌기·원 그리기·양손을 1분 만에 연습(처음 접속하면 코드 유무와 상관없이 자동 진행, <b>건너뛰기</b> 가능, 시작 화면에서 다시 보기)</li>
       <li class="new">연습 모드에서 15초 넘게 막히면 <b>⏭ 했다 치고 넘어가기</b> 버튼(−5점), 체어 조절은 <b>좌우로</b></li>
+      <li class="new">v2.6: 매듭 감기를 <b>크게·방향별 색(↻ 파랑 / ↺ 주황)</b>으로 표시, EPT에 <b>대조치 재검사(위음성 배제)</b> 추가, 선택 지점 표시를 흰 치아 위에서도 잘 보이게</li>
       <li class="new">v2.5: <b>내 화면은 오른쪽 아래(문제 메모 칸)에 고정</b>, 양손은 <b>보조 손이 분홍 원에 한 번만 닿으면 확인 완료</b>(이후 주 손만 움직이면 됨, 손이 엇갈려도 추적 유지), 튜토리얼 별이 안 보이던 문제 수정</li>
       <li class="new">최근: 체어 각도 현실화(기본 자세 세움, 하악은 약간 뒤로), 반대 손으로 잡은 라이트·기구는 반대 손에 표시, 장갑 오염은 <b>잡은 채로 잠시 유지</b>할 때만, 턱관절 하악 그림 수정 · 기록·리더보드에서 <b>이전 화면으로 돌아가기</b>, probing 눈금 UNC-15로 개선, 선택 시 잠깐 누르기 + 로딩, 화면 옮기기 버튼 정리</li>
     </ul>
