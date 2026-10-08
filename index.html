@@ -183,6 +183,7 @@ const clamp01=v=>Math.max(0,Math.min(1,v));
 let camOn=false,prevGray=null,lastMouse=-9999,mouseDown=false,inputSrc='mouse';
 let handMode=false,landmarker=null,handTried=false,pinch=false,handSeen=false,lastLm=null,lastVT=-1;
 const aux={x:200,y:400,tx:200,ty:400,seen:false,pinch:false,lm:null};
+let auxLatch=false,mainRef=null;
 let domHand=(()=>{try{return localStorage.getItem('dds_hand')||'R'}catch(e){return'R'}})();
 const SW=96,SH=54;
 const sm=document.createElement('canvas');sm.width=SW;sm.height=SH;
@@ -236,8 +237,10 @@ function trackHands(){
   const lms=(r&&r.landmarks)||[];
   let main=null,sub=null;
   if(lms.length===1)main=lms[0];
-  else if(lms.length>=2){const A=lms[0],B=lms[1],ax=lmNorm(A[9]).x,bx=lmNorm(B[9]).x;
-    const right=ax>bx?A:B,left=ax>bx?B:A;main=domHand==='R'?right:left;sub=domHand==='R'?left:right}
+  else if(lms.length>=2){const A=lms[0],B=lms[1],pa=lmNorm(A[9]),pb=lmNorm(B[9]);
+    if(mainRef){const da=Math.hypot(pa.x-mainRef.x,pa.y-mainRef.y),db=Math.hypot(pb.x-mainRef.x,pb.y-mainRef.y);main=da<=db?A:B;sub=da<=db?B:A}
+    else{const right=pa.x>pb.x?A:B,left=pa.x>pb.x?B:A;main=domHand==='R'?right:left;sub=domHand==='R'?left:right}}
+  if(main){const m=lmNorm(main[9]);mainRef=mainRef?{x:mainRef.x*0.4+m.x*0.6,y:mainRef.y*0.4+m.y*0.6}:m}else mainRef=null;
   lastLm=main||null;aux.lm=sub||null;
   if(!main){handSeen=false;if(pinch){pinch=false;onRelease('pinch')}}
   else{handSeen=true;
@@ -248,8 +251,8 @@ function trackHands(){
     const dp=pinchDist(sub);if(!aux.pinch&&dp<0.33){aux.pinch=true;onPress('aux')}else if(aux.pinch&&dp>0.5){aux.pinch=false}}
 }
 function twoHands(){return handMode&&camOn&&aux.seen}
-function auxOK(s){if(!s||!s.aux||!twoHands())return true;const a=s.aux();return Math.hypot(aux.x-a.x,aux.y-a.y)<=a.r+24}
-function drawAuxTarget(s){if(!s||!s.aux||!(handMode&&camOn))return;const a=s.aux(),ok=auxOK(s)&&aux.seen;
+function auxOK(s){if(!s||!s.aux||!twoHands()||auxLatch)return true;const a=s.aux();if(Math.hypot(aux.x-a.x,aux.y-a.y)<=a.r+60){auxLatch=true;toast('보조 손 확인! 이제 주 손만 움직여도 돼요.',1,1600);return true}return false}
+function drawAuxTarget(s){if(!s||!s.aux||!(handMode&&camOn)||auxLatch)return;const a=s.aux(),ok=auxOK(s)&&aux.seen;
   const pul=ok?0:4*Math.sin(performance.now()/180);
   ctx.save();
   ctx.fillStyle=ok?'rgba(255,47,166,0.30)':'rgba(255,47,166,0.18)';ctx.beginPath();ctx.arc(a.x,a.y,a.r+pul,0,7);ctx.fill();
@@ -270,7 +273,7 @@ function onPress(src){inputSrc=src;if(screen!=='game')return;
   const P=src==='aux'?aux:cur;
   if(src==='aux'){if(skipRect&&inR(skipRect,P.x,P.y)){if(tutSkipAvail()){skipTutorial();return}if(skipAvail()){skipStep();return}}if(blocked()||performance.now()<armT)return;for(const z of zonesNow){if((z.key!=='handle'||z.auxOK)&&inZone(z,P.x,P.y)){if(z.hold){startHold(z,src);return}fire(z);return}}return}
   if(skipRect&&inR(skipRect,P.x,P.y)){if(tutSkipAvail()){skipTutorial();return}if(skipAvail()){skipStep();return}}
-  const b=pipBar();if(inR(b,cur.x,cur.y)){if(cur.x>b.x+b.w-30){if(pipOnStart())pipStartMin=!pipStartMin;else pipMin=!pipMin;syncPipBtn()}else pipDrag={dx:cur.x-PIP.x,dy:cur.y-PIP.y,src};return}
+  const b=pipBar();if(inR(b,cur.x,cur.y)){if(cur.x>b.x+b.w-30){if(pipOnStart())pipStartMin=!pipStartMin;else pipMin=!pipMin;syncPipBtn()}return}
   if(blocked()||performance.now()<armT)return;for(const z of zonesNow){if(inZone(z,cur.x,cur.y)){if(z.hold){startHold(z,src);return}fire(z);return}}}
 let auxItem=null,pendingHold=null,loadingUntil=0,loadingMsg='';
 function startHold(z,src){pendingHold={z,src,t0:performance.now()}}
@@ -292,7 +295,7 @@ const pipPosStart={x:976,y:124};let pipStartMin=false;
 function pipOnStart(){return S&&S[si]&&S[si].grp==='start'}
 function pipActivePos(){return pipOnStart()?pipPosStart:pipPos}
 function pipIsMin(){return pipOnStart()?pipStartMin:pipMin}
-function layoutPip(){const mn=pipIsMin();PIP.w=mn?176:256;PIP.h=mn?36:144;
+function layoutPip(){const mn=pipIsMin();PIP.w=mn?200:208;PIP.h=mn?36:116;PIP.x=W-PIP.w-(1272-896-PIP.w)/2-8;PIP.y=H-PIP.h-12;return;
   const p=pipActivePos();PIP.x=Math.max(4,Math.min(W-PIP.w-4,p.x));PIP.y=Math.max(pipOnStart()?30:134,Math.min(H-PIP.h-4,p.y+(mn&&!pipOnStart()?108:0)))}
 function pipBar(){return{x:PIP.x,y:PIP.y-26,w:PIP.w,h:24}}
 function inR(r,x,y){return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h}
@@ -309,7 +312,7 @@ const TRAY={start:[],prep:['mask','sanit','gloves','gauze','explorer'],ane:['syr
 function curTray(){const s=S[si];let t=TRAY[s.grp]||[];
   if(EXAM()&&s.skip){const g=S[idx(skipTo(s))].grp;if(g!==s.grp)t=t.concat((TRAY[g]||[]).filter(x=>!t.includes(x)))}
   return t.slice(0,18)}
-function slot(id){const i=curTray().indexOf(id),c=i%3,r=(i/3)|0;return{x:906+c*120,y:116+r*98,w:112,h:92}}
+function slot(id){const i=curTray().indexOf(id),c=i%4,r=(i/4)|0;return{x:904+c*90,y:114+r*86,w:84,h:80}}
 const NEEDLE_PT=f=>{const a=Math.PI-Math.PI*f;return{x:440+170*Math.cos(a),y:440-170*Math.sin(a)}};
 const CASES={ext:{task:{q:'#46 발거를 위해 하치조신경 전달마취(IANB)를 시행한 후 #46을 발거하시오.',c:['마취 기구는 직접 조립한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'IANB + #46 발치',tag:'구강외과',desc:'감염 관리부터 마취, 탐침 박리, 포셉 발치까지',grps:['prep','ane','ext','post'],phases:['준비','기구 조립','IANB','발치']},
   ext8:{task:{q:'#46을 발거한 후 발치와를 8자 봉합하시오.',c:['마취가 필요한 술식인 경우 마취는 이미 되어 있다고 가정한다.','Manikin 구내에 석션팁을 꽂지 않는다.']},name:'#46 발치 + 8자 봉합',tag:'구강외과',desc:'마취 완료 가정. 발치 후 발치와 8자 봉합',grps:['prep','ext','sutprep','sut8','post'],phases:['준비','발치','봉합']},
@@ -428,8 +431,8 @@ const S=[
    {key:'trec',dwell:1300,hold:400,label:'📒 내 기록',rect:{x:560,y:552,w:160,h:48},act:()=>{if(!user||user.guest){toast('게스트는 기록이 저장되지 않아요. 홈에서 코드로 입장하세요.',0,2600);return{stay:1}}showScreen('records');return{stay:1}}},
    {key:'tboard',dwell:1300,hold:400,label:'🏆 리더보드',rect:{x:740,y:552,w:160,h:48},act:()=>{showScreen('board');return{stay:1}}}]},
  {id:'case',phase:'시작',grp:'start',view:'case',g:'케이스 선택',text:'케이스를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[BACK_ZONE(()=>jumpTo('title')),
-   ...(casePage>0?[{key:'prev',dwell:900,label:'◀ 이전',rect:{x:952,y:620,w:140,h:56},act:()=>{casePage--;return{stay:1}}}]:[]),
-   ...(casePage<pageCount()-1?[{key:'next',dwell:900,label:'다음 ▶',rect:{x:1104,y:620,w:150,h:56},act:()=>{casePage++;return{stay:1}}}]:[])].concat(CASE_KEYS.map((c,i)=>({c,i})).filter(o=>Math.floor(o.i/PER_PAGE)===casePage).map(({c,i})=>({key:'case'+i,dwell:1800,hold:650,rect:CASE_RECT(i),act:()=>{setCase(c);startLoading('케이스 불러오는 중…');return{ok:1}}})))},
+   ...(casePage>0?[{key:'prev',dwell:900,label:'◀ 이전',rect:{x:952,y:440,w:140,h:56},act:()=>{casePage--;return{stay:1}}}]:[]),
+   ...(casePage<pageCount()-1?[{key:'next',dwell:900,label:'다음 ▶',rect:{x:1104,y:440,w:150,h:56},act:()=>{casePage++;return{stay:1}}}]:[])].concat(CASE_KEYS.map((c,i)=>({c,i})).filter(o=>Math.floor(o.i/PER_PAGE)===casePage).map(({c,i})=>({key:'case'+i,dwell:1800,hold:650,rect:CASE_RECT(i),act:()=>{setCase(c);startLoading('케이스 불러오는 중…');return{ok:1}}})))},
  {grp:'start',id:'mode',phase:'모드',view:'mode',g:'모드 선택',text:'모드를 고르세요. 엄지-검지로 집거나 클릭해서 선택합니다.',zones:()=>[
    BACK_ZONE(()=>{resetAll();jumpTo('case')}),
    {key:'m1',dwell:1800,hold:650,rect:{x:36,y:110,w:440,h:520},act:()=>{mode='practice';startLoading('연습 모드 준비 중…');runStart=performance.now();return{ok:1}}},
@@ -967,6 +970,7 @@ function resetAll(keepCase){casePage=0;
 }
 function enterStep(){dw={key:null,t:0,lock:null};drag=null;penSet=new Set();stepT0=performance.now();
   const s=S[si];if(s.enter)s.enter();
+  if(s.kind==='reach'){st.reachI=0;st.reachT=0}auxLatch=false;
   armT=(s.grp==='start'||s.kind==='end')?performance.now()+700:0;freshLock=true;
   if(s.kind==='end'&&!saved)saveRecord();
   if(s.kind==='shake')sh={prog:0,dir:0,ext:cur.x,lastExt:cur.x,violent:0,cool:0,warn:0,stage:'luxate',pullY:0,doneT:0};
@@ -1124,7 +1128,7 @@ function drawItem(id,x,y,s,o){o=o||{};ctx.save();ctx.translate(x,y);ctx.scale(s,
     ctx.strokeStyle='#ffffff';ctx.lineWidth=1;for(let x=8;x<30;x+=2.5){ctx.beginPath();ctx.moveTo(x,-5);ctx.lineTo(x+1,5);ctx.stroke()}break;
   case 'caliper':ctx.fillStyle='#cfd8da';rr(-36,-4,72,8,2);ctx.fill();ctx.fillStyle='#b8c3c9';rr(-36,-20,6,24,2);ctx.fill();rr(8,-20,6,24,2);ctx.fill();rr(4,-6,16,16,3);ctx.fill();
     ctx.strokeStyle='#4a565e';ctx.lineWidth=1;for(let x=-28;x<34;x+=4){ctx.beginPath();ctx.moveTo(x,-4);ctx.lineTo(x,x%8===0?1:-1);ctx.stroke()}break;
-  case 'tutTooth':ctx.font='56px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🦷',0,0);break;
+  case 'tutTooth':drawTutTooth(0,0,0.8);break;
   case 'mirror':ctx.fillStyle='#cfd8da';rr(-36,-4,46,8,4);ctx.fill();ctx.strokeStyle='#cfd8da';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(22,-6);ctx.stroke();
     ctx.fillStyle='#9fb3c4';ctx.beginPath();ctx.arc(30,-10,11,0,7);ctx.fill();ctx.fillStyle='#e9f6ff';ctx.beginPath();ctx.arc(30,-10,8,0,7);ctx.fill();break;
   case 'pincette':ctx.strokeStyle='#cfd8da';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-34,-8);ctx.lineTo(18,-2);ctx.lineTo(32,-10);ctx.moveTo(-34,8);ctx.lineTo(18,2);ctx.lineTo(32,-4);ctx.stroke();break;
@@ -1378,13 +1382,11 @@ function drawCaseView(){
     ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(tg,r.x+28,r.y+31);
     const hN=wrap(c.name,r.x+18,r.y+62,r.w-36,32,'700 25px '+FONT,'#1f3344');
     wrap(c.desc,r.x+18,r.y+72+hN,r.w-36,25,'500 17px '+FONT,'#4f6a7d')});
-  ctx.fillStyle='rgba(255,255,255,0.6)';rr(944,300,316,300,18);ctx.fill();
-  ctx.font='600 15px '+FONT;ctx.fillStyle='#5b788c';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText('내 화면은 위쪽 빈 공간에 두면 돼요',1102,330);
-  for(let p=0;p<pageCount();p++){ctx.fillStyle=p===casePage?'#3289d4':'#b9d6ee';ctx.beginPath();ctx.arc(1102+(p-(pageCount()-1)/2)*24,590,7,0,7);ctx.fill()}
-  ctx.font='700 18px '+FONT;ctx.fillStyle='#1d5c98';ctx.fillText((casePage+1)+' / '+pageCount()+' 페이지',1102,560);
+  ctx.fillStyle='rgba(255,255,255,0.6)';rr(944,300,316,250,18);ctx.fill();
+  ctx.font='700 18px '+FONT;ctx.fillStyle='#1d5c98';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((casePage+1)+' / '+pageCount()+' 페이지',1102,340);
+  for(let p=0;p<pageCount();p++){ctx.fillStyle=p===casePage?'#3289d4':'#b9d6ee';ctx.beginPath();ctx.arc(1102+(p-(pageCount()-1)/2)*24,372,7,0,7);ctx.fill()}
   const tags=[...new Set(CASE_KEYS.slice(casePage*PER_PAGE,casePage*PER_PAGE+PER_PAGE).map(k=>CASES[k].tag))];
-  ctx.font='500 14px '+FONT;ctx.fillStyle='#4f6a7d';ctx.fillText(tags.join(' · '),1102,520);
+  ctx.font='500 14px '+FONT;ctx.fillStyle='#4f6a7d';ctx.fillText(tags.join(' · '),1102,408);
 }
 function line(a,b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
 function dot(p,r){ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(p.x,p.y,r||3.5,0,7);ctx.fill()}
@@ -1441,12 +1443,13 @@ function drawTray(){
     rr(r.x,r.y,r.w,r.h,10);ctx.fillStyle=hov?'rgba(143,211,255,0.25)':'rgba(255,255,255,0.06)';ctx.fill();
     if(hov){ctx.strokeStyle='#8fd3ff';ctx.lineWidth=2.5;ctx.stroke();
       if(dwellP>0&&dw.key&&dw.key.endsWith('tray:'+id)){ctx.fillStyle='rgba(143,211,255,0.3)';rr(r.x,r.y,r.w*Math.min(1,dwellP),r.h,10);ctx.fill()}}
-    if(avail){ctx.save();ctx.shadowColor='rgba(0,0,0,0.45)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;drawItem(id,r.x+r.w/2,r.y+38,0.82,{assembled:id==='syringe'&&st.needle,flip:st.cartFlip});ctx.restore()}
-    ctx.font='500 13px '+FONT;ctx.fillStyle=avail?'#e3ecf3':'rgba(227,236,233,0.3)';ctx.textAlign='center';ctx.textBaseline='top';
-    ctx.fillText(name,r.x+r.w/2,r.y+70)}
+    if(avail){ctx.save();ctx.shadowColor='rgba(0,0,0,0.45)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;drawItem(id,r.x+r.w/2,r.y+32,0.66,{assembled:id==='syringe'&&st.needle,flip:st.cartFlip});ctx.restore()}
+    let fs=12;ctx.font='500 '+fs+'px '+FONT;while(ctx.measureText(name).width>r.w-6&&fs>9){fs--;ctx.font='500 '+fs+'px '+FONT}
+    ctx.fillStyle=avail?'#e3ecf3':'rgba(227,236,233,0.3)';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText(name,r.x+r.w/2,r.y+60)}
   const s0=S[si],tk=CASES[caseId]&&CASES[caseId].task;
-  if(tk&&s0.grp!=='start'&&s0.kind!=='end'){const n=curTray().length,top=116+Math.ceil(n/3)*98+6,bot=704;
-    if(bot-top>90){rr(906,top,356,bot-top,12);ctx.fillStyle='rgba(255,248,220,0.96)';ctx.fill();
+  if(tk&&s0.grp!=='start'&&s0.kind!=='end'){const n=curTray().length,top=114+Math.ceil(n/4)*86+4,bot=H-PIP.h-12-32;
+    if(bot-top>60){rr(906,top,356,bot-top,12);ctx.fillStyle='rgba(255,248,220,0.96)';ctx.fill();
       ctx.font='700 15px '+FONT;ctx.fillStyle='#8a5a00';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('📋 문제',920,top+12);
       let y=top+36;y+=wrap(tk.q,920,y,328,21,'700 15px '+FONT,'#2e3a44')+6;
       tk.c.forEach(c=>{if(y<bot-20)y+=wrap('(단, '+c+')',920,y,328,18,'500 13px '+FONT,'#5a4a2a')+2})}}
@@ -1479,7 +1482,7 @@ function drawPip(){
   rr(b.x,b.y,b.w,b.h,8);ctx.fillStyle=overBar||pipDrag?'rgba(47,106,150,0.95)':'rgba(20,34,46,0.85)';ctx.fill();
   ctx.font='600 12px '+FONT;ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillStyle='#fff';ctx.fillText('⠿',b.x+7,b.y+12);
   let x=b.x+22;tags.forEach(t=>{const w=ctx.measureText(t).width+10;if(x+w>b.x+b.w-34)return;rr(x,b.y+3,w,18,9);ctx.fillStyle='#2f6a96';ctx.fill();ctx.fillStyle='#fff';ctx.fillText(t,x+5,b.y+12);x+=w+3});
-  if(!tags.length){ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText('끌어서 이동',x,b.y+12)}
+  if(!tags.length){ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText('내 화면',x,b.y+12)}
   ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='700 14px '+FONT;ctx.fillText(pipMin?'□':'–',b.x+b.w-15,b.y+12);
 }
 function wrap(text,x,y,maxW,lh,font,color){ctx.font=font;ctx.fillStyle=color;ctx.textAlign='left';ctx.textBaseline='top';
@@ -2131,11 +2134,17 @@ function tutKey(){return 'dds_tut_'+((user&&(user.code||user.name))||'guest')}
 function tutDone(){try{return localStorage.getItem(tutKey())==='1'}catch(e){return true}}
 function markTutDone(){try{localStorage.setItem(tutKey(),'1')}catch(e){}}
 function startTutorial(){resetAll();setCase('tut');mode='practice';runStart=performance.now();si=idx('tut0');enterStep();showScreen('game')}
+function drawStar(x,y,R,col){ctx.save();ctx.translate(x,y);ctx.beginPath();for(let k=0;k<10;k++){const r=k%2?R*0.45:R,a=-Math.PI/2+k*Math.PI/5;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();
+  ctx.shadowColor='rgba(255,190,0,0.8)';ctx.shadowBlur=18;ctx.fillStyle=col||'#ffcf3a';ctx.fill();ctx.shadowBlur=0;ctx.lineWidth=3;ctx.strokeStyle='#c98a00';ctx.stroke();ctx.restore()}
+function drawTutTooth(x,y,sc){ctx.save();ctx.translate(x,y);ctx.scale(sc,sc);molarBuccal(0,-40,70,90);ctx.restore()}
+function drawBasket(x,y){ctx.save();ctx.translate(x,y);ctx.fillStyle='#c98a3a';ctx.beginPath();ctx.moveTo(-60,-10);ctx.lineTo(60,-10);ctx.lineTo(46,50);ctx.lineTo(-46,50);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#8a5a20';ctx.lineWidth=2;for(let k=-40;k<=40;k+=16){ctx.beginPath();ctx.moveTo(k,-10);ctx.lineTo(k*0.78,50);ctx.stroke()}for(let yy=5;yy<50;yy+=14){ctx.beginPath();ctx.moveTo(-58+yy*0.25,yy);ctx.lineTo(58-yy*0.25,yy);ctx.stroke()}
+  ctx.strokeStyle='#8a5a20';ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(0,-10,58,34,0,Math.PI,0);ctx.stroke();ctx.restore()}
 function updReach(s,dt,t){const P=s.useAux?aux:cur;const pts=s.pts;const i=st.reachI||0;zonesNow=[];dwellP=0;
   pts.forEach((p,k)=>{if(k<i)return;const on=k===i;ctx.save();ctx.globalAlpha=on?1:0.3;
     if(s.useAux){ctx.fillStyle='rgba(255,47,166,0.25)';ctx.beginPath();ctx.arc(p.x,p.y,56,0,7);ctx.fill();ctx.lineWidth=6;ctx.strokeStyle='#fff';ctx.stroke();ctx.lineWidth=3;ctx.strokeStyle='#ff2fa6';ctx.stroke();ctx.font='30px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🤚',p.x,p.y)}
-    else{const sc=on?1+0.1*Math.sin(t/160):1;ctx.font=(48*sc)+'px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('⭐',p.x,p.y)}ctx.restore()});
-  const p=pts[i];if(!p)return;const inside=Math.hypot(P.x-p.x,P.y-p.y)<(s.useAux?60:46);
+    else{const sc=on?1+0.1*Math.sin(t/160):1;drawStar(p.x,p.y,34*sc)}ctx.restore()});
+  const p=pts[i];if(!p){st.reachI=0;return}const inside=Math.hypot(P.x-p.x,P.y-p.y)<(s.useAux?60:46);
   if(inside)st.reachT=(st.reachT||0)+dt;else st.reachT=0;
   ctx.strokeStyle='#ffd36b';ctx.lineWidth=6;ctx.beginPath();ctx.arc(p.x,p.y,(s.useAux?64:52),-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,(st.reachT||0)/500));ctx.stroke();
   if(st.reachT>500){st.reachT=0;st.reachI=i+1;if(st.reachI>=pts.length){st.reachI=0;toast('잘했어요!',1,1200);next()}}}
@@ -2150,10 +2159,10 @@ function drawTutView(){
     ctx.font='600 17px '+FONT;ctx.fillStyle=camOn&&handMode?(handSeen?'#2f9a5a':'#c98a00'):'#5b788c';
     ctx.fillText(camOn&&handMode?(handSeen?'✅ 손이 인식됐어요!':'✋ 손을 카메라에 보여주세요'):(camOn?'움직임 추적 모드(손 모델 로딩 실패) · 마우스 권장':'📷 카메라 꺼짐 · 마우스로도 똑같이 할 수 있어요'),440,470)}
   if(s.g==='집기'||s.g==='놓기'){
-    if(held!=='tutTooth'&&!st.tutDrop){ctx.font='72px '+FONT;ctx.fillText('🦷',250,420)}
-    ctx.font='84px '+FONT;ctx.fillText('🧺',650,430);if(st.tutDrop){ctx.font='40px '+FONT;ctx.fillText('🦷',650,400)}}
+    if(held!=='tutTooth'&&!st.tutDrop)drawTutTooth(250,420,1);
+    drawBasket(650,420);if(st.tutDrop)drawTutTooth(650,400,0.6)}
   if(s.g==='집은 채로 끌기'){ctx.fillStyle='rgba(50,137,212,0.18)';rr(200,546,460,28,14);ctx.fill();ctx.fillStyle='#3289d4';rr(200,546,20+(st.tutDrag||0),28,14);ctx.fill();
-    ctx.font='40px '+FONT;ctx.fillText('🏁',690,520)}
+    ctx.fillStyle='#24404e';ctx.fillRect(686,480,4,80);for(let r=0;r<4;r++)for(let c=0;c<5;c++){ctx.fillStyle=(r+c)%2?'#fff':'#24404e';ctx.fillRect(690+c*8,480+r*8,8,8)}}
   if(s.g==='마무리'){
     ctx.font='700 26px Gaegu, '+FONT;ctx.fillStyle='#1d5c98';ctx.fillText('손 인식이 잘 안 될 때',440,160);
     const tips=['💡 밝은 곳에서, 손 전체가 화면에 들어오게','📏 카메라에서 50–70cm 떨어지기','🖐 손바닥을 카메라 쪽으로','🌐 Chrome으로 접속하기','🖱 그래도 어렵다면 마우스로! 클릭 = 집기, 드래그 = 끌기'];
@@ -2371,7 +2380,7 @@ function updTension(s,dt,t){
 
 
 /* ================= 앱 셸: 홈 · 기록 · 리더보드 ================= */
-const APP_VERSION='v2.4';
+const APP_VERSION='v2.5';
 const PATCH_DATE='10월 1일';
 let screen='home',user=null;
 function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
@@ -2457,6 +2466,7 @@ function patchNotes(){return `
       <li><b>실기 문제처럼</b>: 트레이 아래 문제 상황·조건 제시, 모든 환자 케이스에 체어(교합면) 조정</li>
       <li class="new"><b>🎓 튜토리얼</b>: 커서·집기·놓기·끌기·원 그리기·양손을 1분 만에 연습(처음 접속하면 코드 유무와 상관없이 자동 진행, <b>건너뛰기</b> 가능, 시작 화면에서 다시 보기)</li>
       <li class="new">연습 모드에서 15초 넘게 막히면 <b>⏭ 했다 치고 넘어가기</b> 버튼(−5점), 체어 조절은 <b>좌우로</b></li>
+      <li class="new">v2.5: <b>내 화면은 오른쪽 아래(문제 메모 칸)에 고정</b>, 양손은 <b>보조 손이 분홍 원에 한 번만 닿으면 확인 완료</b>(이후 주 손만 움직이면 됨, 손이 엇갈려도 추적 유지), 튜토리얼 별이 안 보이던 문제 수정</li>
       <li class="new">최근: 체어 각도 현실화(기본 자세 세움, 하악은 약간 뒤로), 반대 손으로 잡은 라이트·기구는 반대 손에 표시, 장갑 오염은 <b>잡은 채로 잠시 유지</b>할 때만, 턱관절 하악 그림 수정 · 기록·리더보드에서 <b>이전 화면으로 돌아가기</b>, probing 눈금 UNC-15로 개선, 선택 시 잠깐 누르기 + 로딩, 화면 옮기기 버튼 정리</li>
     </ul>
   </details>`}
